@@ -27,10 +27,14 @@ export const Login = async({email, password}) =>{
 // cấp lại AccessToken
 export const refreshToken = async(token) =>{
     if(!token) throw new Error("No refresh token");
-    const payload = verifyToken(token, process.env.JWT_ACCESS_SECRET);
-    const user = await User.findById(payload.userId);
+    const payload = verifyToken(token, process.env.JWT_REFRESH_SECRET);
+    if(!payload) throw new Error("Invalid or expired refresh token")
+    const user = await User.findById(payload.id);
     if(!user || user.refreshToken !== token)
         throw new Error("Invalid refresh token");
+    if(user) {
+        console.log("User:",user.userId);
+    }
     const newAccessToken = generateAccessToken(user);
     return {accessToken: newAccessToken};
 }

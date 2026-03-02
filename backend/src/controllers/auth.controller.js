@@ -19,10 +19,10 @@ export const Login = async(req, res) =>{
     }
 }
 export const RefreshToken = async(req, res)=>{
-    const {refreshToken} = req.body;
-    console.log("Refresh Token received:",refreshToken);
     try {
-        const newAccessToken = await authService.refreshToken({refreshToken});
+        const {refreshToken} = req.body;
+        console.log("Refresh Token received:",refreshToken);
+        const newAccessToken = await authService.refreshToken(refreshToken);
         res.status(201).json(newAccessToken);
     } catch (error) {
         res.status(400).json({message: error.message});
