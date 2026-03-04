@@ -1,5 +1,5 @@
 import express from "express";
-import authRouter from "./auth.route.js"
+import authRouter from "./routes/auth.route.js"
 import createError from "http-errors";
 const router = express.Router();
 
