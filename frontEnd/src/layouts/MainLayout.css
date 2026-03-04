@@ -1,0 +1,10 @@
+.layout {
+  width: 100%;
+}
+
+.content {
+  width: 100%;
+  min-height: calc(100vh - 70px); /* trừ navbar */
+  display: flex;
+  justify-content: center;
+}

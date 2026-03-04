@@ -1,0 +1,88 @@
+/* HERO */
+.hero {
+  height: 90vh;
+  background: url("https://easysalon.vn/wp-content/uploads/2019/10/so-sanh-barber-shop-va-tiem-cat-toc.png")
+    center/cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  position: relative;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.hero h1 {
+  font-size: 56px;
+  letter-spacing: 3px;
+  margin-bottom: 20px;
+}
+
+.hero p {
+  font-size: 20px;
+  margin-bottom: 30px;
+}
+
+.cta-btn {
+  padding: 14px 28px;
+  font-size: 18px;
+  background: #ffd700;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 6px;
+}
+
+
+/* SERVICES */
+.services {
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.services h2 {
+  margin-bottom: 40px;
+  font-size: 32px;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.card {
+  border: 1px solid #eee;
+  padding: 30px;
+  border-radius: 10px;
+  transition: 0.3s;
+  background: white;
+}
+
+.card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* ABOUT */
+.about {
+  background: #111;
+  color: white;
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.about h2 {
+  margin-bottom: 20px;
+}
