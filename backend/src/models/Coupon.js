@@ -1,39 +1,33 @@
 const mongoose = require('mongoose');
 
 const CouponSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true,
-    },
+    name: String,
+
     code: {
         type: String,
         required: true,
+        unique: true
     },
+
     serviceId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Service',
-        required: true,
+        ref: 'Service'
     },
-    startDate: {
-        type: Date,
-        required: true,
+
+    membershipType: {
+        type: String,
+        enum: ['gold', 'diamond']
     },
-    endDate: {
-        type: Date,
-        required: true,
-    },
+
     percent: {
         type: Number,
-        required: true,
         min: 0,
         max: 100
-    }
-}, {
-    timestamps: {
-        createdAt: true,
-        updatedAt: false
-    }
-});
+    },
 
-const Coupon = mongoose.model('Coupon', CouponSchema);
-module.exports = Coupon;
+    startDate: Date,
+    endDate: Date
+
+}, { timestamps: true });
+
+module.exports = mongoose.model('Coupon', CouponSchema);

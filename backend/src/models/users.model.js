@@ -8,6 +8,11 @@ const userSchema = new mongoose.Schema({
     imgUrl: {type: String},
     refreshToken:{type: String},
     membershipId: {type: Number},
+    membershipType: {
+    type: String,
+    enum: ['normal','gold','diamond'],
+    default: 'normal'
+}
 },{timestamps:true})
 const User = mongoose.model("User", userSchema);
 export default User;
