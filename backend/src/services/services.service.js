@@ -1,4 +1,37 @@
 import Service from "../models/Service.model.js";
+const Coupon = require("../models/Coupon");
+const Service = require("../models/Service.model");
+
+const calculateDiscountPrice = async (serviceId, userMembership) => {
+  const service = await Service.findById(serviceId);
+
+  if (!service) {
+    throw new Error("Service not found");
+  }
+
+  let discountPercent = 0;
+
+  if (userMembership === "gold") {
+    discountPercent = 15;
+  }
+
+  if (userMembership === "diamond") {
+    discountPercent = 30;
+  }
+
+  const finalPrice = service.price * (1 - discountPercent / 100);
+
+  return {
+    serviceName: service.name,
+    originalPrice: service.price,
+    discountPercent,
+    finalPrice
+  };
+};
+
+module.exports = {
+  calculateDiscountPrice
+};
 
 export const getAllServices = async() =>{
     return Service.find().sort({createdAt: -1});
