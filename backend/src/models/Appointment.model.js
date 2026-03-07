@@ -1,5 +1,23 @@
 const mongoose = require('mongoose');
 
+
+const phaseTimelineSchema = new mongoose.Schema({
+    name: {type: String, required: true, trim: true},
+    duration: {type: Number, required: true, min: 1},
+    requiresStaff: {type: Boolean, required: true},
+    startMinute: {type: Number, required: true, min: 1},
+    endMinute: {type: Number, required: true, min: 1},
+    },
+
+    {_id: false}//no auto create id
+);
+
+const timeRangeSchema = new mongoose.Schema({
+    startMinute: {type: Number, required: true, min: 0},
+    endMinute: {type: Number, required: true, min: 1},
+    },
+    {_id: false}
+);
 const AppointmentSchema = new mongoose.Schema({
     customerId: {
         type: mongoose.Schema.Types.ObjectId,
