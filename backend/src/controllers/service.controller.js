@@ -44,9 +44,9 @@ export const DeleteService = async (req, res) =>{
         res.status(400).json({message: "Delete service errror", error: error.message });
     }
 };
-const serviceService = require("../services/services.service");
 
-exports.checkoutService = async (req, res) => {
+
+export const checkoutService = async (req, res) => {
   try {
 
     const { serviceId } = req.body;

@@ -1,6 +1,5 @@
 import Service from "../models/Service.model.js";
-const Coupon = require("../models/Coupon");
-const Service = require("../models/Service.model");
+import coupon from "../models/Coupon.js";
 
 const calculateDiscountPrice = async (serviceId, userMembership) => {
   const service = await Service.findById(serviceId);
@@ -27,10 +26,6 @@ const calculateDiscountPrice = async (serviceId, userMembership) => {
     discountPercent,
     finalPrice
   };
-};
-
-module.exports = {
-  calculateDiscountPrice
 };
 
 export const getAllServices = async() =>{
