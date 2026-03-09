@@ -1,0 +1,80 @@
+import mongoose from "mongoose";
+
+const phaseTimelineSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    duration: { type: Number, required: true, min: 1 },
+    requiresStaff: { type: Boolean, required: true },
+    startMinute: { type: Number, required: true, min: 0 },
+    endMinute: { type: Number, required: true, min: 1 },
+  },
+  { _id: false }
+);
+
+const timeRangeSchema = new mongoose.Schema(
+  {
+    startMinute: { type: Number, required: true, min: 0 },
+    endMinute: { type: Number, required: true, min: 1 },
+  },
+  { _id: false }
+);
+
+const appointmentSchema = new mongoose.Schema(
+  {
+    customerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    walkInCustomerName: {
+      type: String,
+      trim: true,
+    },
+    staffId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    serviceIds: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Service",
+      required: true,
+    }],
+    bookingChannel: {
+      type: String,
+      enum: ["online", "offline"],
+      required: true,
+    },
+    createdByRole: {
+      type: String,
+      enum: ["customer", "staff", "admin"],
+      required: true,
+    },
+    appointmentDate: {
+      type: Date,
+      required: true,
+    },
+    startTime: {
+      type: Number,
+      required: true,
+    },
+    endTime: {
+      type: Number,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["Pending", "Scheduled", "Completed", "Cancelled"],
+      default: "Scheduled",
+      required: true,
+    },
+    note: { type: String, trim: true },
+    phaseTimeline: [phaseTimelineSchema],
+    staffBusySlots: [timeRangeSchema],
+    staffFreeSlots: [timeRangeSchema],
+  },
+  { timestamps: true }
+);
+
+const Appointment = mongoose.model("Appointment", appointmentSchema);
+
+export default Appointment;
