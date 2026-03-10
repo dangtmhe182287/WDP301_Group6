@@ -1,16 +1,5 @@
 import mongoose from "mongoose";
 
-const phaseTimelineSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    duration: { type: Number, required: true, min: 1 },
-    requiresStaff: { type: Boolean, required: true },
-    startMinute: { type: Number, required: true, min: 0 },
-    endMinute: { type: Number, required: true, min: 1 },
-  },
-  { _id: false }
-);
-
 const timeRangeSchema = new mongoose.Schema(
   {
     startMinute: { type: Number, required: true, min: 0 },
@@ -68,7 +57,6 @@ const appointmentSchema = new mongoose.Schema(
       required: true,
     },
     note: { type: String, trim: true },
-    phaseTimeline: [phaseTimelineSchema],
     staffBusySlots: [timeRangeSchema],
     staffFreeSlots: [timeRangeSchema],
   },
