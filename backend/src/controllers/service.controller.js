@@ -44,3 +44,28 @@ export const DeleteService = async (req, res) =>{
         res.status(400).json({message: "Delete service errror", error: error.message });
     }
 };
+
+
+export const checkoutService = async (req, res) => {
+  try {
+
+    const { serviceId } = req.body;
+
+    const user = req.user; // lấy từ middleware auth
+
+    const result = await serviceService.calculateDiscountPrice(
+      serviceId,
+      user.membershipLevel
+    );
+
+    res.status(200).json({
+      message: "Checkout success",
+      data: result
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};
