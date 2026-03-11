@@ -1,13 +1,15 @@
 import User from "../models/User.model.js"
 import bcrypt from "bcryptjs"
 import { generateAccessToken, generateRefreshToken, verifyToken } from "../utils/jwt.js"
-export const Register = async({email,password})=>{
+export const Register = async({fullName,email,password, phone})=>{
     const existed = await User.findOne({email});
     if(existed) throw new Error("Email is already existed!");
     const harsh_password = await bcrypt.hash(password, 10);
     const newUser = await User.create({
+        fullName: fullName,
         email: email,
         password: harsh_password,
+        phone: phone,
         role: "customer",
     })
     return newUser;
