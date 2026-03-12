@@ -8,7 +8,7 @@ const StaffRequestSchema = mongoose.Schema({
     certificate: {
         name: {type: String},
         organization: {type: String},
-        certificate: {type: String},
+        certificateId: {type: String},
         image: {type: String},
     },
     portfolio: [{type: String}],
