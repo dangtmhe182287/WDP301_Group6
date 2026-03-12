@@ -60,8 +60,8 @@ export default function Footer() {
         .footer{
           background:#020d1b;
           color:white;
-          padding-top:60px;
-          margin-top:60px;
+          padding-top:10px;
+          width: 100%;
         }
 
         .footer-grid{
@@ -143,8 +143,8 @@ export default function Footer() {
 
         .footer-bottom{
           border-top:1px solid #1e293b;
-          margin-top:40px;
-          padding:20px 0;
+          margin-top:10px;
+          padding:10px 0;
           text-align:center;
           color:#94a3b8;
         }
