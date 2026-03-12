@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 const userSchema = new mongoose.Schema({
-    fullName: { type: String , required: true},
+    fullName: { type: String },
     email: { type: String, required: true },
     password: { type: String, required: true },
-    phone: { type: String , required: true},
-    role: { type: String, enum: ["customer", "admin", "staff"], default: "custome" },
+    phone: { type: String },
+    role: { type: String, enum: ["customer", "admin", "staff"], default: "customer" },
     imgUrl: { type: String },
     refreshToken: { type: String },
     membershipId: { type: Number },
