@@ -14,7 +14,7 @@ export default function Header() {
           </div>
 
           <nav className="nav">
-            <a href="#">Home</a>
+            <a onClick={() => navigate("/")}>Home</a>
             <a href="#">Services</a>
             <a href="#">Stylists</a>
             <a href="#">About Us</a>
@@ -48,6 +48,7 @@ export default function Header() {
           display:flex;
           align-items:center;
           justify-content:space-between;
+          flex-wrap: wrap;
         }
 
         .logo{
@@ -55,6 +56,7 @@ export default function Header() {
           align-items:center;
           font-weight:700;
           font-size:18px;
+          padding-left:20px;
         }
 
         .logo-icon{
@@ -81,7 +83,8 @@ export default function Header() {
         }
 
         .auth-buttons button{
-          margin-left:10px;
+          
+          margin-right:20px;
           padding:8px 16px;
           border-radius:20px;
           border:none;

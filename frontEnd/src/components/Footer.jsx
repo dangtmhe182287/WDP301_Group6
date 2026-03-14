@@ -1,6 +1,7 @@
 import React from "react";
-
+import { useNavigate } from "react-router-dom";
 export default function Footer() {
+  const navigate = useNavigate();
   return (
     <>
       <footer className="footer">
@@ -16,6 +17,7 @@ export default function Footer() {
               Redefining the modern salon experience through innovation,
               artistry, and exceptional care.
             </p>
+            <p>ElysinaCut@gmail.com</p>
 
             
           </div>
@@ -24,7 +26,7 @@ export default function Footer() {
             <h4>Quick Links</h4>
             <ul>
               <li>Our Services</li>
-              <li>Book Appointment</li>
+              <li  onClick={() => navigate("/appointment")}>Book Appointment</li>
               <li>Gift Cards</li>
               <li>Salon Policy</li>
             </ul>
@@ -35,18 +37,9 @@ export default function Footer() {
             <p>
              
             </p>
-
-            
           </div>
-
-          <div className="footer-newsletter">
-            <h4>Newsletter</h4>
-
-            <div className="newsletter">
-              <input type="text" placeholder="Email address" />
-              <button>→</button>
-            </div>
-          </div>
+          
+         
 
         </div>
 
@@ -60,13 +53,14 @@ export default function Footer() {
         .footer{
           background:#020d1b;
           color:white;
-          padding-top:60px;
-          margin-top:60px;
+          padding-top:10px;
+          width: 100%;
+          margin-top: auto;
         }
 
         .footer-grid{
           display:grid;
-          grid-template-columns:2fr 1fr 1fr 1.5fr;
+          grid-template-columns:2fr 1fr 1fr;
           gap:40px;
         }
 
@@ -143,8 +137,8 @@ export default function Footer() {
 
         .footer-bottom{
           border-top:1px solid #1e293b;
-          margin-top:40px;
-          padding:20px 0;
+          margin-top:10px;
+          padding:10px 0;
           text-align:center;
           color:#94a3b8;
         }

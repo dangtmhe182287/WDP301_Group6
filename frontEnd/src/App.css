@@ -1,0 +1,26 @@
+
+/*
+    css for app component
+*/
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main{
+  flex:1;
+}
+.container {
+  max-width: 1200px;
+  width: 100%;
+  margin: auto;
+
+}
+html, body, #root {
+  height: 100%;
+}
+body{
+  margin:0;
+}

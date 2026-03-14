@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import Header from "../components/Header.jsx";
+import Footer from "../components/Footer.jsx";
 
 const API_BASE = 'http://localhost:3000'
 
@@ -133,12 +135,12 @@ function AppointmentPage() {
   }
 
   return (
+    <>
+    
     <main className="appointment-page">
-      <section className="card">
+      <section className="card" style={{ maxWidth: 600, margin: 'auto', padding: 20 }}>
         <h1>Đặt Appointment</h1>
-        <a className="secondary-link" href="/">
-          ← Về Home
-        </a>
+        
 
         <div className="form-grid">
           <label>
@@ -203,6 +205,9 @@ function AppointmentPage() {
         {message ? <p className="message">{message}</p> : null}
       </section>
     </main>
+    
+    </>
+    
   )
 }
 
