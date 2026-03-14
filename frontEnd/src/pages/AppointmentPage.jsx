@@ -140,9 +140,7 @@ function AppointmentPage() {
     <main className="appointment-page">
       <section className="card" style={{ maxWidth: 600, margin: 'auto', padding: 20 }}>
         <h1>Đặt Appointment</h1>
-        <a className="secondary-link" href="/">
-          ← Về Home
-        </a>
+        
 
         <div className="form-grid">
           <label>

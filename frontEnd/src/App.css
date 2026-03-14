@@ -9,12 +9,18 @@
   flex-direction: column;
 }
 
-footer {
-  margin-top: auto;
+main{
+  flex:1;
 }
 .container {
   max-width: 1200px;
   width: 100%;
   margin: auto;
-  padding: 0 20px;
+
+}
+html, body, #root {
+  height: 100%;
+}
+body{
+  margin:0;
 }

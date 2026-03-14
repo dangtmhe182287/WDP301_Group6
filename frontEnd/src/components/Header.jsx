@@ -48,6 +48,7 @@ export default function Header() {
           display:flex;
           align-items:center;
           justify-content:space-between;
+          flex-wrap: wrap;
         }
 
         .logo{
@@ -55,7 +56,7 @@ export default function Header() {
           align-items:center;
           font-weight:700;
           font-size:18px;
-          margin-left:20px;
+          padding-left:20px;
         }
 
         .logo-icon{
