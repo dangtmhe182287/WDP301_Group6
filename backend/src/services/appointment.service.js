@@ -1,12 +1,12 @@
 import Appointment from "../models/Appointment.model.js";
 import Service from "../models/Service.model.js";
 
-// Booking được chia theo block 15 phút trong khung giờ làm việc 09:00 - 18:00.
+// Booking uses 15-minute blocks, working hours 09:00 - 18:00.
 const SLOT_STEP = 15;
 const OPEN_MINUTE = 9 * 60;
 const CLOSE_MINUTE = 18 * 60;
 
-// Chuẩn hóa ngày về mốc đầu ngày để query appointment theo đúng 1 calendar day.
+// Normalize date to start-of-day for queries in a single calendar day.
 const normalizeDay = (dateInput) => {
   const date = new Date(dateInput);
   if (Number.isNaN(date.getTime())) {
@@ -24,7 +24,7 @@ const normalizeDay = (dateInput) => {
 
 const isOverlap = (startA, endA, startB, endB) => Math.max(startA, startB) < Math.min(endA, endB);
 
-// API hỗ trợ cả serviceId (1 service) và serviceIds (nhiều service).
+// Supports both serviceId (single) and serviceIds (multiple).
 const toServiceIdList = (payload) => {
   if (payload.serviceId) {
     return [payload.serviceId];
@@ -35,6 +35,28 @@ const toServiceIdList = (payload) => {
   }
 
   throw new Error("At least one service is required");
+};
+
+const parseServiceIds = (query) => {
+  if (query.serviceId) {
+    return [query.serviceId];
+  }
+
+  if (typeof query.serviceIds === "string") {
+    const splitIds = query.serviceIds
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+    if (splitIds.length > 0) {
+      return splitIds;
+    }
+  }
+
+  if (Array.isArray(query.serviceIds) && query.serviceIds.length > 0) {
+    return query.serviceIds;
+  }
+
+  return [];
 };
 
 const getTotalDuration = async (serviceIds) => {
@@ -66,7 +88,7 @@ export const createAppointment = async (payload) => {
     throw new Error("Start time must be aligned to 15-minute slots");
   }
 
-  // Tính tổng duration để tự động khóa lịch từ startTime đến endTime.
+  // Use total duration from selected services to reserve the block.
   const serviceIds = toServiceIdList(payload);
   const totalDuration = await getTotalDuration(serviceIds);
   const endTime = startTime + totalDuration;
@@ -106,16 +128,17 @@ export const createAppointment = async (payload) => {
   });
 };
 
-export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId }) => {
-  if (!staffId || !appointmentDate || !serviceId) {
-    throw new Error("staffId, appointmentDate and serviceId are required");
+export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId, serviceIds }) => {
+  if (!staffId || !appointmentDate) {
+    throw new Error("staffId and appointmentDate are required");
   }
 
-  const service = await Service.findById(serviceId);
-  if (!service) {
-    throw new Error("Service not found");
+  const resolvedServiceIds = parseServiceIds({ serviceId, serviceIds });
+  if (resolvedServiceIds.length === 0) {
+    throw new Error("At least one service is required");
   }
 
+  const totalDuration = await getTotalDuration(resolvedServiceIds);
   const { dayStart, dayEnd } = normalizeDay(appointmentDate);
 
   const staffAppointments = await Appointment.find({
@@ -125,9 +148,9 @@ export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId })
   }).select("startTime endTime");
 
   const slots = [];
-  // Duyệt từng slot 15 phút; mỗi slot chỉ available nếu đủ duration và không bị overlap.
+  // Each slot is available only if full duration fits and does not overlap.
   for (let minute = OPEN_MINUTE; minute < CLOSE_MINUTE; minute += SLOT_STEP) {
-    const endMinute = minute + service.duration;
+    const endMinute = minute + totalDuration;
     const available =
       endMinute <= CLOSE_MINUTE &&
       !staffAppointments.some((appointment) =>
@@ -144,8 +167,8 @@ export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId })
   return {
     staffId,
     appointmentDate: dayStart,
-    serviceId,
-    serviceDuration: service.duration,
+    serviceIds: resolvedServiceIds,
+    serviceDuration: totalDuration,
     slots,
   };
 };
