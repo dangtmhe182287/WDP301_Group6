@@ -1,8 +1,11 @@
 import mongoose from "mongoose";
 const userSchema = new mongoose.Schema({
     fullName: { type: String },
-    email: { type: String, required: true },
-    password: { type: String, required: true },
+    email: { type: String, required: true , unique: true, lowercase: true},
+    password: { type: String },
+       googleId: {
+        type: String
+    },
     phone: { type: String },
     role: { type: String, enum: ["customer", "admin", "staff"], default: "customer" },
     imgUrl: { type: String },

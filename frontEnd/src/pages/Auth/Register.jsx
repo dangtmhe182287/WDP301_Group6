@@ -14,6 +14,7 @@ export default function RegisterForm() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+     phone: "",
     password: "",
     confirmPassword: "",
   });
@@ -45,6 +46,12 @@ export default function RegisterForm() {
       toast.error("Email chưa đúng!");
       return;
     }
+    // Validate phone
+const phoneRegex = /^0\d{9}$/;
+if (!phoneRegex.test(formData.phone)) {
+  toast.error("Số điện thoại không hợp lệ!");
+  return;
+}
     // Validate password
     if (formData.password.length < 8) {
       toast.error("Ký tự mật khẩu ít nhất là 8");
@@ -62,12 +69,13 @@ export default function RegisterForm() {
       const payload = {
         name: formData.name,
         email: formData.email,
+          phone: formData.phone,
         password: formData.password,
       };
 
       const { data } = await register(payload);
       toast.success("Đăng ký thành công!");
-      setFormData({ name: "", email: "", password: "", confirmPassword: "" });
+      setFormData({ name: "", email: "",  phone: "", password: "", confirmPassword: "" });
 
       console.log("Server response:", data);
     } catch (error) {
@@ -210,6 +218,22 @@ export default function RegisterForm() {
                   className="h-11 bg-[#F4F4F4] border-gray-300 text-black placeholder:text-gray-500 focus:border-blue-600 focus:ring-blue-600"
                 />
               </div>
+              {/* Phone Field */}
+<div className="space-y-2">
+  <Label htmlFor="phone" className="text-sm text-black font-medium">
+    Số điện thoại
+  </Label>
+  <Input
+    id="phone"
+    name="phone"
+    type="tel"
+    placeholder="Nhập số điện thoại"
+    value={formData.phone}
+    onChange={handleChange}
+    required
+    className="h-11 bg-[#F4F4F4] border-gray-300 text-black placeholder:text-gray-500 focus:border-blue-600 focus:ring-blue-600"
+  />
+</div>
 
               {/* Password Field */}
               <div className="space-y-2">
