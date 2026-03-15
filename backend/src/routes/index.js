@@ -3,6 +3,7 @@ import authRouter from "./auth.route.js"
 import serviceRouter from "./service.route.js"
 import appointmentRouter from "./appointment.route.js"
 import staffRequestRouter from "./staffRequest.route.js"
+import rateRouter from "./rate.route.js"
 import createError from "http-errors";
 const router = express.Router();
 
@@ -10,6 +11,8 @@ router.use("/auth", authRouter);
 router.use("/services", serviceRouter);
 router.use("/appointments", appointmentRouter);
 router.use("/staff-request", staffRequestRouter);
+router.use("/rates", rateRouter);
+
 // Handle 404 (if not matched any router)
 router.use((req, res, next) =>{
     next(createError.NotFound());
