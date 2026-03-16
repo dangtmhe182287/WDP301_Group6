@@ -1,5 +1,5 @@
 import express from "express";
-import {Register, Login, RefreshToken} from "../controllers/auth.controller.js"
+import {Register, Login, RefreshToken, ResetPassword, ForgotPassword} from "../controllers/auth.controller.js"
 import passport from "passport";
 import jwt from "jsonwebtoken";
 const router = express.Router();
@@ -7,6 +7,9 @@ const router = express.Router();
 router.post("/register", Register);
 router.post("/login", Login);
 router.post("/refreshToken",RefreshToken);
+
+router.post("/forgot-password", ForgotPassword);
+router.post("/reset-password/:token", ResetPassword);
 
 router.get(
   "/google",

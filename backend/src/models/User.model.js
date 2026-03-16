@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema({
     role: { type: String, enum: ["customer", "admin", "staff"], default: "customer" },
     imgUrl: { type: String },
     refreshToken: { type: String },
+    resetPasswordToken: { type: String },
+    resetPasswordExpire: { type: Date },
     membershipId: { type: Number },
     membershipType: {
         type: String,

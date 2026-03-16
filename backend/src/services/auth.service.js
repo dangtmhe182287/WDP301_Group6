@@ -1,5 +1,6 @@
 import User from "../models/User.model.js"
 import bcrypt from "bcryptjs"
+import crypto from "crypto"
 import { generateAccessToken, generateRefreshToken, verifyToken } from "../utils/jwt.js"
 export const Register = async({fullName,email,password, phone})=>{
     const existed = await User.findOne({email});
@@ -41,5 +42,42 @@ export const refreshToken = async(token) =>{
     return {accessToken: newAccessToken};
 }
 export const Logout = async(userId)=>{
-    await User.findByIdAndDelete(userId, {refreshToken:null});
+    await User.findByIdAndUpdate(userId, {refreshToken:null});
+}
+
+export const forgotPassword = async(email)=>{
+    const user = await User.findOne({email});
+    if(!user) throw new Error("Email not found");
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 phút
+
+    await user.save();
+
+    const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+
+    console.log("Reset password link:", resetLink);
+
+    return resetLink;
+}
+
+export const resetPassword = async(token, newPassword)=>{
+    const user = await User.findOne({
+        resetPasswordToken: token,
+        resetPasswordExpire: {$gt: Date.now()}
+    });
+
+    if(!user) throw new Error("Token invalid or expired");
+
+    const harsh_password = await bcrypt.hash(newPassword, 10);
+
+    user.password = harsh_password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    return "Password updated successfully";
 }
