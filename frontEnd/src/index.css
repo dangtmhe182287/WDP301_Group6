@@ -208,7 +208,7 @@ body {
 
 .appointment-header p {
   margin: 0 0 16px;
-  color: #64748b;
+  
 }
 
 .appointment-block {
@@ -476,8 +476,57 @@ body {
   font-size: 13px;
 }
 
+.login-required{
+  color: red;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.muted{
+  color: #d10000;
+  font-size: 14px;
+}
+
 @media (max-width: 1024px) {
   .home-hero {
     grid-template-columns: 1fr;
   }
 }
+
+/* Settings page */
+.settings-page {
+  padding: 48px 16px 64px;
+  background: radial-gradient(circle at top, rgba(34, 211, 197, 0.12), transparent 50%),
+    #f8fafc;
+}
+
+.settings-card {
+  max-width: 520px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  padding: 24px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.settings-form {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.settings-form input {
+  padding: 10px 12px;
+  border: 1px solid #cbd5f5;
+  border-radius: 10px;
+  font-size: 14px;
+}
+

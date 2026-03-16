@@ -6,6 +6,7 @@ import AppointmentPage from "./pages/AppointmentPage";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import Home from "./pages/Home";
+import Settings from "./pages/Settings";
 import { AuthProvider } from "./context/AuthContext";
 import { Toaster } from "sonner";
 
@@ -28,6 +29,7 @@ function Layout() {
 
         <Route path="/" element={<Home/>} />
         <Route path="/appointment" element={<AppointmentPage />} />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
 
       {!hideLayout && <Footer />}

@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="container footer-grid">
 
           <div className="footer-brand">
-            <div className="logo">
+            <div className="logo"  onClick={() => navigate("/")}>
               <img src={logo} alt="logo" className="logo-icon" />
               <span>Elysina.</span>
             </div>
@@ -70,6 +70,7 @@ export default function Footer() {
           align-items:center;
           font-weight:700;
           font-size:18px;
+          cursor:pointer;
         }
 
         .logo-icon{

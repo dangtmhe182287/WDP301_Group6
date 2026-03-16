@@ -5,6 +5,7 @@ import appointmentRouter from "./appointment.route.js"
 import staffRequestRouter from "./staffRequest.route.js"
 
 import staffRouter from "./staff.route.js"
+import userRouter from "./user.route.js"
 import createError from "http-errors";
 const router = express.Router();
 
@@ -12,6 +13,7 @@ router.use("/auth", authRouter);
 router.use("/services", serviceRouter);
 router.use("/appointments", appointmentRouter);
 router.use("/staffs", staffRouter);
+router.use("/users", userRouter);
 router.use("/staff-request", staffRequestRouter);
 
 

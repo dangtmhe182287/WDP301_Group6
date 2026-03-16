@@ -184,8 +184,8 @@ function AppointmentPage() {
           <div className="appointment-header">
             <h1>Đặt Appointment</h1>
             <p>Chọn dịch vụ trước, sau đó chọn staff, ngày và giờ phù hợp.</p>
-            <p className="muted">
-              {user?._id ? `Xin chào ${user._id}.` : 'Bạn cần đăng nhập để đặt lịch.'}
+            <p className={user?._id ? "muted" : "login-required"}>
+              {user?._id ? `` : 'Bạn cần đăng nhập để đặt lịch.'}
             </p>
           </div>
 

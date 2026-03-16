@@ -86,6 +86,10 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const updateUser = (nextUser) => {
+        setUser(nextUser);
+    };
+
     const refreshToken = async () => {
         const result = await authService.refreshToken();
         
@@ -105,7 +109,8 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         logout,
-        refreshToken
+        refreshToken,
+        updateUser
     };
 
     return (

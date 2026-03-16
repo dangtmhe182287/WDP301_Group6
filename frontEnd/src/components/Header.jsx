@@ -1,14 +1,32 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
+import anonymousAvatar from "../assets/anomyous.jpg";
 export default function Header() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const avatarSrc = user?.imgUrl || anonymousAvatar;
   return (
     <>
       <header className="header">
         <div className="container header-inner">
 
-          <div className="logo">
+          <div className="logo" onClick={() => navigate("/")}>
             <img src={logo} alt="logo" className="logo-icon" />
             <span>Elysina.</span>
           </div>
@@ -21,18 +39,38 @@ export default function Header() {
           </nav>
 
           <div className="auth-buttons">
-            <button className="btn-login"
-            onClick={() => navigate("/login")}
-            >Login</button>
-            
-            <button
-              className="btn-signup"
-            onClick={() => navigate("/register")}
-            >
-              Sign Up
-            </button>
+            {!user ? (
+              <>
+                <button
+                  className="btn-login"
+                  onClick={() => navigate("/login")}
+                >
+                  Login
+                </button>
 
-
+                <button
+                  className="btn-signup"
+                  onClick={() => navigate("/register")}
+                >
+                  Sign Up
+                </button>
+              </>
+            ) : (
+              <div className="avatar-menu" ref={menuRef}>
+                <button
+                  className="avatar-button"
+                  onClick={() => setMenuOpen((prev) => !prev)}
+                >
+                  <img src={avatarSrc} alt="avatar" />
+                </button>
+                {menuOpen ? (
+                  <div className="avatar-dropdown">
+                    <button onClick={() => navigate("/settings")}>Setting</button>
+                    <button>Logout</button>
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
 
         </div>
@@ -85,7 +123,7 @@ export default function Header() {
           color:#22d3c5;
         }
 
-        .auth-buttons button{
+        .btn-login, .btn-signup{
           
           margin-right:20px;
           padding:8px 16px;
@@ -93,6 +131,23 @@ export default function Header() {
           border:none;
           cursor:pointer;
           width: 90px;
+        }
+
+        .avatar-button{
+          width:40px;
+          height:40px;
+          border-radius:50%;
+          border:2px solid #22d3c5;
+          padding:0;
+          overflow:hidden;
+          background:white;
+          cursor:pointer;
+        }
+
+        .avatar-button img{
+          width:100%;
+          height:100%;
+          object-fit:cover;
         }
 
         .btn-login{
@@ -103,6 +158,46 @@ export default function Header() {
         .btn-signup{
           background:#22d3c5;
           color:white;
+        }
+
+        .avatar-menu{
+          position:relative;
+          display:flex;
+          align-items:center;
+          margin-right:20px;
+        }
+
+        
+
+        .avatar-dropdown{
+          position:absolute;
+          right:0;
+          top:48px;
+          background:white;
+          border:1px solid #e2e8f0;
+          border-radius:12px;
+          box-shadow:0 10px 22px rgba(15, 23, 42, 0.12);
+          min-width:160px;
+          padding:8px;
+          display:flex;
+          flex-direction:column;
+          gap:6px;
+          z-index:10;
+        }
+
+        .avatar-dropdown button{
+          background:transparent;
+          border:none;
+          padding:8px 10px;
+          text-align:left;
+          cursor:pointer;
+          border-radius:8px;
+          font-weight:500;
+        }
+
+        .avatar-dropdown button:hover{
+          background:#f1f5f9;
+          color:#0f172a;
         }
       `}</style>
     </>
