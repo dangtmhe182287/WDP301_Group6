@@ -1,5 +1,5 @@
-import Rate from '../models/rate.model.js';
-import Appointment from '../models/appointment.model.js';
+import Rate from '../models/Rate.model.js';
+import Appointment from '../models/Appointment.model.js';
 
 export const createRate = async(req, res) => {
     try {
