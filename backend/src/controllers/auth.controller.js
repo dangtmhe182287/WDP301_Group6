@@ -14,7 +14,8 @@ export const Login = async(req, res) =>{
     try {
         const {user, accessToken, refreshToken} = await authService.Login({email, password});
         res.status(201).json({message: "Login success",
-             accessToken
+             accessToken,
+             user
         });
     } catch (error) {
         res.status(400).json({message: error.message});
@@ -24,8 +25,8 @@ export const RefreshToken = async(req, res)=>{
     try {
         const {refreshToken} = req.body;
         console.log("Refresh Token received:",refreshToken);
-        const newAccessToken = await authService.refreshToken(refreshToken);
-        res.status(201).json(newAccessToken);
+        const session = await authService.refreshToken(refreshToken);
+        res.status(201).json(session);
     } catch (error) {
         res.status(400).json({message: error.message});
     }
@@ -33,7 +34,6 @@ export const RefreshToken = async(req, res)=>{
 export const Logout = async(req,res)=>{
     try {
         await authService.Logout(req.user.userId);
-        res.status(201).json("Logged out!");
     } catch (error) {
         res.status(400).json({message: error.message});
     }

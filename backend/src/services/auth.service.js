@@ -2,6 +2,7 @@ import User from "../models/User.model.js"
 import bcrypt from "bcryptjs"
 import crypto from "crypto"
 import { generateAccessToken, generateRefreshToken, verifyToken } from "../utils/jwt.js"
+import { sendEmail } from "../utils/sendEmail.js"
 export const Register = async({fullName,email,password, phone})=>{
     const existed = await User.findOne({email});
     if(existed) throw new Error("Email is already existed!");
@@ -39,7 +40,7 @@ export const refreshToken = async(token) =>{
         console.log("User:",user.userId);
     }
     const newAccessToken = generateAccessToken(user);
-    return {accessToken: newAccessToken};
+    return {accessToken: newAccessToken, user};
 }
 export const Logout = async(userId)=>{
     await User.findByIdAndUpdate(userId, {refreshToken:null});
@@ -52,13 +53,21 @@ export const forgotPassword = async(email)=>{
     const resetToken = crypto.randomBytes(32).toString("hex");
 
     user.resetPasswordToken = resetToken;
-    user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 phút
+    user.resetPasswordExpire = Date.now() + 15*60*1000;
 
     await user.save();
 
     const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
 
-    console.log("Reset password link:", resetLink);
+    await sendEmail(
+        user.email,
+        "Reset Password - Elysina",
+        `
+        <h3>Reset Password</h3>
+        <p>Click vào link bên dưới để đổi mật khẩu:</p>
+        <a href="${resetLink}">${resetLink}</a>
+        `
+    );
 
     return resetLink;
 }

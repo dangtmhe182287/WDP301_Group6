@@ -19,30 +19,7 @@ const userSchema = new mongoose.Schema({
         default: 'normal'
     },
 
-    //staff specific profile fields
-    speciality: {
-        type: String,
-        trim: true,
-        validate: {
-            validator(value) {
-                if (this.role != "staff") return true; // if not staff, return
-                return Boolean(value && value.trim().length > 0); //if true, pass validator
-            },
-            message: "Speciality is required for staff accounts",
-        },
-    },
-
-    experienceYears: {
-        type: Number,
-        min: 0,
-        validate: {
-            validator(value) {
-                if (this.role != "staff") return true; // if not staff, return
-                return Number.isInteger(value) && value >= 0; //if true, pass validator
-            },
-            message: "Experience years must be non negative inter for staff accounts",
-        },
-    },
+    
 },
     { timestamps: true }
 );

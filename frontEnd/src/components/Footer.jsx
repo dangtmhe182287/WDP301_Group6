@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import logo from "../assets/logo.png";
 export default function Footer() {
   const navigate = useNavigate();
   return (
@@ -9,7 +10,7 @@ export default function Footer() {
 
           <div className="footer-brand">
             <div className="logo">
-              <div className="logo-icon">✂</div>
+              <img src={logo} alt="logo" className="logo-icon" />
               <span>Elysina.</span>
             </div>
 
@@ -19,14 +20,14 @@ export default function Footer() {
             </p>
             <p>ElysinaCut@gmail.com</p>
 
-            
+
           </div>
 
           <div className="footer-links">
             <h4>Quick Links</h4>
             <ul>
               <li>Our Services</li>
-              <li  onClick={() => navigate("/appointment")}>Book Appointment</li>
+              <li onClick={() => navigate("/appointment")}>Book Appointment</li>
               <li>Gift Cards</li>
               <li>Salon Policy</li>
             </ul>
@@ -35,11 +36,11 @@ export default function Footer() {
           <div className="footer-location">
             <h4>Location</h4>
             <p>
-             
+
             </p>
           </div>
-          
-         
+
+
 
         </div>
 
@@ -72,11 +73,10 @@ export default function Footer() {
         }
 
         .logo-icon{
-          background:#22d3c5;
           color:white;
           border-radius:50%;
-          width:28px;
-          height:28px;
+          width:35px;
+          height:35px;
           display:flex;
           align-items:center;
           justify-content:center;
