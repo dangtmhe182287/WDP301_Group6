@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-
+import logo from "../assets/logo.png";
 export default function Header() {
   const navigate = useNavigate();
   return (
@@ -9,7 +9,7 @@ export default function Header() {
         <div className="container header-inner">
 
           <div className="logo">
-            <div className="logo-icon">✂</div>
+            <img src={logo} alt="logo" className="logo-icon" />
             <span>Elysina.</span>
           </div>
 
@@ -21,10 +21,13 @@ export default function Header() {
           </nav>
 
           <div className="auth-buttons">
-            <button className="btn-login">Login</button>
+            <button className="btn-login"
+            onClick={() => navigate("/login")}
+            >Login</button>
+            
             <button
               className="btn-signup"
-            // onClick={() => navigate("/appointment")}
+            onClick={() => navigate("/register")}
             >
               Sign Up
             </button>
@@ -60,11 +63,10 @@ export default function Header() {
         }
 
         .logo-icon{
-          background:#22d3c5;
           color:white;
           border-radius:50%;
-          width:28px;
-          height:28px;
+          width:35px;
+          height:35px;
           display:flex;
           align-items:center;
           justify-content:center;
@@ -76,6 +78,7 @@ export default function Header() {
           text-decoration:none;
           color:#333;
           font-weight:500;
+          cursor:pointer;
         }
 
         .nav a:hover{

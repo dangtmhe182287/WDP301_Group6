@@ -38,7 +38,7 @@ export const refreshToken = async(token) =>{
         console.log("User:",user.userId);
     }
     const newAccessToken = generateAccessToken(user);
-    return {accessToken: newAccessToken};
+    return {accessToken: newAccessToken, user};
 }
 export const Logout = async(userId)=>{
     await User.findByIdAndDelete(userId, {refreshToken:null});
