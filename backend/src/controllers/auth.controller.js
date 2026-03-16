@@ -38,3 +38,34 @@ export const Logout = async(req,res)=>{
         res.status(400).json({message: error.message});
     }
 }
+
+export const ForgotPassword = async(req,res)=>{
+    try {
+        const {email} = req.body;
+
+        const resetLink = await authService.forgotPassword(email);
+
+        res.status(200).json({
+            message:"Reset password link generated",
+            resetLink
+        });
+
+    } catch (error) {
+        res.status(400).json({message:error.message});
+    }
+}
+
+
+export const ResetPassword = async(req,res)=>{
+    try {
+        const {token} = req.params;
+        const {password} = req.body;
+
+        const message = await authService.resetPassword(token,password);
+
+        res.status(200).json({message});
+
+    } catch (error) {
+        res.status(400).json({message:error.message});
+    }
+}
