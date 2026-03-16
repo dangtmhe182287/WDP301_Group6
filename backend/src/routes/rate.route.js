@@ -1,15 +1,15 @@
 import express from "express";
 import {
-    GetAllRates,
-    GetRateById,
+    CreateRate,
+    GetRateByAppointmentId,
     GetRatesByStaffId,
     GetStaffAverageRate
 } from "../controllers/rate.controller.js";
 
 const router = express.Router();
 
-router.get("/", GetAllRates);
-router.get("/:id", GetRateById);
+router.post("/staff/:staffId", CreateRate);
+router.get("/appointment/:appointmentId", GetRateByAppointmentId);
 router.get("/staff/:staffId", GetRatesByStaffId);
 router.get("/staff/:staffId/average", GetStaffAverageRate);
 

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const RateSchema = new mongoose.Schema({
     appointmentId: {
@@ -21,4 +21,4 @@ const RateSchema = new mongoose.Schema({
 });
 
 const Rate = mongoose.model('Rate', RateSchema);
-module.exports = Rate;
+export default Rate;

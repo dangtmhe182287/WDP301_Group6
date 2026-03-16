@@ -1,7 +1,7 @@
-import Rate from '../models/rate.model.js';
-import Appointment from '../models/appointment.model.js';
+import Rate from '../models/Rate.model.js';
+import Appointment from '../models/Appointment.model.js';
 
-export const createRate = async(req, res) => {
+export const CreateRate = async(req, res) => {
     try {
         const {appointmentId, rating, comment} = req.body;
         const existing = await Rate.findOne({appointmentId});
@@ -19,7 +19,7 @@ export const createRate = async(req, res) => {
 
 }
 
-export const getRateByAppointmentId = async(req, res) => {
+export const GetRateByAppointmentId = async(req, res) => {
     try{
         const {appointmentId} = req.params;
         const rate = await Rate.findOne({appointmentId});
@@ -33,7 +33,7 @@ export const getRateByAppointmentId = async(req, res) => {
    }
 };
 
-export const getRatesByStaffId = async(req, res) => {
+export const GetRatesByStaffId = async(req, res) => {
     try{
         const {staffId} = req.params;
         const appointments = await Appointment.find({staffId});
@@ -46,7 +46,7 @@ export const getRatesByStaffId = async(req, res) => {
     }
 }
 
-export const getStaffAverageRate = async(req, res) => {
+export const GetStaffAverageRate = async(req, res) => {
     try{
         const {staffId} = req.params;
         const appointments = await Appointment.find({staffId});
