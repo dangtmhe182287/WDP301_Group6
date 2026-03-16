@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-const API_BASE = 'http://localhost:3000'
+import { useAuth } from "../context/AuthContext";
 
-const DEFAULT_STAFFS = [
-  { id: 'staff-1', name: 'Staff 1' },
-  { id: 'staff-2', name: 'Staff 2' },
-  { id: 'staff-3', name: 'Staff 3' },
-]
+const API_BASE = 'http://localhost:3000'
 
 const getToday = () => new Date().toISOString().split('T')[0]
 
@@ -16,8 +12,11 @@ const toMinuteLabel = (minute) => {
 }
 
 function AppointmentPage() {
+  const { user } = useAuth();
   const [services, setServices] = useState([])
   const [loadingServices, setLoadingServices] = useState(true)
+  const [staffs, setStaffs] = useState([])
+  const [loadingStaffs, setLoadingStaffs] = useState(true)
   const [selectedServiceIds, setSelectedServiceIds] = useState([])
   const [selectedStaffId, setSelectedStaffId] = useState('')
   const [selectedDate, setSelectedDate] = useState(getToday())
@@ -25,7 +24,6 @@ function AppointmentPage() {
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedStart, setSelectedStart] = useState(null)
   const [message, setMessage] = useState('')
-  const [customerName, setCustomerName] = useState('')
 
   const selectedServices = useMemo(
     () => services.filter((service) => selectedServiceIds.includes(String(service._id))),
@@ -48,20 +46,39 @@ function AppointmentPage() {
       setLoadingServices(true)
       try {
         const response = await fetch(`${API_BASE}/services`)
-        console.log('Fetch services response:', response);
         if (!response.ok) {
           throw new Error('Không tải được danh sách dịch vụ')
         }
         const data = await response.json()
         setServices(Array.isArray(data) ? data : [])
       } catch (error) {
-        setMessage(`Can't load services: ${error.message}`);
+        setMessage(`Không tải được dịch vụ: ${error.message}`)
       } finally {
         setLoadingServices(false)
       }
     }
 
     loadServices()
+  }, [])
+
+  useEffect(() => {
+    const loadStaffs = async () => {
+      setLoadingStaffs(true)
+      try {
+        const response = await fetch(`${API_BASE}/staffs`)
+        if (!response.ok) {
+          throw new Error('Không tải được danh sách staff')
+        }
+        const data = await response.json()
+        setStaffs(Array.isArray(data) ? data : [])
+      } catch (error) {
+        setMessage(`Không tải được staff: ${error.message}`)
+      } finally {
+        setLoadingStaffs(false)
+      }
+    }
+
+    loadStaffs()
   }, [])
 
   useEffect(() => {
@@ -104,6 +121,10 @@ function AppointmentPage() {
   }, [selectedDate, selectedServiceIds, selectedStaffId])
 
   const handleBook = async () => {
+    if (!user) {
+      setMessage('Vui lòng đăng nhập để đặt lịch.')
+      return
+    }
     if (selectedServiceIds.length === 0 || !selectedStaffId || selectedStart === null) {
       setMessage('Vui lòng chọn đủ dịch vụ, staff và giờ bắt đầu.')
       return
@@ -114,7 +135,8 @@ function AppointmentPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          walkInCustomerName: customerName || 'Walk-in Customer',
+          customerId: user._id || user.id,
+          walkInCustomerName: user.fullName || user.email || 'Customer',
           staffId: selectedStaffId,
           serviceIds: selectedServiceIds,
           bookingChannel: 'online',
@@ -162,6 +184,9 @@ function AppointmentPage() {
           <div className="appointment-header">
             <h1>Đặt Appointment</h1>
             <p>Chọn dịch vụ trước, sau đó chọn staff, ngày và giờ phù hợp.</p>
+            <p className="muted">
+              {user?.fullName ? `Xin chào ${user.fullName}.` : 'Bạn cần đăng nhập để đặt lịch.'}
+            </p>
           </div>
 
           <div className="appointment-block">
@@ -193,15 +218,6 @@ function AppointmentPage() {
             <h2>2. Thông tin đặt lịch</h2>
             <div className="form-grid">
               <label>
-                Tên khách
-                <input
-                  value={customerName}
-                  onChange={(event) => setCustomerName(event.target.value)}
-                  placeholder="Nhập tên khách"
-                />
-              </label>
-
-              <label>
                 Ngày
                 <input
                   type="date"
@@ -214,9 +230,10 @@ function AppointmentPage() {
                 Staff
                 <select value={selectedStaffId} onChange={(event) => setSelectedStaffId(event.target.value)}>
                   <option value="">-- Chọn staff --</option>
-                  {DEFAULT_STAFFS.map((staff) => (
-                    <option key={staff.id} value={staff.id}>
-                      {staff.name}
+                  {loadingStaffs ? <option value="">Đang tải staff...</option> : null}
+                  {staffs.map((staff) => (
+                    <option key={staff._id} value={staff._id}>
+                      {staff.fullName || staff.email || 'Staff'}
                     </option>
                   ))}
                 </select>
@@ -273,7 +290,7 @@ function AppointmentPage() {
             <span>Staff</span>
             <strong>
               {selectedStaffId
-                ? DEFAULT_STAFFS.find((staff) => staff.id === selectedStaffId)?.name || selectedStaffId
+                ? staffs.find((staff) => staff._id === selectedStaffId)?.fullName || selectedStaffId
                 : 'Chưa chọn'}
             </strong>
           </div>
