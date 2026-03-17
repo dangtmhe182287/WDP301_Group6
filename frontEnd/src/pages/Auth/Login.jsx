@@ -50,7 +50,12 @@ export default function LoginForm() {
       
       if (result.success) {
         toast.success("Đăng nhập thành công!");
-        navigate('/'); // Chuyển đến trang dashboard
+        const role = result.user?.role || "";
+        if (role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
       } else {
         toast.error(result.message || "Đăng nhập thất bại");
       }

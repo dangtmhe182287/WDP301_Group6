@@ -8,6 +8,7 @@ export const AuthProvider = ({ children }) => {
     const [accessToken, setAccessToken] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isCheckingAuth, setIsCheckingAuth] = useState(false);
+    const [authenticating, setAuthenticating] = useState(false);
 
     // Sync accessToken to window for axios interceptor
     useEffect(() => {
@@ -48,19 +49,27 @@ export const AuthProvider = ({ children }) => {
     };
 
     const login = async (email, password) => {
-    const result = await authService.login(email, password);
+        setAuthenticating(true);
+        try {
+            const result = await authService.login(email, password);
 
-    if (result.success) {
-        setAccessToken(result.data.accessToken);
-        setUser(result.data.user);
-        return { success: true };
-    }
+            if (result.success) {
+                setAccessToken(result.data.accessToken);
+                setUser(result.data.user);
+                return {
+                    success: true,
+                    user: result.data.user,
+                };
+            }
 
-    return {
-        success: false,
-        message: result.message || "Login failed"
+            return {
+                success: false,
+                message: result.message || "Login failed"
+            };
+        } finally {
+            setAuthenticating(false);
+        }
     };
-};
 
     const register = async (userData) => {
         const result = await authService.register(userData);
@@ -106,6 +115,7 @@ export const AuthProvider = ({ children }) => {
         user,
         accessToken,
         loading,
+        authenticating,
         login,
         register,
         logout,
