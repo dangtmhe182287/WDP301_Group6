@@ -20,7 +20,10 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const avatarSrc = user?.imgUrl || anonymousAvatar;
+  const API_BASE = import.meta.env.VITE_SERVER_API || "http://localhost:3000";
+  const avatarSrc = user?.imgUrl
+    ? (user.imgUrl.startsWith("http") ? user.imgUrl : `${API_BASE}${user.imgUrl}`)
+    : anonymousAvatar;
   return (
     <>
       <header className="header">
