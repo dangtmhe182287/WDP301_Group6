@@ -15,6 +15,24 @@ import "./App.css";
 import "./index.css";
 import ForgotPassword from "./pages/Auth/ForgotPassword.jsx";
 import ResetPassword from "./pages/Auth/ResetPassword.jsx";
+/* ================= Protected Route ================= */
+function ProtectedRoute({ children, allowedRoles }) {
+  const { user, loading, authenticating } = useAuth();
+
+  if (loading || authenticating) return null;
+
+  // chưa login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // sai role
+  if (!allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
 
 function Layout() {
   const location = useLocation();

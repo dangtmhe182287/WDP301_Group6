@@ -53,7 +53,10 @@ export default function LoginForm() {
         const role = result.user?.role || "";
         if (role === "admin") {
           navigate("/admin");
-        } else {
+        }else if(role === "staff"){
+          navigate("/staff")
+        }
+         else {
           navigate("/");
         }
       } else {

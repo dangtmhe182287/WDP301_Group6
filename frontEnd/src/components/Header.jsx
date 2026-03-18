@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
 import anonymousAvatar from "../assets/anomyous.jpg";
+
 export default function Header() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -20,6 +21,10 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+const handleLogout = async () => {
+  await logout();
+  navigate("/login"); // hoặc "/"
+};
   const API_BASE = import.meta.env.VITE_SERVER_API || "http://localhost:3000";
   const avatarSrc = user?.imgUrl
     ? (user.imgUrl.startsWith("http") ? user.imgUrl : `${API_BASE}${user.imgUrl}`)
@@ -69,7 +74,7 @@ export default function Header() {
                 {menuOpen ? (
                   <div className="avatar-dropdown">
                     <button onClick={() => navigate("/settings")}>Setting</button>
-                    <button>Logout</button>
+                    <button onClick={handleLogout}>Logout</button>
                   </div>
                 ) : null}
               </div>
