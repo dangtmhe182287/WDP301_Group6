@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Header from "./components/Header.jsx";
 import Footer from "./components/Footer.jsx";
 
@@ -7,19 +7,42 @@ import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import Home from "./pages/Home";
 import Settings from "./pages/Settings";
-import { AuthProvider } from "./context/AuthContext";
+import Admin from "./pages/Admin";
+import { useAuth } from "./context/AuthContext";
 import { Toaster } from "sonner";
 
 import "./App.css";
 import "./index.css";
 import ForgotPassword from "./pages/Auth/ForgotPassword.jsx";
 import ResetPassword from "./pages/Auth/ResetPassword.jsx";
+/* ================= Protected Route ================= */
+function ProtectedRoute({ children, allowedRoles }) {
+  const { user, loading, authenticating } = useAuth();
+
+  if (loading || authenticating) return null;
+
+  // chưa login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // sai role
+  if (!allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
 
 function Layout() {
   const location = useLocation();
 
   const hideLayout =
-    location.pathname === "/login" || location.pathname === "/register" || location.pathname === "/forgot-password"  || location.pathname.startsWith("/reset-password");
+    location.pathname.startsWith("/login") ||
+    location.pathname.startsWith("/register") ||
+    location.pathname.startsWith("/forgot-password") ||
+    location.pathname.startsWith("/reset-password") ||
+    location.pathname.startsWith("/admin");
 
   return (
     <>
@@ -33,6 +56,14 @@ function Layout() {
         <Route path="/" element={<Home/>} />
         <Route path="/appointment" element={<AppointmentPage />} />
         <Route path="/settings" element={<Settings />} />
+        <Route
+          path="/admin/*"
+          element={
+            <AdminRoute>
+              <Admin />
+            </AdminRoute>
+          }
+        />
       </Routes>
 
       {!hideLayout && <Footer />}
@@ -40,15 +71,27 @@ function Layout() {
   );
 }
 
+function AdminRoute({ children }) {
+  const { user, loading, authenticating } = useAuth();
+
+  // While checking session or processing login, avoid flicker by not rendering anything
+  if (loading || authenticating) return null;
+
+  // Only admins can access Admin routes
+  if (!user || user.role !== "admin") {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <div className="app">
-          <Layout />
-          <Toaster />
-        </div>
-      </AuthProvider>
+      <div className="app">
+        <Layout />
+        <Toaster />
+      </div>
     </Router>
   );
 }

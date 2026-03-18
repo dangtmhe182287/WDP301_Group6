@@ -1,0 +1,78 @@
+[
+  {
+    "speciality": [],
+    "experienceYears": 4,
+    "portfolio": [],
+    "rating": 0,
+    "_id": "69b3c6dc23fafab89db13d31",
+    "fullName": "Le redt",
+    "email": "staff2@gmail.com",
+    "password": "123456",
+    "phone": "0903333444",
+    "role": "staff",
+    "staffSpecialty": "Color Specialist",
+    "staffExperienceYears": 4,
+    "createdAt": "2026-03-03T00:00:00.000Z",
+    "schedule": [],
+    "certificate": {
+      "name": "",
+      "organization": "",
+      "certificateId": "",
+      "image": ""
+    },
+    "updatedAt": "2026-03-13T10:03:55.150Z"
+  },
+  {
+    "speciality": [],
+    "experienceYears": 0,
+    "portfolio": [],
+    "rating": 5,
+    "_id": "69b3c6dc23fafab89db13d32",
+    "fullName": "Updated Pham Thi Lan",
+    "email": "updated@example.com",
+    "password": "123456",
+    "phone": "0999999999",
+    "role": "staff",
+    "staffSpecialty": "Updated Specialty",
+    "staffExperienceYears": 10,
+    "createdAt": "2026-03-04T00:00:00.000Z",
+    "schedule": [],
+    "updatedAt": "2026-03-13T10:03:16.860Z"
+  },
+  {
+    "speciality": [],
+    "experienceYears": 0,
+    "portfolio": [],
+    "rating": 0,
+    "_id": "69b3c6dc23fafab89db13d33",
+    "fullName": "Do Anh Khoa",
+    "email": "staff4@gmail.com",
+    "password": "123456",
+    "phone": "0934444555",
+    "role": "staff",
+    "staffSpecialty": "Hair Styling",
+    "staffExperienceYears": 6,
+    "createdAt": "2026-03-05T00:00:00.000Z",
+    "schedule": []
+  },
+  {
+    "fullName": "Mikey S1",
+    "email": "huyan535@gmail.com",
+    "phone": "123",
+    "staffSpecialty": "123",
+    "staffExperienceYears": 0,
+    "rating": 0,
+    "speciality": [],
+    "experienceYears": 0,
+    "certificate": {
+      "name": "",
+      "organization": "",
+      "certificateId": "",
+      "image": ""
+    },
+    "portfolio": [],
+    "schedule": [],
+    "_id": "1773396243566",
+    "createdAt": "2026-03-13T10:04:03.566Z"
+  }
+]
