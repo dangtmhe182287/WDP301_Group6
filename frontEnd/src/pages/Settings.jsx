@@ -13,6 +13,8 @@ export default function Settings() {
     password: "",
     imgUrl: ""
   });
+
+  
   const [message, setMessage] = useState("");
   const [avatarPreview, setAvatarPreview] = useState("");
   const API_BASE = import.meta.env.VITE_SERVER_API || "http://localhost:3000";
@@ -23,6 +25,15 @@ export default function Settings() {
     return `${API_BASE}${value}`;
   };
 
+useEffect(() => {
+  if (message) {
+    const timer = setTimeout(() => {
+      setMessage(null);
+    }, 2000); // 2 giây
+
+    return () => clearTimeout(timer);
+  }
+}, [message]);
   useEffect(() => {
     if (user) {
       setForm((prev) => ({

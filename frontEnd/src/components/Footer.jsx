@@ -15,8 +15,9 @@ export default function Footer() {
             </div>
 
             <p>
-              Redefining the modern salon experience through innovation,
-              artistry, and exceptional care.
+              Tái định nghĩa trải nghiệm salon hiện đại bằng sự sáng tạo, 
+              tay nghề tinh tế và dịch vụ chăm sóc vượt trội 
+              và tối ưu thời gian của bạn.
             </p>
             <p>ElysinaCut@gmail.com</p>
 
@@ -24,17 +25,17 @@ export default function Footer() {
           </div>
 
           <div className="footer-links">
-            <h4>Quick Links</h4>
+            <h4>Tiện ích</h4>
             <ul>
-              <li>Our Services</li>
-              <li onClick={() => navigate("/appointment")}>Book Appointment</li>
-              <li>Gift Cards</li>
-              <li>Salon Policy</li>
+              <li>Dịch vụ</li>
+              <li onClick={() => navigate("/appointment")}>Đặt lịch</li>
+              <li>Thẻ quà tặng</li>
+              <li>Chính sách</li>
             </ul>
           </div>
 
           <div className="footer-location">
-            <h4>Location</h4>
+            <h4>Vị trí</h4>
             <p>
 
             </p>

@@ -35,10 +35,10 @@ export default function Header() {
           </div>
 
           <nav className="nav">
-            <a onClick={() => navigate("/")}>Home</a>
-            <a href="#">Services</a>
-            <a href="#">Stylists</a>
-            <a href="#">About Us</a>
+            <a onClick={() => navigate("/")}>Trang chủ</a>
+            <a href="#">Dịch vụ</a>
+            <a href="#">Kiểu dáng</a>
+            <a href="#">Về chúng tôi</a>
           </nav>
 
           <div className="auth-buttons">
@@ -68,8 +68,8 @@ export default function Header() {
                 </button>
                 {menuOpen ? (
                   <div className="avatar-dropdown">
-                    <button onClick={() => navigate("/settings")}>Setting</button>
-                    <button>Logout</button>
+                    <button onClick={() => navigate("/settings")}>Cài đặt</button>
+                    <button>Đăng xuất</button>
                   </div>
                 ) : null}
               </div>
