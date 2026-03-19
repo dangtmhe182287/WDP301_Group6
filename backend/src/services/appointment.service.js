@@ -3,8 +3,11 @@ import Service from "../models/Service.model.js";
 
 // Booking uses 15-minute blocks, working hours 09:00 - 18:00.
 const SLOT_STEP = 15;
-const OPEN_MINUTE = 9 * 60;
-const CLOSE_MINUTE = 18 * 60;
+const OPEN_MINUTE = 8 * 60;
+const CLOSE_MINUTE = 19 * 60;
+const MAX_SERVICE_PER_APPOINTMENT = 5;
+const MAX_TOTAL_DURATION = 150;
+const MAX_DAYS_AHEAD = 15;
 
 // Convert date input to day start and end
 const normalizeDay = (dateInput) => {
@@ -97,7 +100,13 @@ export const createAppointment = async (payload) => {
 
   // Use total duration from selected services to reserve the block.
   const serviceIds = toServiceIdList(payload);
+  if (serviceIds.length > MAX_SERVICE_PER_APPOINTMENT) {
+    throw new Error(`Maximum ${MAX_SERVICE_PER_APPOINTMENT} services per appointment`);
+  }
   const totalDuration = await getTotalDuration(serviceIds);
+  if (totalDuration > MAX_TOTAL_DURATION) {
+    throw new Error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes`);
+  }
   const endTime = startTime + totalDuration;
   //Not in working hours
   if (startTime < OPEN_MINUTE || endTime > CLOSE_MINUTE) {
@@ -105,6 +114,13 @@ export const createAppointment = async (payload) => {
   }
   //get appointment day(more than day start and less than day end)
   const { dayStart, dayEnd } = normalizeDay(appointmentDate);
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const latestAllowed = new Date(todayStart);
+  latestAllowed.setDate(latestAllowed.getDate() + MAX_DAYS_AHEAD);
+  if (dayStart > latestAllowed) {
+    throw new Error(`Appointment date must be within ${MAX_DAYS_AHEAD} days`);
+  }
   // Check for overlapping appointments for the staff on the same day.
   const staffAppointments = await Appointment.find({
     staffId,
@@ -130,6 +146,7 @@ export const createAppointment = async (payload) => {
     appointmentDate: dayStart,
     startTime,
     endTime,
+    paymentStatus: "Unpaid",
     note,
     staffBusySlots: [{ startMinute: startTime, endMinute: endTime }],
   });
@@ -182,4 +199,15 @@ export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId, s
     serviceDuration: totalDuration,
     slots,
   };
+};
+
+export const getAppointmentsByCustomer = async (customerId) => {
+  if (!customerId) {
+    throw new Error("customerId is required");
+  }
+
+  return Appointment.find({ customerId })
+    .populate("staffId", "fullName email phone")
+    .populate("serviceIds", "name duration")
+    .sort({ appointmentDate: -1, startTime: -1 });
 };

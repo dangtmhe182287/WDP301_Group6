@@ -56,6 +56,12 @@ const appointmentSchema = new mongoose.Schema(
       default: "Scheduled",
       required: true,
     },
+    paymentStatus: {
+      type: String,
+      enum: ["Unpaid", "Paid"],
+      default: "Unpaid",
+      required: true,
+    },
     note: { type: String, trim: true },
     staffBusySlots: [timeRangeSchema],
     staffFreeSlots: [timeRangeSchema],

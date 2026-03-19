@@ -2,6 +2,9 @@
 import { useAuth } from "../context/AuthContext"
 
 const API_BASE = "http://localhost:3000"
+const MAX_SERVICE_PER_APPOINTMENT = 5
+const MAX_TOTAL_DURATION = 150
+const MAX_DAYS_AHEAD = 15
 
 const formatDate = (date) => {
   const year = date.getFullYear()
@@ -98,7 +101,11 @@ function AppointmentPage() {
 
   const toggleService = (serviceId) => {
     setSelectedServiceIds((prev) =>
-      prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId],
+      prev.includes(serviceId)
+        ? prev.filter((id) => id !== serviceId)
+        : prev.length >= MAX_SERVICE_PER_APPOINTMENT
+          ? (setMessage(`Tối đa ${MAX_SERVICE_PER_APPOINTMENT} dịch vụ mỗi lần đặt.`), prev)
+          : [...prev, serviceId],
     )
   }
 
@@ -190,6 +197,19 @@ function AppointmentPage() {
       setMessage("Vui lòng chọn đủ dịch vụ, staff và giờ bắt đầu.")
       return
     }
+    if (selectedServiceIds.length > MAX_SERVICE_PER_APPOINTMENT) {
+      setMessage(`Tối đa ${MAX_SERVICE_PER_APPOINTMENT} dịch vụ mỗi lần đặt.`)
+      return
+    }
+    if (totalDuration > MAX_TOTAL_DURATION) {
+      setMessage(`Tổng thời lượng phải <= ${MAX_TOTAL_DURATION} phút.`)
+      return
+    }
+    const latestAllowed = addDays(startOfDay(new Date()), MAX_DAYS_AHEAD)
+    if (toLocalDate(selectedDate) > latestAllowed) {
+      setMessage(`Không được đặt quá ${MAX_DAYS_AHEAD} ngày từ hôm nay.`)
+      return
+    }
 
     try {
       const response = await fetch(`${API_BASE}/appointments/create`, {
@@ -242,7 +262,7 @@ function AppointmentPage() {
         <section className="appointment-panel">
           <div className="appointment-header">
             <h1>Đặt Appointment</h1>
-            <p>Chọn dịch vụ trước, sau đó chọn staff, ngày và giờ phù hợp.</p>
+            <p>Chọn dịch vụ trước, sau đó chọn barber, ngày và giờ phù hợp.</p>
             <p className={user?._id ? "muted" : "login-required"}>
               {user?._id ? "" : "Bạn cần đăng nhập để đặt lịch."}
             </p>
@@ -274,83 +294,7 @@ function AppointmentPage() {
           </div>
 
           <div className="appointment-block">
-            <h2>2. Chọn baber của bạn</h2>
-            
-
-            <div className="staff-section">
-              <div className="staff-section-header">
-                <span className="muted">Chọn 1 baber để xem khung giờ</span>
-              </div>
-
-              {loadingStaffs ? <p className="muted">Đang tải staff...</p> : null}
-              {!loadingStaffs && staffs.length === 0 ? (
-                <p className="muted">Chưa có baber phù hợp.</p>
-              ) : null}
-
-              <div className="staff-grid" role="list">
-                {staffs.map((staff) => {
-                  const staffInfo = getStaffInfo(staff)
-                  const staffName = getStaffDisplay(staff)
-                  const staffSpeciality = getStaffSpeciality(staffInfo)
-                  const staffExperience =
-                    staffInfo?.experienceYears ?? staffInfo?.staffExperienceYears ?? null
-                  const staffRating = staffInfo?.rating ?? staff?.rating ?? null
-                  const isSelected = selectedStaffId === staff._id
-                  const avatarUrl = getStaffAvatar(staff, staffInfo)
-                  const initials = staffName
-                    .split(" ")
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((word) => word[0]?.toUpperCase())
-                    .join("")
-
-                  return (
-                    <button
-                      key={staff._id}
-                      type="button"
-                      className={`staff-card ${isSelected ? "selected" : ""}`}
-                      onClick={() => setSelectedStaffId(staff._id)}
-                      role="listitem"
-                    >
-                      <div className="staff-avatar">
-                        {avatarUrl ? (
-                          <img src={avatarUrl} alt={staffName} />
-                        ) : (
-                          <span className="staff-initials">{initials || "S"}</span>
-                        )}
-                      </div>
-
-                      <div className="staff-info">
-                        <div className="staff-name">{staffName}</div>
-                        {staffSpeciality ? (
-                          <div className="staff-speciality">{staffSpeciality}</div>
-                        ) : (
-                          <div className="staff-speciality muted">Chưa cập nhật chuyên môn</div>
-                        )}
-                        <div className="staff-meta">
-                          <span>
-                            {staffExperience !== null
-                              ? `${staffExperience} năm kinh nghiệm`
-                              : "Kinh nghiệm đang cập nhật"}
-                          </span>
-                          <span>
-                            {staffRating !== null ? `Đánh giá ${staffRating}` : "Chưa có đánh giá"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="staff-action">
-                        <span className="staff-select">{isSelected ? "Đã chọn" : "Chọn"}</span>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-                
-          <div className="appointment-block">
-            <h2>3. Chọn khung giờ (15 phút)</h2>
+            <h2>2. Chọn ngày & giờ</h2>
             <div className="appointment-date-picker">
               <div className="date-picker-header">
                 <div className="date-picker-label">{monthLabel}</div>
@@ -394,19 +338,104 @@ function AppointmentPage() {
                 })}
               </div>
             </div>
-            {loadingSlots ? <p className="muted">Đang tải slot...</p> : null}
-            <div className="slot-grid">
-              {slots.map((slot) => (
-                <button
-                  key={slot.startMinute}
-                  type="button"
-                  disabled={!slot.available}
-                  className={`slot-btn ${selectedStart === slot.startMinute ? "selected" : ""}`}
-                  onClick={() => setSelectedStart(slot.startMinute)}
-                >
-                  {toMinuteLabel(slot.startMinute)}
-                </button>
-              ))}
+
+            <div className="time-staff-grid">
+              <div className="time-column">
+                {loadingSlots ? <p className="muted">Đang tải slot...</p> : null}
+                {!selectedStaffId ? (
+                  <p className="muted">Chọn barber trước để hiển thị giờ.</p>
+                ) : null}
+                <div className="slot-grid">
+                  {slots.map((slot) => (
+                    <button
+                      key={slot.startMinute}
+                      type="button"
+                      disabled={!slot.available}
+                      className={`slot-btn ${selectedStart === slot.startMinute ? "selected" : ""}`}
+                      onClick={() => setSelectedStart(slot.startMinute)}
+                    >
+                      {toMinuteLabel(slot.startMinute)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="staff-column">
+                <div className="staff-section vertical">
+                  
+
+                  {loadingStaffs ? <p className="muted">Đang tải barber...</p> : null}
+                  {!loadingStaffs && staffs.length === 0 ? (
+                    <p className="muted">Chưa có barber phù hợp.</p>
+                  ) : null}
+
+                  <div className="staff-grid vertical" role="list">
+                    {staffs.map((staff) => {
+                      const staffInfo = getStaffInfo(staff)
+                      const staffName = getStaffDisplay(staff)
+                      const staffSpeciality = getStaffSpeciality(staffInfo)
+                      const staffExperience =
+                        staffInfo?.experienceYears ?? staffInfo?.staffExperienceYears ?? null
+                      const staffRating = staffInfo?.rating ?? staff?.rating ?? null
+                      const isSelected = selectedStaffId === staff._id
+                      const avatarUrl = getStaffAvatar(staff, staffInfo)
+                      const initials = staffName
+                        .split(" ")
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((word) => word[0]?.toUpperCase())
+                        .join("")
+
+                      return (
+                        <button
+                          key={staff._id}
+                          type="button"
+                          className={`staff-card ${isSelected ? "selected" : ""}`}
+                          onClick={() => setSelectedStaffId(staff._id)}
+                          role="listitem"
+                        >
+                          <div className="staff-avatar">
+                            {avatarUrl ? (
+                              <img src={avatarUrl} alt={staffName} />
+                            ) : (
+                              <span className="staff-initials">{initials || "S"}</span>
+                            )}
+                          </div>
+
+                          <div className="staff-info">
+                            <div className="staff-name">{staffName}</div>
+                            {staffSpeciality ? (
+                              <div className="staff-speciality">{staffSpeciality}</div>
+                            ) : (
+                              <div className="staff-speciality muted">
+                                Chưa cập nhật chuyên môn
+                              </div>
+                            )}
+                            <div className="staff-meta">
+                              <span>
+                                {staffExperience !== null
+                                  ? `${staffExperience} năm kinh nghiệm`
+                                  : "Kinh nghiệm đang cập nhật"}
+                              </span>
+                              <span>
+                                {staffRating !== null
+                                  ? `Đánh giá ${staffRating}`
+                                  : "Chưa có đánh giá"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="staff-action">
+                            <span className="staff-select">
+                              {isSelected ? "Đã chọn" : "Chọn"}
+                            </span>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -438,7 +467,7 @@ function AppointmentPage() {
             <strong>{totalDuration} phút</strong>
           </div>
           <div className="summary-section">
-            <span>Staff</span>
+            <span>Baber</span>
             <strong>
               {selectedStaffId
                 ? staffs.find((staff) => staff._id === selectedStaffId)?.fullName || selectedStaffId

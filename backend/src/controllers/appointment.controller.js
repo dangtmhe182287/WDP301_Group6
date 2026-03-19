@@ -19,3 +19,14 @@ export const GetAvailableSlots = async (req, res) => {
     res.status(400).json({ message: "Get available slots error", error: error.message });
   }
 };
+
+export const GetMyAppointments = async (req, res) => {
+  try {
+    const customerId = req.user?.id; 
+    console.log("Customer ID from token:", customerId);
+    const data = await appointmentService.getAppointmentsByCustomer(customerId);
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(400).json({ message: "Get appointments error", error: error.message });
+  }
+};

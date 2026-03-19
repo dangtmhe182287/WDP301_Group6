@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
@@ -25,6 +25,8 @@ const handleLogout = async () => {
   await logout();
   navigate("/login"); // hoặc "/"
 };
+
+
   const API_BASE = import.meta.env.VITE_SERVER_API || "http://localhost:3000";
   const avatarSrc = user?.imgUrl
     ? (user.imgUrl.startsWith("http") ? user.imgUrl : `${API_BASE}${user.imgUrl}`)
@@ -73,8 +75,9 @@ const handleLogout = async () => {
                 </button>
                 {menuOpen ? (
                   <div className="avatar-dropdown">
+                    <button onClick={() => navigate("/my-bookings")}>My Booking</button>
                     <button onClick={() => navigate("/settings")}>Cài đặt</button>
-                    <button>Đăng xuất</button>
+                    <button onClick={handleLogout}>Đăng xuất</button>
                   </div>
                 ) : null}
               </div>
@@ -211,3 +214,4 @@ const handleLogout = async () => {
     </>
   );
 }
+
