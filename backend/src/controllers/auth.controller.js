@@ -13,6 +13,12 @@ export const Login = async(req, res) =>{
     const {email, password} = req.body;
     try {
         const {user, accessToken, refreshToken} = await authService.Login({email, password});
+        // set cookie
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            sameSite: "Lax",
+            secure: false,
+        })
         res.status(201).json({message: "Login success",
              accessToken,
              user
@@ -23,7 +29,8 @@ export const Login = async(req, res) =>{
 }
 export const RefreshToken = async(req, res)=>{
     try {
-        const {refreshToken} = req.body;
+        console.log("Cookies:", req.cookies);
+        const refreshToken = req.cookies.refreshToken;
         console.log("Refresh Token received:",refreshToken);
         const session = await authService.refreshToken(refreshToken);
         res.status(201).json(session);
@@ -33,6 +40,8 @@ export const RefreshToken = async(req, res)=>{
 }
 export const Logout = async(req,res)=>{
     try {
+        res.clearCookie("refreshToken");
+        res.status(200).json({message: "Logged out"})
         await authService.Logout(req.user.userId);
     } catch (error) {
         res.status(400).json({message: error.message});

@@ -40,6 +40,8 @@ export const refreshToken = async(token) =>{
         console.log("User:",user.userId);
     }
     const newAccessToken = generateAccessToken(user);
+    console.log("Cookie token:", token);
+console.log("DB token:", user.refreshToken);
     return {accessToken: newAccessToken, user};
 }
 export const Logout = async(userId)=>{
