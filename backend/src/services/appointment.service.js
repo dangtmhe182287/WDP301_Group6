@@ -93,6 +93,15 @@ export const createAppointment = async (payload) => {
   if (!staffId || !appointmentDate || startTime === undefined) {
     throw new Error("Missing required booking fields");
   }
+  if (customerId) {
+    const unfinishedCount = await Appointment.countDocuments({
+      customerId,
+      status: { $in: ["Pending", "Scheduled"] },
+    });
+    if (unfinishedCount >= 2) {
+      throw new Error("You can only have up to 2 unfinished appointments.");
+    }
+  }
   //backEnd validation to ensure start time is aligned to 15-minute slots.
   if (startTime % SLOT_STEP !== 0) {
     throw new Error("Start time must be aligned to 15-minute slots");
