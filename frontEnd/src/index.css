@@ -829,6 +829,36 @@ body {
   color: #475569;
 }
 
+.booking-rating {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.star-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.star-btn {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  color: #cbd5f5;
+  cursor: pointer;
+  padding: 0;
+}
+
+.star-btn.filled {
+  color: #f59e0b;
+}
+
+.star-btn:disabled {
+  cursor: default;
+}
+
 .booking-tags {
   display: flex;
   flex-direction: column;
@@ -865,5 +895,16 @@ body {
 .booking-tag.payment-Paid {
   background: rgba(14, 165, 233, 0.18);
   color: #075985;
+}
+
+.booking-cancel {
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 

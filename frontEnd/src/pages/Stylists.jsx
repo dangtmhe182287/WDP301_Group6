@@ -295,7 +295,8 @@ export default function Stylists() {
                   step="0.1"
                   name="rating"
                   value={formData.rating}
-                  onChange={handleInputChange}
+                  readOnly
+                  disabled
                 />
               </div>
               <div className="modal-actions">
