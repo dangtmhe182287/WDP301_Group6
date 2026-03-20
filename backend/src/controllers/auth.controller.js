@@ -38,15 +38,20 @@ export const RefreshToken = async(req, res)=>{
         res.status(400).json({message: error.message});
     }
 }
-export const Logout = async(req,res)=>{
+export const Logout = async (req, res) => {
     try {
+        // clear cookie
         res.clearCookie("refreshToken");
-        res.status(200).json({message: "Logged out"})
-        await authService.Logout(req.user.userId);
+
+        if (req.user?.id) {
+            await authService.Logout(req.user.id);
+        }
+
+        return res.status(200).json({ message: "Logged out" }); 
     } catch (error) {
-        res.status(400).json({message: error.message});
+        return res.status(400).json({ message: error.message });
     }
-}
+};
 
 export const ForgotPassword = async(req,res)=>{
     try {

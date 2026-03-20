@@ -37,7 +37,7 @@ export const refreshToken = async(token) =>{
     if(!user || user.refreshToken !== token)
         throw new Error("Invalid refresh token");
     if(user) {
-        console.log("User:",user.userId);
+        console.log("User:",user._id);
     }
     const newAccessToken = generateAccessToken(user);
     console.log("Cookie token:", token);

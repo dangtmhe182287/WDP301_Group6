@@ -15,6 +15,7 @@ import "./App.css";
 import "./index.css";
 import ForgotPassword from "./pages/Auth/ForgotPassword.jsx";
 import ResetPassword from "./pages/Auth/ResetPassword.jsx";
+import OauthSuccess from "./pages/OauthSuccess.jsx";
 /* ================= Protected Route ================= */
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading, authenticating } = useAuth();
@@ -54,6 +55,7 @@ function Layout() {
         <Route path="/forgot-password" element={<ForgotPassword/>}/>
         <Route path="/reset-password/:token" element={<ResetPassword/>}/>
         <Route path="/" element={<Home/>} />
+        <Route path="/oauth-success" element={<OauthSuccess />} />
         <Route path="/appointment" element={<AppointmentPage />} />
         <Route path="/settings" element={<Settings />} />
         <Route

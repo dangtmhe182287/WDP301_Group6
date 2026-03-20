@@ -78,7 +78,7 @@ axiosInstance.interceptors.response.use(
 
     window.__ACCESS_TOKEN__ = null;
 
-    if(window.location.pathname !== "/login"){
+    if(window.location.pathname !== "/login" && window.location.pathname !== "/oauth-success"){
         window.location.href = "/login";
     }
 
