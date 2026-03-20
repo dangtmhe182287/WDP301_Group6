@@ -7,6 +7,7 @@ import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import Home from "./pages/Home";
 import Settings from "./pages/Settings";
+import MyBooking from "./pages/MyBooking";
 import Admin from "./pages/Admin";
 import { useAuth } from "./context/AuthContext";
 import { Toaster } from "sonner";
@@ -58,6 +59,7 @@ function Layout() {
         <Route path="/oauth-success" element={<OauthSuccess />} />
         <Route path="/appointment" element={<AppointmentPage />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/my-bookings" element={<MyBooking />} />
         <Route
           path="/admin/*"
           element={
