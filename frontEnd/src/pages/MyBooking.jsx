@@ -8,6 +8,9 @@ export default function MyBooking() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
+  const [rateByAppointment, setRateByAppointment] = useState({});
+  const [submittingRatingId, setSubmittingRatingId] = useState(null);
+  const [actionMessage, setActionMessage] = useState("");
 
   const formatTime = (minute) => {
     const h = String(Math.floor(minute / 60)).padStart(2, "0");
@@ -19,7 +22,10 @@ export default function MyBooking() {
     if (!value) return "";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(date);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   };
 
   const bookingStatusLabel = useMemo(
@@ -57,6 +63,89 @@ export default function MyBooking() {
     loadBookings();
   }, [user]);
 
+  useEffect(() => {
+    const loadRates = async () => {
+      if (!bookings.length) return;
+      const entries = await Promise.all(
+        bookings.map(async (booking) => {
+          try {
+            const response = await axiosInstance.get(`/rates/appointment/${booking._id}`);
+            return [booking._id, response.data];
+          } catch (error) {
+            return [booking._id, null];
+          }
+        }),
+      );
+      setRateByAppointment(Object.fromEntries(entries));
+    };
+
+    loadRates();
+  }, [bookings]);
+
+  const getAppointmentStart = (booking) => {
+    const date = new Date(booking.appointmentDate);
+    date.setHours(0, 0, 0, 0);
+    date.setMinutes(date.getMinutes() + booking.startTime);
+    return date;
+  };
+
+  const canCancel = (booking) => {
+    if (!booking) return false;
+    if (["Cancelled", "Completed"].includes(booking.status)) return false;
+    const start = getAppointmentStart(booking);
+    return new Date() < start;
+  };
+
+  const handleCancel = async (bookingId) => {
+    setActionMessage("");
+    try {
+      await axiosInstance.post(`/appointments/${bookingId}/cancel`);
+      const response = await axiosInstance.get("/appointments/my");
+      setBookings(Array.isArray(response.data) ? response.data : []);
+      setActionMessage("Đã hủy lịch thành công.");
+    } catch (error) {
+      setActionMessage(error.response?.data?.error || "Không thể hủy lịch.");
+    }
+  };
+
+  const handleSubmitRating = async (booking, ratingValue) => {
+    if (ratingValue < 1 || ratingValue > 5) {
+      setActionMessage("Vui lòng chọn đánh giá từ 1 đến 5.");
+      return;
+    }
+    setSubmittingRatingId(booking._id);
+    setActionMessage("");
+    try {
+      await axiosInstance.post(`/rates/staff/${booking.staffId?._id || booking.staffId}`, {
+        appointmentId: booking._id,
+        rating: ratingValue,
+      });
+      const response = await axiosInstance.get(`/rates/appointment/${booking._id}`);
+      setRateByAppointment((prev) => ({ ...prev, [booking._id]: response.data }));
+      setActionMessage("Đã gửi đánh giá.");
+    } catch (error) {
+      setActionMessage(error.response?.data?.message || "Gửi đánh giá thất bại.");
+    } finally {
+      setSubmittingRatingId(null);
+    }
+  };
+
+  const renderStars = (value, onSelect, filledValue = value) =>
+    [1, 2, 3, 4, 5].map((star) => {
+      const isDisabled = !onSelect || submittingRatingId;
+      return (
+        <button
+          key={star}
+          type="button"
+          className={`star-btn ${star <= filledValue ? "filled" : ""}`}
+          onClick={onSelect ? () => onSelect(star) : undefined}
+          disabled={isDisabled}
+        >
+          ★
+        </button>
+      );
+    });
+
   if (!user) {
     return (
       <main className="settings-page">
@@ -79,12 +168,14 @@ export default function MyBooking() {
         {!loadingBookings && bookings.length === 0 ? (
           <p className="muted">Bạn chưa có lịch đặt nào.</p>
         ) : null}
+        {actionMessage ? <p className="message">{actionMessage}</p> : null}
         <div className="booking-list">
           {bookings.map((booking) => {
             const staffName = booking?.staffId?.fullName || booking?.staffId?.email || "Staff";
             const services = Array.isArray(booking.serviceIds)
               ? booking.serviceIds.map((service) => service?.name).filter(Boolean)
               : [];
+            const rated = rateByAppointment[booking._id];
             return (
               <div key={booking._id} className="booking-item">
                 <div className="booking-main">
@@ -98,6 +189,20 @@ export default function MyBooking() {
                   {services.length ? (
                     <div className="booking-services">{services.join(", ")}</div>
                   ) : null}
+                  {booking.status === "Completed" ? (
+                    <div className="booking-rating">
+                      {rated ? (
+                        <div className="star-row">{renderStars(5, null, rated.rating)}</div>
+                      ) : (
+                        <div className="star-row">
+                          {renderStars(5, (value) => handleSubmitRating(booking, value), 0)}
+                          {submittingRatingId === booking._id ? (
+                            <span className="muted">Đang gửi...</span>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="booking-tags">
                   <span className={`booking-tag status-${booking.status}`}>
@@ -106,6 +211,15 @@ export default function MyBooking() {
                   <span className={`booking-tag payment-${booking.paymentStatus}`}>
                     {paymentStatusLabel[booking.paymentStatus] || booking.paymentStatus}
                   </span>
+                  {canCancel(booking) ? (
+                    <button
+                      type="button"
+                      className="booking-cancel"
+                      onClick={() => handleCancel(booking._id)}
+                    >
+                      Hủy lịch
+                    </button>
+                  ) : null}
                 </div>
               </div>
             );

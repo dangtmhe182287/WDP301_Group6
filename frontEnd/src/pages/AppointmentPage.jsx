@@ -64,6 +64,14 @@ function AppointmentPage() {
   )
 
   const selectedDateObject = useMemo(() => toLocalDate(selectedDate), [selectedDate])
+  const formatDateShort = (value) => {
+    if (!value) return "";
+    const date = toLocalDate(value);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
   const weekStart = useMemo(() => getWeekStart(selectedDateObject), [selectedDateObject])
   const weekDates = useMemo(
     () => Array.from({ length: 7 }, (_, index) => addDays(weekStart, index)),
@@ -412,11 +420,7 @@ function AppointmentPage() {
                               </div>
                             )}
                             <div className="staff-meta">
-                              <span>
-                                {staffExperience !== null
-                                  ? `${staffExperience} năm kinh nghiệm`
-                                  : "Kinh nghiệm đang cập nhật"}
-                              </span>
+                              
                               <span>
                                 {staffRating !== null
                                   ? `Đánh giá ${staffRating}`
@@ -476,7 +480,7 @@ function AppointmentPage() {
           </div>
           <div className="summary-section">
             <span>Ngày</span>
-            <strong>{selectedDate || "Chưa chọn"}</strong>
+            <strong>{selectedDate ? formatDateShort(selectedDate) : "Chưa chọn"}</strong>
           </div>
           <div className="summary-section">
             <span>Giờ bắt đầu</span>

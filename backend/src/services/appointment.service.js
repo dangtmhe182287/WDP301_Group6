@@ -1,13 +1,26 @@
 import Appointment from "../models/Appointment.model.js";
 import Service from "../models/Service.model.js";
+import BusinessHours from "../models/BusinessHours.model.js";
+import User from "../models/User.model.js";
 
 // Booking uses 15-minute blocks, working hours 09:00 - 18:00.
 const SLOT_STEP = 15;
-const OPEN_MINUTE = 8 * 60;
-const CLOSE_MINUTE = 19 * 60;
+const DEFAULT_OPEN_MINUTE = 8 * 60;
+const DEFAULT_CLOSE_MINUTE = 19 * 60;
 const MAX_SERVICE_PER_APPOINTMENT = 5;
 const MAX_TOTAL_DURATION = 150;
 const MAX_DAYS_AHEAD = 15;
+
+const getBusinessHours = async () => {
+  let doc = await BusinessHours.findOne();
+  if (!doc) {
+    doc = await BusinessHours.create({
+      openMinute: DEFAULT_OPEN_MINUTE,
+      closeMinute: DEFAULT_CLOSE_MINUTE,
+    });
+  }
+  return doc;
+};
 
 // Convert date input to day start and end
 const normalizeDay = (dateInput) => {
@@ -116,9 +129,10 @@ export const createAppointment = async (payload) => {
   if (totalDuration > MAX_TOTAL_DURATION) {
     throw new Error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes`);
   }
+  const { openMinute, closeMinute } = await getBusinessHours();
   const endTime = startTime + totalDuration;
   //Not in working hours
-  if (startTime < OPEN_MINUTE || endTime > CLOSE_MINUTE) {
+  if (startTime < openMinute || endTime > closeMinute) {
     throw new Error("Selected time is outside working hours");
   }
   //get appointment day(more than day start and less than day end)
@@ -182,14 +196,15 @@ export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId, s
     status: { $nin: ["Cancelled"] },
   }).select("startTime endTime");
 
+  const { openMinute, closeMinute } = await getBusinessHours();
   const slots = [];
 
   // Each slot is available only if full duration fits and does not overlap.
-  for (let minute = OPEN_MINUTE; minute < CLOSE_MINUTE; minute += SLOT_STEP) {
+  for (let minute = openMinute; minute < closeMinute; minute += SLOT_STEP) {
     const endMinute = minute + totalDuration;
 
     const available =
-      endMinute <= CLOSE_MINUTE && //not exceed working hours
+      endMinute <= closeMinute && //not exceed working hours
       !staffAppointments.some((appointment) =>//not overlap
         isOverlap(minute, endMinute, appointment.startTime, appointment.endTime)
       );
@@ -219,4 +234,41 @@ export const getAppointmentsByCustomer = async (customerId) => {
     .populate("staffId", "fullName email phone")
     .populate("serviceIds", "name duration")
     .sort({ appointmentDate: -1, startTime: -1 });
+};
+
+export const cancelAppointment = async ({ appointmentId, customerId, role }) => {
+  if (!appointmentId) {
+    throw new Error("appointmentId is required");
+  }
+
+  const appointment = await Appointment.findById(appointmentId);
+  if (!appointment) {
+    throw new Error("Appointment not found");
+  }
+
+  if (appointment.status === "Cancelled") {
+    throw new Error("Appointment already cancelled");
+  }
+
+  if (role !== "admin" && customerId && String(appointment.customerId) !== String(customerId)) {
+    throw new Error("Not allowed to cancel this appointment");
+  }
+
+  const startDateTime = new Date(appointment.appointmentDate);
+  startDateTime.setHours(0, 0, 0, 0);
+  startDateTime.setMinutes(startDateTime.getMinutes() + appointment.startTime);
+
+  const now = new Date();
+  if (now >= startDateTime) {
+    throw new Error("Cannot cancel after the appointment start time");
+  }
+
+  const diffMinutes = Math.floor((startDateTime.getTime() - now.getTime()) / 60000);
+  if (diffMinutes <= 60 && customerId) {
+    await User.findByIdAndUpdate(customerId, { $inc: { canceledLateCount: 1 } });
+  }
+
+  appointment.status = "Cancelled";
+  await appointment.save();
+  return appointment;
 };

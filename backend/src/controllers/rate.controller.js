@@ -1,15 +1,42 @@
 import Rate from '../models/Rate.model.js';
 import Appointment from '../models/Appointment.model.js';
+import Staff from '../models/Staff.model.js';
 
 export const CreateRate = async(req, res) => {
     try {
         const {appointmentId, rating, comment} = req.body;
+        if (!appointmentId || rating === undefined) {
+            return res.status(400).json({message: "appointmentId and rating are required"});
+        }
+        const appointment = await Appointment.findById(appointmentId);
+        if (!appointment) {
+            return res.status(404).json({message: "Appointment not found"});
+        }
+        if (appointment.status !== "Completed") {
+            return res.status(400).json({message: "Only completed appointments can be rated"});
+        }
+        if (req.user?.id && String(appointment.customerId) !== String(req.user.id)) {
+            return res.status(403).json({message: "Not allowed to rate this appointment"});
+        }
         const existing = await Rate.findOne({appointmentId});
         if (existing) {
             return res.status(400).json({message: "Appointment already rated"});
        }
         const rate = new Rate({appointmentId, rating, comment});
         await rate.save();
+
+        const staffDoc = await Staff.findOne({ userId: appointment.staffId });
+        if (staffDoc) {
+            const appointments = await Appointment.find({staffId: appointment.staffId});
+            const appointmentIds = appointments.map(a => a._id);
+            const rates = await Rate.find({appointmentId: {$in: appointmentIds}});
+            if (rates.length > 0) {
+                const average = rates.reduce((sum, r) => sum + r.rating, 0) / rates.length;
+                staffDoc.rating = Math.round(average * 10) / 10;
+                await staffDoc.save();
+            }
+        }
+
         return res.status(201).json({message: "Rate created successfully", rate});
 
    }
