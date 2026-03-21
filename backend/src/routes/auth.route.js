@@ -43,7 +43,7 @@ router.get(
       sameSite: "lax",
     });
 
-    res.redirect(`${process.env.FRONTEND_URL}/oauth-success`);
+    res.redirect(`${process.env.FRONTEND_URL}/`);
   }
 );
 

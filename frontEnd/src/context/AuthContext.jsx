@@ -26,6 +26,9 @@ export const AuthProvider = ({ children }) => {
         
         // Chặn khi đang oauth
         if(window.location.pathname === "/oauth-success") return;
+
+        // Nếu đã có user thì ko gọi lại
+        if(user) return;
         setIsCheckingAuth(true);
         try {
             // Thử refresh token để kiểm tra session
@@ -106,6 +109,9 @@ export const AuthProvider = ({ children }) => {
         
         if (result.success && result.data?.accessToken) {
             setAccessToken(result.data.accessToken);
+            if(result.data.user){
+                setUser(result.data.user);
+            }
             return result.data.accessToken;
         }
         

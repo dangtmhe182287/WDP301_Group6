@@ -6,7 +6,7 @@ import anonymousAvatar from "../assets/anomyous.jpg";
 
 export default function Header() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout} = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
