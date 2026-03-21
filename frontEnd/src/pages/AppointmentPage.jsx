@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext"
 
 const API_BASE = "http://localhost:3000"
 const MAX_SERVICE_PER_APPOINTMENT = 5
-const MAX_TOTAL_DURATION = 150
+const MAX_TOTAL_DURATION = 200
 const MAX_DAYS_AHEAD = 15
 
 const formatDate = (date) => {
@@ -52,6 +52,8 @@ function AppointmentPage() {
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedStart, setSelectedStart] = useState(null)
   const [message, setMessage] = useState("")
+  const [step, setStep] = useState(1)
+  const [note, setNote] = useState("")
 
   const selectedServices = useMemo(
     () => services.filter((service) => selectedServiceIds.includes(String(service._id))),
@@ -60,6 +62,10 @@ function AppointmentPage() {
 
   const totalDuration = useMemo(
     () => selectedServices.reduce((total, service) => total + (service.duration || 0), 0),
+    [selectedServices],
+  )
+  const totalPrice = useMemo(
+    () => selectedServices.reduce((total, service) => total + (service.price || 0), 0),
     [selectedServices],
   )
 
@@ -126,7 +132,11 @@ function AppointmentPage() {
           throw new Error("Không tải được danh sách dịch vụ")
         }
         const data = await response.json()
-        setServices(Array.isArray(data) ? data : [])
+        const list = Array.isArray(data) ? data : []
+        setServices(list)
+        if (list.length > 0 && selectedServiceIds.length === 0) {
+          setSelectedServiceIds([String(list[0]._id)])
+        }
       } catch (error) {
         setMessage(`Không tải được dịch vụ: ${error.message}`)
       } finally {
@@ -159,7 +169,7 @@ function AppointmentPage() {
 
   useEffect(() => {
     const loadAvailability = async () => {
-      if (!selectedStaffId || selectedServiceIds.length === 0 || !selectedDate) {
+      if (step !== 2 || !selectedStaffId || selectedServiceIds.length === 0 || !selectedDate) {
         setSlots([])
         return
       }
@@ -194,7 +204,7 @@ function AppointmentPage() {
     }
 
     loadAvailability()
-  }, [selectedDate, selectedServiceIds, selectedStaffId])
+  }, [selectedDate, selectedServiceIds, selectedStaffId, step])
 
   const handleBook = async () => {
     if (!user) {
@@ -228,6 +238,7 @@ function AppointmentPage() {
           walkInCustomerName: user.fullName || user.email || "Customer",
           staffId: selectedStaffId,
           serviceIds: selectedServiceIds,
+          note,
           bookingChannel: "online",
           createdByRole: "customer",
           appointmentDate: selectedDate,
@@ -269,115 +280,74 @@ function AppointmentPage() {
       <div className="appointment-shell">
         <section className="appointment-panel">
           <div className="appointment-header">
-            <h1>Đặt Appointment</h1>
+            <h1>Đặt Lịch hẹn</h1>
             <p>Chọn dịch vụ trước, sau đó chọn barber, ngày và giờ phù hợp.</p>
             <p className={user?._id ? "muted" : "login-required"}>
               {user?._id ? "" : "Bạn cần đăng nhập để đặt lịch."}
             </p>
           </div>
-
-          <div className="appointment-block">
-            <h2>1. Chọn dịch vụ</h2>
-            {loadingServices ? <p className="muted">Đang tải dịch vụ...</p> : null}
-            <div className="service-grid">
-              {services.map((service) => {
-                const id = String(service._id)
-                const isSelected = selectedServiceIds.includes(id)
-                return (
-                  <button
-                    key={service._id}
-                    type="button"
-                    className={`service-card ${isSelected ? "selected" : ""}`}
-                    onClick={() => toggleService(id)}
-                  >
-                    <div className="service-title">
-                      <span>{service.name}</span>
-                      <span className="service-check">{isSelected ? "Đã chọn" : "Chọn"}</span>
-                    </div>
-                    <div className="service-meta">{service.duration} phút</div>
-                  </button>
-                )
-              })}
-            </div>
+          <div className="appointment-steps" aria-label="Các bước đặt lịch">
+            <span className={`step-item ${step === 1 ? "active" : ""}`}>Dịch vụ</span>
+            <span className="step-sep">›</span>
+            <span className={`step-item ${step === 2 ? "active" : ""}`}>Barber & thời gian</span>
+            <span className="step-sep">›</span>
+            <span className={`step-item ${step === 3 ? "active" : ""}`}>Xác nhận</span>
           </div>
 
-          <div className="appointment-block">
-            <h2>2. Chọn ngày & giờ</h2>
-            <div className="appointment-date-picker">
-              <div className="date-picker-header">
-                <div className="date-picker-label">{monthLabel}</div>
-                <div className="date-picker-actions">
-                  <button
-                    type="button"
-                    className="date-nav"
-                    aria-label="Tuần trước"
-                    onClick={() => setSelectedDate(formatDate(addDays(selectedDateObject, -7)))}
-                  >
-                    &#8249;
-                  </button>
-                  <button
-                    type="button"
-                    className="date-nav"
-                    aria-label="Tuần sau"
-                    onClick={() => setSelectedDate(formatDate(addDays(selectedDateObject, 7)))}
-                  >
-                    &#8250;
-                  </button>
-                </div>
-              </div>
-
-              <div className="date-strip">
-                {weekDates.map((date) => {
-                  const value = formatDate(date)
-                  const isSelected = value === selectedDate
-                  const isPast = date < todayDate
+          {step === 1 ? (
+            <div className="appointment-block">
+              <h2>1. Chọn dịch vụ</h2>
+              {loadingServices ? <p className="muted">Đang tải dịch vụ...</p> : null}
+              <div className="service-grid">
+                {services.map((service) => {
+                  const id = String(service._id)
+                  const isSelected = selectedServiceIds.includes(id)
                   return (
                     <button
-                      key={value}
+                      key={service._id}
                       type="button"
-                      className={`date-chip ${isSelected ? "selected" : ""}`}
-                      disabled={isPast}
-                      onClick={() => setSelectedDate(value)}
+                      className={`service-card ${isSelected ? "selected" : ""}`}
+                      onClick={() => toggleService(id)}
                     >
-                      <span className="date-number">{date.getDate()}</span>
-                      <span className="date-weekday">{weekdayLabels[date.getDay()]}</span>
+                      <div className="service-title">
+                        <span>{service.name}</span>
+                        <span className="service-check">{isSelected ? "Đã chọn" : "Chọn"}</span>
+                      </div>
+                      <div className="service-meta">{service.duration} phút</div>
+                      {service.description ? (
+                        <div className="service-description line-clamp-2">
+                          {service.description}
+                        </div>
+                      ) : null}
+                      <div className="service-price">
+                        {(service.price || 0).toLocaleString("vi-VN")} VND
+                      </div>
                     </button>
                   )
                 })}
               </div>
             </div>
+          ) : null}
 
-            <div className="time-staff-grid">
-              <div className="time-column">
-                {loadingSlots ? <p className="muted">Đang tải slot...</p> : null}
-                {!selectedStaffId ? (
-                  <p className="muted">Chọn barber trước để hiển thị giờ.</p>
-                ) : null}
-                <div className="slot-grid">
-                  {slots.map((slot) => (
-                    <button
-                      key={slot.startMinute}
-                      type="button"
-                      disabled={!slot.available}
-                      className={`slot-btn ${selectedStart === slot.startMinute ? "selected" : ""}`}
-                      onClick={() => setSelectedStart(slot.startMinute)}
-                    >
-                      {toMinuteLabel(slot.startMinute)}
-                    </button>
-                  ))}
-                </div>
+          {step === 2 ? (
+            <div className="appointment-block">
+              <div className="schedule-header">
+                <h2>2. Chọn barber & thời gian</h2>
+
+
+                
+                <button type="button" className="ghost-btn back-btn" onClick={() => setStep(1)}>
+                  Quay lại dịch vụ
+                </button>
               </div>
-
               <div className="staff-column">
-                <div className="staff-section vertical">
-                  
-
+                <div className="staff-section horizontal">
                   {loadingStaffs ? <p className="muted">Đang tải barber...</p> : null}
                   {!loadingStaffs && staffs.length === 0 ? (
                     <p className="muted">Chưa có barber phù hợp.</p>
                   ) : null}
 
-                  <div className="staff-grid vertical" role="list">
+                  <div className="staff-grid horizontal" role="list">
                     {staffs.map((staff) => {
                       const staffInfo = getStaffInfo(staff)
                       const staffName = getStaffDisplay(staff)
@@ -440,12 +410,114 @@ function AppointmentPage() {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+              <div className="appointment-date-picker">
+                <div className="date-picker-header">
+                  <div className="date-picker-label">{monthLabel}</div>
+                  <div className="date-picker-actions">
+                    <button
+                      type="button"
+                      className="date-nav"
+                      aria-label="Tuần trước"
+                      onClick={() => setSelectedDate(formatDate(addDays(selectedDateObject, -7)))}
+                    >
+                      &#8249;
+                    </button>
+                    <button
+                      type="button"
+                      className="date-nav"
+                      aria-label="Tuần sau"
+                      onClick={() => setSelectedDate(formatDate(addDays(selectedDateObject, 7)))}
+                    >
+                      &#8250;
+                    </button>
+                  </div>
+                </div>
 
-          <button type="button" className="primary-btn" onClick={handleBook}>
-            Xác nhận đặt lịch
-          </button>
+                <div className="date-strip">
+                  {weekDates.map((date) => {
+                    const value = formatDate(date)
+                    const isSelected = value === selectedDate
+                    const isPast = date < todayDate
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`date-chip ${isSelected ? "selected" : ""}`}
+                        disabled={isPast}
+                        onClick={() => setSelectedDate(value)}
+                      >
+                        <span className="date-number">{date.getDate()}</span>
+                        <span className="date-weekday">{weekdayLabels[date.getDay()]}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="time-staff-grid">
+                <div className="time-column">
+                  {loadingSlots ? <p className="muted">Đang tải slot...</p> : null}
+                  {!selectedStaffId ? (
+                    <p className="muted">Chọn barber trước để hiển thị giờ.</p>
+                  ) : null}
+                  <div className="slot-grid">
+                    {slots.map((slot) => (
+                      <button
+                        key={slot.startMinute}
+                        type="button"
+                        disabled={!slot.available}
+                        className={`slot-btn ${selectedStart === slot.startMinute ? "selected" : ""}`}
+                        onClick={() => setSelectedStart(slot.startMinute)}
+                      >
+                        {toMinuteLabel(slot.startMinute)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {step === 3 ? (
+            <div className="appointment-block">
+              <h2>3. Xem lại và xác nhận</h2>
+              <div className="review-card">
+                <h3>Chính sách hủy</h3>
+                <p>
+                  Vui lòng hủy ít nhất <strong>6 giờ</strong> trước cuộc hẹn.
+                </p>
+              </div>
+              <div className="review-note">
+                <h3>Nhận xét hoặc yêu cầu</h3>
+                <div className="note-input">
+                  <input
+                    type="text"
+                    placeholder="Bạn có điều gì muốn chúng tôi biết không?"
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                  />
+                  <button type="button" className="ghost-btn add-note">
+                    Thêm
+                  </button>
+                </div>
+              </div>
+              <div className="review-actions">
+                <button type="button" className="ghost-btn back-btn" onClick={() => setStep(2)}>
+                  Quay lại
+                </button>
+                <button
+                  type="button"
+                  className="primary-btn"
+                  onClick={handleBook}
+                  disabled={
+                    selectedServiceIds.length === 0 || !selectedStaffId || selectedStart === null
+                  }
+                >
+                  Xác nhận đặt lịch
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {message ? <p className="message">{message}</p> : null}
         </section>
@@ -459,13 +531,17 @@ function AppointmentPage() {
             ) : (
               <ul>
                 {selectedServices.map((service) => (
-                  <li key={service._id}>
-                    {service.name} ({service.duration} phút)
+                  <li key={service._id} className="summary-service">
+                    <span>
+                      {service.name} ({service.duration} phút)
+                    </span>
+                    <strong>{(service.price || 0).toLocaleString("vi-VN")} VND</strong>
                   </li>
                 ))}
               </ul>
             )}
           </div>
+          
           <div className="summary-section">
             <span>Tổng thời lượng</span>
             <strong>{totalDuration} phút</strong>
@@ -486,9 +562,38 @@ function AppointmentPage() {
             <span>Giờ bắt đầu</span>
             <strong>{selectedStart !== null ? toMinuteLabel(selectedStart) : "Chưa chọn"}</strong>
           </div>
-          <button type="button" className="primary-btn ghost" onClick={handleBook}>
-            Đặt lịch ngay
-          </button>
+          <div className="summary-section total">
+            <span>Tổng tiền</span>
+            <strong>{totalPrice.toLocaleString("vi-VN")} VND</strong>
+          </div>
+          {step === 3 ? (
+            <button
+              type="button"
+              className="primary-btn ghost"
+              onClick={handleBook}
+              disabled={selectedServiceIds.length === 0 || !selectedStaffId || selectedStart === null}
+            >
+              Xác nhận đặt lịch
+            </button>
+          ) : step === 2 ? (
+            <button
+              type="button"
+              className="primary-btn ghost"
+              onClick={() => setStep(3)}
+              disabled={selectedServiceIds.length === 0 || !selectedStaffId || selectedStart === null}
+            >
+              Tiếp tục
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="primary-btn ghost"
+              onClick={() => setStep(2)}
+              disabled={selectedServiceIds.length === 0}
+            >
+              Tiếp tục
+            </button>
+          )}
         </aside>
       </div>
     </main>

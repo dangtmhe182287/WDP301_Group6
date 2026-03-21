@@ -264,7 +264,7 @@ export const cancelAppointment = async ({ appointmentId, customerId, role }) => 
   }
 
   const diffMinutes = Math.floor((startDateTime.getTime() - now.getTime()) / 60000);
-  if (diffMinutes <= 60 && customerId) {
+  if (diffMinutes <= 360 && customerId) {
     await User.findByIdAndUpdate(customerId, { $inc: { canceledLateCount: 1 } });
   }
 

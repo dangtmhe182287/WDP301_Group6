@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../utils/axiosInstance";
@@ -11,12 +11,13 @@ export default function Settings() {
     fullName: "",
     phone: "",
     password: "",
-    imgUrl: ""
+    imgUrl: "",
   });
 
-  
   const [message, setMessage] = useState("");
   const [avatarPreview, setAvatarPreview] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [staffInfo, setStaffInfo] = useState(null);
   const API_BASE = import.meta.env.VITE_SERVER_API || "http://localhost:3000";
 
   const resolveAvatar = (value) => {
@@ -25,31 +26,56 @@ export default function Settings() {
     return `${API_BASE}${value}`;
   };
 
-useEffect(() => {
-  if (message) {
-    const timer = setTimeout(() => {
-      setMessage(null);
-    }, 2000); // 2 giây
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage("");
+      }, 2000);
 
-    return () => clearTimeout(timer);
-  }
-}, [message]);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
   useEffect(() => {
     if (user) {
-      setForm((prev) => ({
-        ...prev,
+      setForm({
         fullName: user.fullName || "",
         phone: user.phone || "",
-        imgUrl: user.imgUrl || ""
-      }));
+        password: "",
+        imgUrl: user.imgUrl || "",
+      });
       setAvatarPreview(resolveAvatar(user.imgUrl));
     }
+  }, [user]);
+
+  useEffect(() => {
+    const loadStaffInfo = async () => {
+      if (!user || user.role !== "staff") {
+        setStaffInfo(null);
+        return;
+      }
+      try {
+        const response = await axiosInstance.get("/staffs");
+        const matched = Array.isArray(response.data)
+          ? response.data.find((staff) => staff._id === user._id)
+          : null;
+        setStaffInfo(matched || null);
+        console.log("Matched:", matched);
+        console.log("Response:", response.data);
+        console.log("User:", user._id);
+        
+      } catch (error) {
+        setStaffInfo(null);
+      }
+    };
+
+    loadStaffInfo();
   }, [user]);
 
   const handleChange = (field) => (event) => {
     setForm((prev) => ({
       ...prev,
-      [field]: event.target.value
+      [field]: event.target.value,
     }));
   };
 
@@ -62,7 +88,7 @@ useEffect(() => {
 
     const payload = {
       fullName: form.fullName,
-      phone: form.phone
+      phone: form.phone,
     };
     if (form.password) {
       payload.password = form.password;
@@ -77,6 +103,7 @@ useEffect(() => {
       setAvatarPreview(resolveAvatar(response.data.user?.imgUrl));
       setMessage("Cập nhật thông tin thành công.");
       setForm((prev) => ({ ...prev, password: "" }));
+      setIsEditing(false);
     } catch (error) {
       setMessage(error.response?.data?.message || "Cập nhật thất bại.");
     }
@@ -99,11 +126,28 @@ useEffect(() => {
     }
   };
 
+  const handleStartEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    if (user) {
+      setForm({
+        fullName: user.fullName || "",
+        phone: user.phone || "",
+        password: "",
+        imgUrl: user.imgUrl || "",
+      });
+      setAvatarPreview(resolveAvatar(user.imgUrl));
+    }
+    setIsEditing(false);
+  };
+
   if (!user) {
     return (
       <main className="settings-page">
         <div className="settings-card">
-          <h2>Cài đặt tài khoản</h2>
+          <h2>Hồ sơ cá nhân</h2>
           <p>Bạn cần đăng nhập để chỉnh sửa thông tin.</p>
           <button className="primary-btn" onClick={() => navigate("/login")}>
             Đăng nhập
@@ -116,59 +160,89 @@ useEffect(() => {
   return (
     <main className="settings-page">
       <div className="settings-card">
-        <h2>Cài đặt tài khoản</h2>
+        <h2>Hồ sơ cá nhân</h2>
         <div className="settings-avatar">
           <img src={avatarPreview || anonymousAvatar} alt="avatar" />
         </div>
         <form onSubmit={handleSubmit} className="settings-form">
           <label>
             Họ và tên
-            <input value={form.fullName} onChange={handleChange("fullName")} />
+            <input value={form.fullName} onChange={handleChange("fullName")} disabled={!isEditing} />
           </label>
-          <label>
-            Link ảnh đại diện
-            <input
-              value={form.imgUrl}
-              onChange={(event) => {
-                const value = event.target.value;
-                setForm((prev) => ({ ...prev, imgUrl: value }));
-                setAvatarPreview(resolveAvatar(value));
-              }}
-              placeholder="https://..."
-            />
-          </label>
-          <label>
-            Tải ảnh lên
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (!file) return;
-                handleAvatarUpload(file);
-              }}
-            />
-          </label>
+          
           <label>
             Số điện thoại
-            <input value={form.phone} onChange={handleChange("phone")} />
+            <input value={form.phone} onChange={handleChange("phone")} disabled={!isEditing} />
           </label>
-          <label>
-            Mật khẩu mới
-            <input
-              type="password"
-              value={form.password}
-              onChange={handleChange("password")}
-              placeholder="Để trống nếu không đổi"
-            />
-          </label>
-          <button type="submit" className="primary-btn">
-            Lưu thay đổi
-          </button>
+
+          {user.role === "staff" && staffInfo ? (
+            <div className="staff-profile">
+              <div>
+                <strong>Chuyên môn:</strong>{" "}
+                {Array.isArray(staffInfo.speciality) && staffInfo.speciality.length
+                  ? staffInfo.speciality.join(", ")
+                  : "Chưa cập nhật"}
+              </div>
+              <div>
+                <strong>Đánh giá:</strong>{" "}
+                {staffInfo.rating !== undefined ? staffInfo.rating : "Chưa có"}
+              </div>
+            </div>
+          ) : null}
+          {isEditing ? (
+            <>
+              <label>
+                Link ảnh đại diện
+                <input
+                  value={form.imgUrl}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setForm((prev) => ({ ...prev, imgUrl: value }));
+                    setAvatarPreview(resolveAvatar(value));
+                  }}
+                  placeholder="https://..."
+                />
+              </label>
+              <label>
+                Tải ảnh lên
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    handleAvatarUpload(file);
+                  }}
+                />
+              </label>
+              <label>
+                Mật khẩu mới
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={handleChange("password")}
+                  placeholder="Để trống nếu không đổi"
+                />
+              </label>
+            </>
+          ) : null}
+          {isEditing ? (
+            <div className="settings-actions">
+              <button type="submit" className="primary-btn">
+                Lưu thay đổi
+              </button>
+              <button type="button" className="ghost-btn" onClick={handleCancelEdit}>
+                Hủy
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="primary-btn" onClick={handleStartEdit}>
+              Chỉnh sửa thông tin
+            </button>
+          )}
         </form>
         {message ? <p className="message">{message}</p> : null}
       </div>
-
     </main>
   );
 }

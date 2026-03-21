@@ -192,6 +192,14 @@ body {
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
 }
 
+.appointment-panel {
+  padding: 24px;
+}
+
+.appointment-summary {
+  padding-bottom: 20px;
+}
+
 .appointment-summary h3{
   background-color: #0f172a;
   color:#ffffff;
@@ -211,6 +219,27 @@ body {
 .appointment-header p {
   margin: 0 0 16px;
   
+}
+
+.appointment-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #94a3b8;
+  padding: 4px 0 16px;
+}
+
+.appointment-steps .step-item {
+  font-weight: 600;
+}
+
+.appointment-steps .step-item.active {
+  color: #0f172a;
+}
+
+.appointment-steps .step-sep {
+  color: #cbd5f5;
 }
 
 .appointment-block {
@@ -331,7 +360,7 @@ body {
 
 .service-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -350,6 +379,10 @@ body {
   margin: 0;
   font-size: 16px;
   color: #0f172a;
+}
+
+.staff-section.horizontal {
+  margin-bottom: 12px;
 }
 
 .staff-grid {
@@ -471,6 +504,62 @@ body {
   box-shadow: 0 10px 18px rgba(34, 211, 197, 0.18);
 }
 
+.schedule-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.back-btn {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.review-card,
+.review-note {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.04);
+}
+
+.review-card h3,
+.review-note h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.note-input {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.note-input input {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+}
+
+.add-note {
+  padding: 10px 16px;
+  font-weight: 600;
+}
+
+.review-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .service-title {
   display: flex;
   justify-content: space-between;
@@ -492,33 +581,54 @@ body {
   font-size: 13px;
 }
 
+.service-description {
+  margin-top: 6px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.service-price {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
 .slot-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: 8px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .time-staff-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: 1fr;
   gap: 16px;
   align-items: start;
+  overflow: hidden;
 }
 
 .staff-column {
   width: 100%;
 }
 
-.staff-grid.vertical {
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  max-height: 350px;
-  padding-right: 6px;
-  padding-bottom: 0;
+.staff-grid.horizontal {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 24px) / 3);
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
 }
 
-.staff-grid.vertical .staff-card {
+.staff-grid.horizontal .staff-card {
+  min-width: 0;
+}
+
+.time-column {
   width: 100%;
 }
 
@@ -559,6 +669,14 @@ body {
   border: 1px solid rgba(34, 211, 197, 0.4);
 }
 
+.primary-btn:disabled,
+.primary-btn.ghost:disabled {
+  background: #e2e8f0;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
 .message {
   margin-top: 12px;
   padding: 10px 12px;
@@ -579,7 +697,15 @@ body {
   font-size: 14px;
   padding: 10px 20px;
 }
-
+.summary-section strong {
+  font-weight: normal;
+}
+.summary-service strong {
+  font-weight: 600;
+} 
+.summary-section.total strong, .summary-section.total span {
+  font-weight: bold;
+}
 .summary-section:last-of-type {
   border-bottom: none;
 }
@@ -588,6 +714,12 @@ body {
   margin: 0;
   padding-left: 16px;
   color: #0f172a;
+}
+
+.summary-service {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .muted {
@@ -781,6 +913,23 @@ body {
   font-size: 14px;
 }
 
+.settings-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.staff-profile {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+  color: #0f172a;
+  display: grid;
+  gap: 6px;
+}
+
 .booking-card {
   margin-top: 20px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
@@ -825,6 +974,19 @@ body {
 
 .booking-services {
   margin-top: 8px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.booking-price {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.booking-note {
+  margin-top: 6px;
   font-size: 13px;
   color: #475569;
 }
