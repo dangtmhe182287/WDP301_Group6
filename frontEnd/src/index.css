@@ -942,6 +942,13 @@ body {
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
 
+.booking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .booking-list {
   display: grid;
   gap: 14px;

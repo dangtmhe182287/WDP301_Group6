@@ -11,6 +11,7 @@ export default function MyBooking() {
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [rateByAppointment, setRateByAppointment] = useState({});
   const [submittingRatingId, setSubmittingRatingId] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const formatTime = (minute) => {
     const h = String(Math.floor(minute / 60)).padStart(2, "0");
@@ -157,12 +158,34 @@ export default function MyBooking() {
       );
     });
 
+  const isHistoryBooking = (booking) =>
+    booking?.status === "Cancelled" ||
+    (booking?.status === "Completed" && booking?.paymentStatus === "Paid");
+
+  const isActiveBooking = (booking) =>
+    booking?.status === "Scheduled" ||
+    (booking?.status === "Completed" && booking?.paymentStatus === "Unpaid");
+
+  const getSortedBookings = (list, direction = "desc") =>
+    [...list].sort((a, b) => {
+      const aTime = getAppointmentStart(a)?.getTime?.() || 0;
+      const bTime = getAppointmentStart(b)?.getTime?.() || 0;
+      return direction === "asc" ? aTime - bTime : bTime - aTime;
+    });
+
+  const visibleBookings = useMemo(() => {
+    const filtered = showHistory
+      ? bookings.filter(isHistoryBooking)
+      : bookings.filter(isActiveBooking);
+    return getSortedBookings(filtered, showHistory ? "desc" : "asc");
+  }, [bookings, showHistory]);
+
   if (!user) {
     return (
       <main className="settings-page">
         <div className="settings-card">
-          <h2>My Booking</h2>
-          <p>Bạn cần đăng nhập để xem lịch đặt.</p>
+          <h2>Lịch hẹn</h2>
+          <p>Bạn cần đăng nhập để xem lịch hẹn.</p>
           <button className="primary-btn" onClick={() => navigate("/login")}>
             Đăng nhập
           </button>
@@ -174,13 +197,26 @@ export default function MyBooking() {
   return (
     <main className="settings-page">
       <div className="settings-card booking-card">
-        <h2>My Booking</h2>
+        <div className="booking-header">
+          <h2>Lịch hẹn</h2>
+          <button
+            type="button"
+            className="ghost-btn"
+            onClick={() => setShowHistory((prev) => !prev)}
+          >
+            {showHistory ? "Quay lại" : "Lịch sử"}
+          </button>
+        </div>
         {loadingBookings ? <p className="muted">Đang tải lịch đã đặt...</p> : null}
-        {!loadingBookings && bookings.length === 0 ? (
-          <p className="muted">Bạn chưa có lịch đặt nào.</p>
+        {!loadingBookings && visibleBookings.length === 0 ? (
+          <p className="muted">
+            {showHistory
+              ? "Chưa có lịch đã hủy hoặc đã hoàn thành."
+              : "Không có lịch đang chờ xử lý."}
+          </p>
         ) : null}
         <div className="booking-list">
-          {bookings.map((booking) => {
+          {visibleBookings.map((booking) => {
             const staffName = booking?.staffId?.fullName || booking?.staffId?.email || "Staff";
             const services = Array.isArray(booking.serviceIds)
               ? booking.serviceIds.map((service) => service?.name).filter(Boolean)
