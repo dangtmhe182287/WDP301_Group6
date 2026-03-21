@@ -14,8 +14,11 @@ import { Toaster } from "sonner";
 
 import "./App.css";
 import "./index.css";
+import { Skeleton } from "./components/ui/skeleton.jsx";
 import ForgotPassword from "./pages/Auth/ForgotPassword.jsx";
 import ResetPassword from "./pages/Auth/ResetPassword.jsx";
+
+
 /* ================= Protected Route ================= */
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, loading, authenticating } = useAuth();
@@ -88,6 +91,31 @@ function AdminRoute({ children }) {
 }
 
 function App() {
+  const { loading } = useAuth();
+
+  // 🔥 LOADING FULL APP (SKELETON)
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f4f6f7]">
+
+        {/* HEADER SKELETON */}
+        <div className="flex items-center justify-between px-6 py-4 bg-white">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-6 w-64 hidden md:block" />
+          <Skeleton className="h-10 w-10 rounded-full" />
+        </div>
+
+        {/* CONTENT SKELETON */}
+        <div className="p-6 space-y-4">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-40 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
+        </div>
+
+      </div>
+    );
+  }
+
   return (
     <Router>
       <div className="app">

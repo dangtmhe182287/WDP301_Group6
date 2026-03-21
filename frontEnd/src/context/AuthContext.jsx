@@ -24,6 +24,11 @@ export const AuthProvider = ({ children }) => {
         // Ngăn gọi nhiều lần đồng thời
         if (isCheckingAuth) return;
         
+        // Chặn khi đang oauth
+        if(window.location.pathname === "/oauth-success") return;
+
+        // Nếu đã có user thì ko gọi lại
+        if(user) return;
         setIsCheckingAuth(true);
         try {
             // Thử refresh token để kiểm tra session
@@ -102,8 +107,11 @@ export const AuthProvider = ({ children }) => {
     const refreshToken = async () => {
         const result = await authService.refreshToken();
         
-        if (result.success && result.data.success) {
+        if (result.success && result.data?.accessToken) {
             setAccessToken(result.data.accessToken);
+            if(result.data.user){
+                setUser(result.data.user);
+            }
             return result.data.accessToken;
         }
         

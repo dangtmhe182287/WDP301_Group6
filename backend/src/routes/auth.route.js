@@ -1,5 +1,5 @@
 import express from "express";
-import {Register, Login, RefreshToken, ResetPassword, ForgotPassword} from "../controllers/auth.controller.js"
+import {Register, Login, RefreshToken, ResetPassword, ForgotPassword, Logout} from "../controllers/auth.controller.js"
 import passport from "passport";
 import jwt from "jsonwebtoken";
 const router = express.Router();
@@ -10,6 +10,7 @@ router.post("/refreshToken",RefreshToken);
 
 router.post("/forgot-password", ForgotPassword);
 router.post("/reset-password/:token", ResetPassword);
+router.post("/logout", Logout);
 
 router.get(
   "/google",
@@ -18,7 +19,7 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", { session: false }),
-  (req, res) => {
+  async (req, res) => {
     const user = req.user;
 
     const accessToken = jwt.sign(
@@ -33,13 +34,16 @@ router.get(
       { expiresIn: "7d" }
     );
 
-   res.cookie("refreshToken", refreshToken, {
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: false,
       sameSite: "lax",
     });
 
-    res.redirect(`${process.env.FRONTEND_URL}?token=${accessToken}`);
+    res.redirect(`${process.env.FRONTEND_URL}/`);
   }
 );
 
