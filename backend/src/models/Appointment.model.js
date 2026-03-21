@@ -13,6 +13,7 @@ const appointmentSchema = new mongoose.Schema(
     customerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      default: null
     },
     walkInCustomerName: {
       type: String,
@@ -20,7 +21,7 @@ const appointmentSchema = new mongoose.Schema(
     },
     staffId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Staff",
       required: true,
     },
     serviceIds: [{
