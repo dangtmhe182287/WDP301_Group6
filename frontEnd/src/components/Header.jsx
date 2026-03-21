@@ -44,7 +44,7 @@ const handleLogout = async () => {
           <nav className="nav">
             <a onClick={() => navigate("/")}>Trang chủ</a>
             <a href="#">Dịch vụ</a>
-            <a href="#">Kiểu dáng</a>
+            
             <a href="#">Về chúng tôi</a>
           </nav>
 
@@ -55,14 +55,14 @@ const handleLogout = async () => {
                   className="btn-login"
                   onClick={() => navigate("/login")}
                 >
-                  Login
+                  Đăng nhập
                 </button>
 
                 <button
                   className="btn-signup"
                   onClick={() => navigate("/register")}
                 >
-                  Sign Up
+                  Đăng ký
                 </button>
               </>
             ) : (
@@ -75,8 +75,8 @@ const handleLogout = async () => {
                 </button>
                 {menuOpen ? (
                   <div className="avatar-dropdown">
-                    <button onClick={() => navigate("/my-bookings")}>My Booking</button>
-                    <button onClick={() => navigate("/settings")}>Cài đặt</button>
+                    <button onClick={() => navigate("/my-bookings")}>Lịch đặt</button>
+                    <button onClick={() => navigate("/settings")}>Hồ sơ</button>
                     <button onClick={handleLogout}>Đăng xuất</button>
                   </div>
                 ) : null}
@@ -214,4 +214,5 @@ const handleLogout = async () => {
     </>
   );
 }
+
 

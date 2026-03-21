@@ -3,6 +3,7 @@ import { Link, Routes, Route, Navigate } from "react-router-dom";
 import Stylists from "./Stylists";
 import Services from "./Services";
 import Placeholder from "./Placeholder";
+import AdminSettings from "./AdminSettings";
 
 function DashboardView() {
   return (
@@ -142,7 +143,7 @@ export default function Admin() {
           <Route path="feedback" element={<Placeholder title="Phản hồi" />} />
           <Route path="gallery" element={<Placeholder title="Thư viện ảnh" />} />
           <Route path="analytics" element={<Placeholder title="Thống kê" />} />
-          <Route path="settings" element={<Placeholder title="Quản lý website" />} />
+          <Route path="settings" element={<AdminSettings />} />
           <Route path="*" element={<Navigate to="." replace />} />
         </Routes>
       </main>
@@ -356,6 +357,36 @@ export default function Admin() {
 
         .btn-icon:last-child {
           margin-right: 0;
+        }
+
+        .admin-settings {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .admin-settings-card {
+          background: #fff;
+          border-radius: 16px;
+          padding: 18px;
+          box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+          max-width: 420px;
+          display: grid;
+          gap: 12px;
+        }
+
+        .admin-settings-card label {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          font-size: 14px;
+          color: rgba(0, 0, 0, 0.7);
+        }
+
+        .admin-settings-card input {
+          padding: 10px 12px;
+          border-radius: 10px;
+          border: 1px solid rgba(0, 0, 0, 0.12);
         }
 
         @media (max-width: 900px) {

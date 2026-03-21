@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema({
         enum: ['normal', 'gold', 'diamond'],
         default: 'normal'
     },
+    canceledLateCount: { type: Number, default: 0 },
 
     
 },
