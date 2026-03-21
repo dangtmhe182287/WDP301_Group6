@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../utils/axiosInstance";
+import { toast } from "sonner";
 
 export default function MyBooking() {
   const { user } = useAuth();
@@ -10,7 +11,6 @@ export default function MyBooking() {
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [rateByAppointment, setRateByAppointment] = useState({});
   const [submittingRatingId, setSubmittingRatingId] = useState(null);
-  const [actionMessage, setActionMessage] = useState("");
 
   const formatTime = (minute) => {
     const h = String(Math.floor(minute / 60)).padStart(2, "0");
@@ -22,10 +22,7 @@ export default function MyBooking() {
     if (!value) return "";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    return new Intl.DateTimeFormat("vi-VN").format(date);
   };
 
   const bookingStatusLabel = useMemo(
@@ -89,32 +86,46 @@ export default function MyBooking() {
     return date;
   };
 
+  const getAppointmentEnd = (booking) => {
+    const date = new Date(booking.appointmentDate);
+    date.setHours(0, 0, 0, 0);
+    date.setMinutes(date.getMinutes() + booking.endTime);
+    return date;
+  };
+
+  const canRate = (booking) => {
+    if (!booking) return false;
+    if (booking.status === "Cancelled") return false;
+    if (booking.status === "Completed") return true;
+    if (booking.status === "Scheduled") return false;
+    return new Date() >= getAppointmentEnd(booking);
+  };
+
   const canCancel = (booking) => {
     if (!booking) return false;
     if (["Cancelled", "Completed"].includes(booking.status)) return false;
     const start = getAppointmentStart(booking);
+    if (Number.isNaN(start.getTime())) return true;
     return new Date() < start;
   };
 
   const handleCancel = async (bookingId) => {
-    setActionMessage("");
     try {
       await axiosInstance.post(`/appointments/${bookingId}/cancel`);
       const response = await axiosInstance.get("/appointments/my");
       setBookings(Array.isArray(response.data) ? response.data : []);
-      setActionMessage("Đã hủy lịch thành công.");
+      toast.success("Đã hủy lịch thành công.");
     } catch (error) {
-      setActionMessage(error.response?.data?.error || "Không thể hủy lịch.");
+      toast.error(error.response?.data?.error || "Không thể hủy lịch.");
     }
   };
 
   const handleSubmitRating = async (booking, ratingValue) => {
     if (ratingValue < 1 || ratingValue > 5) {
-      setActionMessage("Vui lòng chọn đánh giá từ 1 đến 5.");
+      toast.error("Vui lòng chọn đánh giá từ 1 đến 5.");
       return;
     }
     setSubmittingRatingId(booking._id);
-    setActionMessage("");
     try {
       await axiosInstance.post(`/rates/staff/${booking.staffId?._id || booking.staffId}`, {
         appointmentId: booking._id,
@@ -122,9 +133,9 @@ export default function MyBooking() {
       });
       const response = await axiosInstance.get(`/rates/appointment/${booking._id}`);
       setRateByAppointment((prev) => ({ ...prev, [booking._id]: response.data }));
-      setActionMessage("Đã gửi đánh giá.");
+      toast.success("Đã gửi đánh giá.");
     } catch (error) {
-      setActionMessage(error.response?.data?.message || "Gửi đánh giá thất bại.");
+      toast.error(error.response?.data?.message || "Gửi đánh giá thất bại.");
     } finally {
       setSubmittingRatingId(null);
     }
@@ -168,13 +179,15 @@ export default function MyBooking() {
         {!loadingBookings && bookings.length === 0 ? (
           <p className="muted">Bạn chưa có lịch đặt nào.</p>
         ) : null}
-        {actionMessage ? <p className="message">{actionMessage}</p> : null}
         <div className="booking-list">
           {bookings.map((booking) => {
             const staffName = booking?.staffId?.fullName || booking?.staffId?.email || "Staff";
             const services = Array.isArray(booking.serviceIds)
               ? booking.serviceIds.map((service) => service?.name).filter(Boolean)
               : [];
+            const totalPrice = Array.isArray(booking.serviceIds)
+              ? booking.serviceIds.reduce((total, service) => total + (service?.price || 0), 0)
+              : 0;
             const rated = rateByAppointment[booking._id];
             return (
               <div key={booking._id} className="booking-item">
@@ -189,7 +202,11 @@ export default function MyBooking() {
                   {services.length ? (
                     <div className="booking-services">{services.join(", ")}</div>
                   ) : null}
-                  {booking.status === "Completed" ? (
+                  {totalPrice > 0 ? (
+                    <div className="booking-price">{totalPrice.toLocaleString("vi-VN")} VND</div>
+                  ) : null}
+                  {booking.note ? <div className="booking-note">Ghi chú: {booking.note}</div> : null}
+                  {canRate(booking) ? (
                     <div className="booking-rating">
                       {rated ? (
                         <div className="star-row">{renderStars(5, null, rated.rating)}</div>

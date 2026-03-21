@@ -8,12 +8,26 @@ export const CreateRate = async(req, res) => {
         if (!appointmentId || rating === undefined) {
             return res.status(400).json({message: "appointmentId and rating are required"});
         }
+        if (typeof rating !== "number" || rating < 1 || rating > 5) {
+            return res.status(400).json({message: "Rating must be between 1 and 5"});
+        }
         const appointment = await Appointment.findById(appointmentId);
         if (!appointment) {
             return res.status(404).json({message: "Appointment not found"});
         }
+        if (appointment.status === "Cancelled") {
+            return res.status(400).json({message: "Cancelled appointments cannot be rated"});
+        }
+        if (appointment.status === "Scheduled") {
+            return res.status(400).json({message: "Scheduled appointments cannot be rated"});
+        }
         if (appointment.status !== "Completed") {
-            return res.status(400).json({message: "Only completed appointments can be rated"});
+            const endAt = new Date(appointment.appointmentDate);
+            endAt.setHours(0, 0, 0, 0);
+            endAt.setMinutes(endAt.getMinutes() + appointment.endTime);
+            if (new Date() < endAt) {
+                return res.status(400).json({message: "Only completed appointments can be rated"});
+            }
         }
         if (req.user?.id && String(appointment.customerId) !== String(req.user.id)) {
             return res.status(403).json({message: "Not allowed to rate this appointment"});
@@ -51,7 +65,7 @@ export const GetRateByAppointmentId = async(req, res) => {
         const {appointmentId} = req.params;
         const rate = await Rate.findOne({appointmentId});
         if (!rate) {
-            return res.status(404).json({message: "Rate not found"});
+            return res.status(200).json(null);
        }
         return res.status(200).json(rate);
    }

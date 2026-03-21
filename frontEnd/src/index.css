@@ -511,6 +511,13 @@ body {
   gap: 12px;
   margin-bottom: 12px;
 }
+.review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
 
 .back-btn {
   padding: 8px 12px;

@@ -8,8 +8,9 @@ const SLOT_STEP = 15;
 const DEFAULT_OPEN_MINUTE = 8 * 60;
 const DEFAULT_CLOSE_MINUTE = 19 * 60;
 const MAX_SERVICE_PER_APPOINTMENT = 5;
-const MAX_TOTAL_DURATION = 150;
+const MAX_TOTAL_DURATION = 270;
 const MAX_DAYS_AHEAD = 15;
+const MIN_BOOKING_LEAD_MINUTES = 60;
 
 const getBusinessHours = async () => {
   let doc = await BusinessHours.findOne();
@@ -36,6 +37,22 @@ const normalizeDay = (dateInput) => {
   dayEnd.setDate(dayEnd.getDate() + 1);
 
   return { dayStart, dayEnd };
+};
+
+const getTodayStart = () => {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  return todayStart;
+};
+
+const isSameDay = (a, b) =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
+const getCurrentMinuteOfDay = () => {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
 };
 
 const isOverlap = (startA, endA, startB, endB) => Math.max(startA, startB) < Math.min(endA, endB);//Overlap if end of one is after start of the other.
@@ -109,10 +126,11 @@ export const createAppointment = async (payload) => {
   if (customerId) {
     const unfinishedCount = await Appointment.countDocuments({
       customerId,
-      status: { $in: ["Pending", "Scheduled"] },
+      status: { $ne: "Cancelled" },
+      $or: [{ paymentStatus: "Unpaid" }, { status: "Scheduled" }],
     });
     if (unfinishedCount >= 2) {
-      throw new Error("You can only have up to 2 unfinished appointments.");
+      throw new Error("Bạn đang có 2 lịch chưa thanh toán hoặc đã lên lịch.");
     }
   }
   //backEnd validation to ensure start time is aligned to 15-minute slots.
@@ -137,12 +155,17 @@ export const createAppointment = async (payload) => {
   }
   //get appointment day(more than day start and less than day end)
   const { dayStart, dayEnd } = normalizeDay(appointmentDate);
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = getTodayStart();
   const latestAllowed = new Date(todayStart);
   latestAllowed.setDate(latestAllowed.getDate() + MAX_DAYS_AHEAD);
   if (dayStart > latestAllowed) {
     throw new Error(`Appointment date must be within ${MAX_DAYS_AHEAD} days`);
+  }
+  if (isSameDay(dayStart, todayStart)) {
+    const minStart = getCurrentMinuteOfDay() + MIN_BOOKING_LEAD_MINUTES;
+    if (startTime < minStart) {
+      throw new Error(`Appointments must be booked at least ${MIN_BOOKING_LEAD_MINUTES} minutes in advance`);
+    }
   }
   // Check for overlapping appointments for the staff on the same day.
   const staffAppointments = await Appointment.find({
@@ -189,6 +212,9 @@ export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId, s
 
   const totalDuration = await getTotalDuration(resolvedServiceIds);
   const { dayStart, dayEnd } = normalizeDay(appointmentDate);
+  const todayStart = getTodayStart();
+  const minLeadStart =
+    isSameDay(dayStart, todayStart) ? getCurrentMinuteOfDay() + MIN_BOOKING_LEAD_MINUTES : null;
 
   const staffAppointments = await Appointment.find({
     staffId,
@@ -203,8 +229,10 @@ export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId, s
   for (let minute = openMinute; minute < closeMinute; minute += SLOT_STEP) {
     const endMinute = minute + totalDuration;
 
+    const withinLead = minLeadStart === null || minute >= minLeadStart;
     const available =
       endMinute <= closeMinute && //not exceed working hours
+      withinLead &&
       !staffAppointments.some((appointment) =>//not overlap
         isOverlap(minute, endMinute, appointment.startTime, appointment.endTime)
       );
@@ -232,7 +260,7 @@ export const getAppointmentsByCustomer = async (customerId) => {
 
   return Appointment.find({ customerId })
     .populate("staffId", "fullName email phone")
-    .populate("serviceIds", "name duration")
+    .populate("serviceIds", "name duration price")
     .sort({ appointmentDate: -1, startTime: -1 });
 };
 
