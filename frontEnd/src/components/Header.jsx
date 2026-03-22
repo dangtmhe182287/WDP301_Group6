@@ -142,6 +142,9 @@ const handleLogout = async () => {
           border:none;
           cursor:pointer;
           width: 90px;
+          white-space: nowrap;
+          justify-content: center;
+          display: inline-flex;
         }
 
         .avatar-button{

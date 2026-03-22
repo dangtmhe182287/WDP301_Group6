@@ -64,7 +64,7 @@ export default function AdminAppointments() {
             </thead>
             <tbody>
               {appointments.map((app) => {
-                const customer = app.customerId || { fullName: app.walkInCustomerName || "Khách ngoại lai", phone: "" };
+                const customer = app.customerId || { fullName: app.customerName || "Khách ngoại lai", phone: "" };
                 const staff = app.staffId || { fullName: "Không xác định" };
                 const services = Array.isArray(app.serviceIds) ? app.serviceIds : [];
                 

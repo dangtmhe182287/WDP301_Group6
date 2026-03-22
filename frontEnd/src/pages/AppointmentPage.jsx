@@ -241,7 +241,7 @@ function AppointmentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerId: user._id || user.id,
-          walkInCustomerName: user.fullName || user.email || "Customer",
+          name: user.fullName || user.email || "Customer",
           staffId: selectedStaffId,
           serviceIds: selectedServiceIds,
           note,
