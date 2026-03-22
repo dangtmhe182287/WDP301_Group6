@@ -43,9 +43,9 @@ const handleLogout = async () => {
 
           <nav className="nav">
             <a onClick={() => navigate("/")}>Trang chủ</a>
-            <a href="#">Dịch vụ</a>
+            <a onClick={() => navigate("/services")}>Dịch vụ</a>
             
-            <a href="#">Về chúng tôi</a>
+            <a onClick={() => navigate("/about")}>Về chúng tôi</a>
           </nav>
 
           <div className="auth-buttons">

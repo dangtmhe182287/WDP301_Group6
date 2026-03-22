@@ -56,3 +56,18 @@ export const GetAllAppointments = async (req, res) => {
     res.status(400).json({ message: "Get all appointments error", error: error.message });
   }
 };
+
+export const confirmPayment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const appointment = await Appointment.findByIdAndUpdate(
+            id,
+            { paymentStatus: "Paid" },
+            { new: true }
+        );
+        if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+        res.status(200).json({ message: "Payment confirmed", appointment });
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+};

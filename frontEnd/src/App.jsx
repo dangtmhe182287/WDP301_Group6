@@ -9,6 +9,9 @@ import Home from "./pages/Home";
 import Settings from "./pages/Settings";
 import MyBooking from "./pages/MyBooking";
 import Admin from "./pages/Admin";
+import Staff from "./pages/Staff.jsx";
+import About from "./pages/About";
+import ServicesPage from "./pages/ServicesPage";
 import { useAuth } from "./context/AuthContext";
 import { Toaster } from "sonner";
 
@@ -46,7 +49,8 @@ function Layout() {
     location.pathname.startsWith("/register") ||
     location.pathname.startsWith("/forgot-password") ||
     location.pathname.startsWith("/reset-password") ||
-    location.pathname.startsWith("/admin");
+    location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/staff");
 
   return (
     <>
@@ -61,12 +65,22 @@ function Layout() {
         <Route path="/appointment" element={<AppointmentPage />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/my-bookings" element={<MyBooking />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/services" element={<ServicesPage />} />
         <Route
           path="/admin/*"
           element={
             <AdminRoute>
               <Admin />
             </AdminRoute>
+          }
+        />
+        <Route
+          path="/staff/*"
+          element={
+            <StaffRoute>
+              <Staff />
+            </StaffRoute>
           }
         />
       </Routes>
@@ -87,6 +101,13 @@ function AdminRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
+  return children;
+}
+
+function StaffRoute({ children }) {
+  const { user, loading, authenticating } = useAuth();
+  if (loading || authenticating) return null;
+  if (!user || user.role !== "staff") return <Navigate to="/login" replace />;
   return children;
 }
 
