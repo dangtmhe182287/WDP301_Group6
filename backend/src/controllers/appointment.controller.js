@@ -1,4 +1,5 @@
 import * as appointmentService from "../services/appointment.service.js";
+import Appointment from "../models/Appointment.model.js";
 
 // Controller tạo lịch hẹn: validate/business rules nằm ở service layer.
 export const CreateAppointment = async (req, res) => {
@@ -40,5 +41,18 @@ export const CancelAppointment = async (req, res) => {
     res.status(200).json(data);
   } catch (error) {
     res.status(400).json({ message: "Cancel appointment error", error: error.message });
+  }
+};
+
+export const GetAllAppointments = async (req, res) => {
+  try {
+    const data = await Appointment.find()
+      .populate("customerId", "fullName email phone")
+      .populate("staffId", "fullName email phone")
+      .populate("serviceIds", "name duration price")
+      .sort({ appointmentDate: -1, startTime: -1 });
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(400).json({ message: "Get all appointments error", error: error.message });
   }
 };

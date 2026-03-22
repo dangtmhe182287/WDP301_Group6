@@ -1,4 +1,5 @@
 import * as serviceService from "../services/services.service.js";
+import Appointment from "../models/Appointment.model.js";
 
 export const GetAllServices = async (req, res) => {
     try{
@@ -29,7 +30,7 @@ export const CreateService = async (req, res) => {
 
 export const UpdateService = async (req, res) => {
     try{
-        const service = await serviceService.updateService(req.params.id, req.id)
+        const service = await serviceService.updateService(req.params.id, req.body)
         res.status(200).json(service);
     }catch(error){
         res.status(400).json({message: "Update service error!", error: error.message });
@@ -68,4 +69,40 @@ export const checkoutService = async (req, res) => {
       message: error.message
     });
   }
+};
+
+export const GetServiceBookingStats = async (req, res) => {
+    try {
+        const stats = await Appointment.aggregate([
+            { $unwind: "$serviceIds" },
+            {
+                $group: {
+                    _id: "$serviceIds",
+                    bookingCount: { $sum: 1 }
+                }
+            },
+            {
+                $lookup: {
+                    from: "services", 
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "serviceDetails"
+                }
+            },
+            { $unwind: "$serviceDetails" },
+            {
+                $project: {
+                    _id: 1,
+                    serviceName: "$serviceDetails.name",
+                    price: "$serviceDetails.price",
+                    bookingCount: 1
+                }
+            },
+            { $sort: { bookingCount: -1 } }
+        ]);
+
+        res.status(200).json(stats);
+    } catch (error) {
+        res.status(400).json({ message: "Get service stats error!", error: error.message });
+    }
 };

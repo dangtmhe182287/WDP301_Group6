@@ -1,5 +1,7 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User.model.js";
+import Appointment from "../models/Appointment.model.js";
+import Service from "../models/Service.model.js";
 import fs from "fs";
 import path from "path";
 
@@ -85,5 +87,72 @@ export const updateAvatar = async (req, res) => {
     res.status(200).json({ message: "Update avatar success", user: safeUser });
   } catch (error) {
     res.status(400).json({ message: "Update avatar error", error: error.message });
+  }
+};
+
+export const getCustomerStats = async (req, res) => {
+  try {
+    const stats = await User.aggregate([
+      { $match: { role: "customer" } },
+      {
+        $lookup: {
+          from: "appointments",
+          localField: "_id",
+          foreignField: "customerId",
+          as: "appointments",
+        },
+      },
+      {
+        $project: {
+          fullName: 1,
+          email: 1,
+          phone: 1,
+          totalBookings: { $size: "$appointments" },
+          cancelledBookings: {
+            $size: {
+              $filter: {
+                input: "$appointments",
+                as: "app",
+                cond: { $eq: ["$$app.status", "Cancelled"] },
+              },
+            },
+          },
+        },
+      },
+      { $sort: { totalBookings: -1, fullName: 1 } },
+    ]);
+
+    res.status(200).json(stats);
+  } catch (error) {
+    res.status(400).json({ message: "Get customer stats error", error: error.message });
+  }
+};
+
+export const getDashboardStats = async (req, res) => {
+  try {
+    const totalCustomers = await User.countDocuments({ role: "customer" });
+    const totalStaff = await User.countDocuments({ role: "staff" });
+    const totalAppointments = await Appointment.countDocuments();
+    const pendingAppointments = await Appointment.countDocuments({ status: "Pending" });
+    
+    // Thu nhập từ các đơn completed (giả sử có thể ko chính xác 100% khi service đổi giá, 
+    // nhưng đây là cách đơn giản nhất để móc ra data)
+    let totalRevenue = 0;
+    const completedAppointments = await Appointment.find({ status: "Completed" }).populate("serviceIds", "price");
+    completedAppointments.forEach(app => {
+      app.serviceIds.forEach(svc => {
+        if(svc && svc.price) totalRevenue += svc.price;
+      });
+    });
+
+    res.status(200).json({
+      totalCustomers,
+      totalStaff,
+      totalAppointments,
+      pendingAppointments,
+      totalRevenue
+    });
+  } catch (error) {
+    res.status(400).json({ message: "Get dashboard stats error", error: error.message });
   }
 };

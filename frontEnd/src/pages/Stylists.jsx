@@ -89,7 +89,7 @@ export default function Stylists() {
     if (!confirm("Bạn có chắc muốn xóa thợ cắt này?")) return;
 
     try {
-      const response = await fetch(`${API_BASE}/staff/${staffId}`, {
+      const response = await fetch(`${API_BASE}/staffs/${staffId}`, {
         method: "DELETE"
       });
 
@@ -112,7 +112,7 @@ export default function Stylists() {
 
     try {
       const method = editingStaff ? "PUT" : "POST";
-      const url = editingStaff ? `${API_BASE}/staff/${editingStaff._id}` : `${API_BASE}/staff`;
+      const url = editingStaff ? `${API_BASE}/staffs/${editingStaff._id}` : `${API_BASE}/staffs`;
 
       console.log("Making request:", method, url);
 
@@ -144,7 +144,7 @@ export default function Stylists() {
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
-    
+
     if (name === "speciality") {
       setFormData(prev => ({ ...prev, speciality: value.split(",").map(s => s.trim()) }));
     } else if (name.startsWith("certificate.")) {
@@ -166,9 +166,6 @@ export default function Stylists() {
         <h1>Thợ cắt</h1>
         <div>
           <button className="add-btn" onClick={handleCreate}>Thêm thợ cắt</button>
-          <Link className="secondary-link" to="/">
-            ← Về Home
-          </Link>
         </div>
       </div>
 
@@ -183,6 +180,7 @@ export default function Stylists() {
           <table className="staff-table">
             <thead>
               <tr>
+                <th>Ảnh</th>
                 <th>Họ tên</th>
                 <th>Email</th>
                 <th>Điện thoại</th>
@@ -198,11 +196,12 @@ export default function Stylists() {
                 const user = staff.userId
                   ? staff.userId
                   : {
-                      fullName: staff.fullName,
-                      email: staff.email,
-                      phone: staff.phone,
-                      role: staff.role,
-                    };
+                    fullName: staff.fullName,
+                    email: staff.email,
+                    phone: staff.phone,
+                    role: staff.role,
+                    imgUrl: staff.imgUrl,
+                  };
 
                 const staffInfo = staff.staff || staff;
 
@@ -217,6 +216,13 @@ export default function Stylists() {
 
                 return (
                   <tr key={staff._id}>
+                    <td>
+                      <img 
+                        src={user.imgUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || "Staff")}&background=random`}
+                        alt="avatar"
+                        style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
+                      />
+                    </td>
                     <td>{user.fullName || "Không có tên"}</td>
                     <td>{user.email || "-"}</td>
                     <td>{user.phone || "-"}</td>

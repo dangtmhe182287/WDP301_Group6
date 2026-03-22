@@ -1,4 +1,6 @@
 import User from "../models/User.model.js";
+import Staff from "../models/Staff.model.js";
+import bcrypt from "bcryptjs";
 import * as staffService from "../services/staff.service.js";
 import { verifyToken } from "../utils/jwt.js";
 
@@ -16,38 +18,19 @@ const getUserFromReq = (req) => {
 
 export const getStaffs = async (req, res) => {
   try {
-    // Return all users that have `role: "staff"` along with their related Staff document
-    // (which contains details like speciality, experienceYears, certificate, etc.).
-    const staffs = await User.aggregate([
-      { $match: { role: "staff" } },
-      {
-        $lookup: {
-          from: "staffs",
-          localField: "_id",
-          foreignField: "userId",
-          as: "staff",
-        },
-      },
-      { $unwind: { path: "$staff", preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          fullName: 1,
-          email: 1,
-          phone: 1,
-          role: 1,
-          imgUrl: 1,
-          "staff.speciality": 1,
-          "staff.experienceYears": 1,
-          "staff.certificate": 1,
-          "staff.portfolio": 1,
-          "staff.rating": 1,
-          "staff.schedule": 1,
-        },
-      },
-    ]);
+    const users = await User.find({ role: "staff" }).lean();
+    
+    const staffs = await Promise.all(users.map(async (user) => {
+      const staffInfo = await Staff.findOne({ userId: user._id }).lean();
+      return {
+        ...user,
+        staff: staffInfo || null
+      };
+    }));
 
     res.status(200).json(staffs);
   } catch (error) {
+    console.error("GET STAFFS ERROR:", error);
     res.status(400).json({ message: "Get staffs error", error: error.message });
   }
 };
@@ -139,5 +122,98 @@ export const getDashboard = async (req, res) => {
     res.json(data);
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+};
+
+/* ===== CRUD Staff (Admin) ===== */
+export const createStaff = async (req, res) => {
+  try {
+    const { fullName, email, phone, staffSpecialty, staffExperienceYears, speciality, experienceYears, certificate, portfolio, schedule } = req.body;
+    
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ message: "Email đã tồn tại!" });
+
+    // Create user role staff with default password
+    const hashedPassword = await bcrypt.hash("123456", 10);
+    const newUser = await User.create({
+      fullName,
+      email,
+      phone,
+      password: hashedPassword,
+      role: "staff"
+    });
+
+    const finalSpeciality = Array.isArray(speciality) && speciality.length > 0
+      ? speciality
+      : (staffSpecialty ? staffSpecialty.split(",").map(s => s.trim()) : []);
+      
+    const finalExperience = experienceYears || staffExperienceYears || 0;
+
+    const newStaff = await Staff.create({
+      userId: newUser._id,
+      speciality: finalSpeciality,
+      experienceYears: finalExperience,
+      certificate: certificate || {},
+      portfolio: portfolio || [],
+      schedule: schedule || []
+    });
+
+    res.status(201).json({ message: "Tạo thợ cắt thành công", user: newUser, staff: newStaff });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const updateStaff = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fullName, email, phone, staffSpecialty, staffExperienceYears, speciality, experienceYears, certificate, portfolio, schedule } = req.body;
+    
+    const staff = await Staff.findById(id);
+    if (!staff) return res.status(404).json({ message: "Không tìm thấy thợ cắt" });
+
+    // Update User
+    if (fullName || email || phone) {
+        if (email) {
+            const existingUser = await User.findOne({ email, _id: { $ne: staff.userId } });
+            if (existingUser) return res.status(400).json({ message: "Email đã tồn tại!" });
+        }
+        await User.findByIdAndUpdate(staff.userId, { fullName, email, phone });
+    }
+
+    // Update Staff details
+    const finalSpeciality = Array.isArray(speciality) && speciality.length > 0
+      ? speciality
+      : (staffSpecialty ? staffSpecialty.split(",").map(s => s.trim()) : staff.speciality);
+      
+    const finalExperience = experienceYears !== undefined ? experienceYears : (staffExperienceYears !== undefined ? staffExperienceYears : staff.experienceYears);
+
+    staff.speciality = finalSpeciality;
+    staff.experienceYears = finalExperience;
+    if (certificate) staff.certificate = certificate;
+    if (portfolio) staff.portfolio = portfolio;
+    if (schedule) staff.schedule = schedule;
+    
+    await staff.save();
+
+    res.status(200).json({ message: "Cập nhật thành công", staff });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const deleteStaff = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const staff = await Staff.findById(id);
+    if (!staff) return res.status(404).json({ message: "Không tìm thấy thợ cắt" });
+
+    await User.findByIdAndDelete(staff.userId);
+    await Staff.findByIdAndDelete(id);
+
+    res.status(200).json({ message: "Xoá thợ cắt thành công" });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
   }
 };

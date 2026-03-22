@@ -58,6 +58,7 @@ export const approveRequest = async(requestId, adminNote) =>{
 export const rejectRequest = async(requestId, adminNote) =>{
   const request = await StaffRequest.findById(requestId);
   if(!request) throw new Error("Request not found");
+  const existedStaff = await Staff.findOne({userId: request.userId});
    if(request.status !== "pending") {
     throw new Error("Request already processed");
   }
