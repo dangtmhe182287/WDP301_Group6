@@ -53,12 +53,6 @@ export default function ServicesPage() {
                     <span className="service-price">{formatPrice(service.price)}</span>
                     <span className="service-duration">⏱ {service.duration} phút</span>
                   </div>
-                  <button
-                    className="service-book-btn"
-                    onClick={() => navigate("/appointment")}
-                  >
-                    Đặt lịch ngay
-                  </button>
                 </div>
               </div>
             ))}

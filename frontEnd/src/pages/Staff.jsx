@@ -212,15 +212,13 @@ function AppointmentsView() {
                         className={`staff-status-pill status-${app.status?.toLowerCase()}`}
                         value={app.status}
                         onChange={(e) => updateStatus(app._id, e.target.value)}
-                      >
-                        {["Pending", "Scheduled", "Completed", "Cancelled"].map(
-                          (s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          )
-                        )}
-                      </select>
+                        disabled={app.status !== "Scheduled"}
+                        >
+                        <option value="Pending">Chờ xác nhận</option>
+                        <option value="Scheduled">Đã lên lịch</option>
+                        <option value="Completed">Hoàn thành</option>
+                        <option value="Cancelled">Đã huỷ</option>
+                        </select>
                     </td>
                     <td>
                       <span
@@ -232,7 +230,7 @@ function AppointmentsView() {
                       >
                         {app.paymentStatus}
                       </span>
-                      {app.paymentStatus === "Unpaid" && (
+                      {app.paymentStatus === "Unpaid" && app.status === "Completed" && (
                         <button
                           className="staff-confirm-btn"
                           onClick={() => confirmPayment(app._id)}
