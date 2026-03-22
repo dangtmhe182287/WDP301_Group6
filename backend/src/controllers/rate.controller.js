@@ -104,3 +104,32 @@ export const GetStaffAverageRate = async(req, res) => {
         return res.status(400).json({message: "Get average rate error", error: e.message});
     }
 }
+
+export const GetRecentFiveStarRates = async (req, res) => {
+    try {
+        const limit = Math.min(Math.max(Number(req.query.limit) || 3, 1), 10);
+        const rates = await Rate.find({
+            rating: 5,
+            comment: { $exists: true, $ne: "" },
+        })
+            .sort({ createdAt: -1 })
+            .limit(limit)
+            .populate({
+                path: "appointmentId",
+                populate: { path: "customerId", select: "fullName" },
+            });
+
+        const data = rates.map((rate) => ({
+            _id: rate._id,
+            rating: rate.rating,
+            comment: rate.comment,
+            createdAt: rate.createdAt,
+            customerName:
+                rate.appointmentId?.customerId?.fullName || "Anonymous",
+        }));
+
+        return res.status(200).json(data);
+    } catch (e) {
+        return res.status(400).json({ message: "Get recent rates error", error: e.message });
+    }
+};

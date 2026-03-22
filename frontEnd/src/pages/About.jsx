@@ -1,7 +1,42 @@
+import { useEffect, useState } from "react";
+
 export default function About() {
   const mapsUrl =
     import.meta.env.VITE_GOOGLE_MAPS_URL ||
     "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.4496041817933!2d106.69765!3d10.7763897!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTDCsDQ2JzM1LjAiTiAxMDbCsDQxJzUxLjUiRQ!5e0!3m2!1svi!2svn!4v1234567890";
+  const API_BASE = import.meta.env.VITE_SERVER_API || "http://localhost:3000";
+  const [testimonials, setTestimonials] = useState([]);
+
+  useEffect(() => {
+    const loadTestimonials = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/rates/recent?limit=3`);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.message || "Unable to load testimonials");
+        }
+        setTestimonials(Array.isArray(data) ? data : []);
+      } catch (error) {
+        setTestimonials([]);
+      }
+    };
+
+    loadTestimonials();
+  }, []);
+
+  const formatMonthYear = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(date);
+  };
+
+  const getInitials = (name) => {
+    if (!name) return "NA";
+    const parts = name.trim().split(/\s+/).slice(0, 2);
+    const initials = parts.map((word) => word[0]?.toUpperCase()).join("");
+    return initials || "NA";
+  };
 
   return (
     <main className="about-page">
@@ -70,55 +105,28 @@ export default function About() {
         </div>
       </section>
 
-      <section className="about-testimonials container">
-        <div className="about-hours-inner">
-          <h2>What Clients Say</h2>
-        </div>
-        <div className="about-testimonials-grid">
-          <div className="about-testimonial-card">
-            <div className="about-stars">★★★★★</div>
-            <p>
-              "Clean space, very attentive stylist. I booked online for the first time and
-              loved the result. I will definitely be back!"
-            </p>
-            <div className="about-reviewer">
-              <div className="about-reviewer-avatar">NA</div>
-              <div>
-                <div className="about-reviewer-name">Anh Nguyen</div>
-                <div className="about-reviewer-date">March 2026</div>
-              </div>
-            </div>
+      {testimonials.length > 0 ? (
+        <section className="about-testimonials container">
+          <div className="about-hours-inner">
+            <h2>What Clients Say</h2>
           </div>
-          <div className="about-testimonial-card">
-            <div className="about-stars">★★★★★</div>
-            <p>
-              "Fast booking, on time, and the stylist really understood what I wanted.
-              First-time highlights turned out better than expected. Highly recommended!"
-            </p>
-            <div className="about-reviewer">
-              <div className="about-reviewer-avatar">TM</div>
-              <div>
-                <div className="about-reviewer-name">Minh Tran</div>
-                <div className="about-reviewer-date">February 2026</div>
+          <div className="about-testimonials-grid">
+            {testimonials.map((item) => (
+              <div key={item._id} className="about-testimonial-card">
+                <div className="about-stars">★★★★★</div>
+                <p>{`"${item.comment}"`}</p>
+                <div className="about-reviewer">
+                  <div className="about-reviewer-avatar">{getInitials(item.customerName)}</div>
+                  <div>
+                    <div className="about-reviewer-name">{item.customerName}</div>
+                    <div className="about-reviewer-date">{formatMonthYear(item.createdAt)}</div>
+                  </div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
-          <div className="about-testimonial-card">
-            <div className="about-stars">★★★★☆</div>
-            <p>
-              "Great service and fair prices. I love being able to choose a stylist based on
-              specialty. Next time I will try a keratin treatment."
-            </p>
-            <div className="about-reviewer">
-              <div className="about-reviewer-avatar">LH</div>
-              <div>
-                <div className="about-reviewer-name">Hoa Le</div>
-                <div className="about-reviewer-date">January 2026</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <section className="about-location container">
         <div className="about-location-info">
