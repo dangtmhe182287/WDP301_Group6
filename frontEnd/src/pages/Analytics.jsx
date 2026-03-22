@@ -12,7 +12,7 @@ export default function Analytics() {
       try {
         const response = await fetch(`${API_BASE}/services/stats/bookings`);
         if (!response.ok) {
-          throw new Error("Không thể tải dữ liệu thống kê dịch vụ.");
+          throw new Error("Unable to load service analytics.");
         }
         const data = await response.json();
         setStats(data);
@@ -28,44 +28,38 @@ export default function Analytics() {
   return (
     <div className="analytics-page">
       <div className="page-header">
-        <h2>Thống kê Dịch vụ</h2>
-        <p className="subtitle">
-          Bảng xếp hạng số lượt khách hàng đặt lịch đối với từng dịch vụ
-        </p>
+        <h2>Service Analytics</h2>
+        <p className="subtitle">Ranking of bookings by service</p>
       </div>
 
       {loading ? (
-        <div className="loading">Đang tải biểu đồ...</div>
+        <div className="loading">Loading chart...</div>
       ) : error ? (
         <div className="error">{error}</div>
       ) : stats.length === 0 ? (
-        <div className="empty">Chưa có dữ liệu đặt lịch cho dịch vụ nào.</div>
+        <div className="empty">No booking data available yet.</div>
       ) : (
         <div className="stats-card">
-          <div className="stats-header">Top dịch vụ thịnh hành</div>
+          <div className="stats-header">Top services</div>
           <table className="stats-table">
             <thead>
               <tr>
-                <th>Xếp hạng</th>
-                <th>Tên dịch vụ</th>
-                <th>Đơn giá</th>
-                <th>Số lượt đặt</th>
+                <th>Rank</th>
+                <th>Service name</th>
+                <th>Price</th>
+                <th>Bookings</th>
               </tr>
             </thead>
             <tbody>
               {stats.map((item, index) => (
                 <tr key={item._id} className={index < 3 ? "top-rank" : ""}>
                   <td>
-                    <div className={`rank-badge rank-${index + 1}`}>
-                      {index + 1}
-                    </div>
+                    <div className={`rank-badge rank-${index + 1}`}>{index + 1}</div>
                   </td>
-                  <td className="service-name">{item.serviceName || "Dịch vụ đã xóa"}</td>
+                  <td className="service-name">{item.serviceName || "Deleted service"}</td>
+                  <td>{item.price ? item.price.toLocaleString("en-US") + " VND" : "-"}</td>
                   <td>
-                    {item.price ? item.price.toLocaleString("vi-VN") + " đ" : "-"}
-                  </td>
-                  <td>
-                    <strong>{item.bookingCount}</strong> lượt
+                    <strong>{item.bookingCount}</strong>
                     <div className="progress-bar-bg">
                       <div
                         className="progress-bar-fill"

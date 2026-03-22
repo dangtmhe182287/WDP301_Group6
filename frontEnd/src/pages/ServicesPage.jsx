@@ -15,31 +15,28 @@ export default function ServicesPage() {
         const data = res.data;
         setServices(Array.isArray(data) ? data : data?.data || []);
       })
-      .catch((err) =>
-        setError(err.response?.data?.message || "Không thể tải dịch vụ")
-      )
+      .catch((err) => setError(err.response?.data?.message || "Unable to load services"))
       .finally(() => setLoading(false));
   }, []);
 
-  const formatPrice = (price) =>
-    price?.toLocaleString("vi-VN") + " VND";
+  const formatPrice = (price) => price?.toLocaleString("en-US") + " VND";
 
   return (
     <main className="services-page">
       <section className="services-hero">
         <div className="container">
-          <h1>Dịch vụ của chúng tôi</h1>
-          <p>Khám phá các dịch vụ chăm sóc tóc chuyên nghiệp tại Elysina Salon</p>
+          <h1>Our Services</h1>
+          <p>Explore professional hair care services at Elysina Salon</p>
         </div>
       </section>
 
       <section className="services-content container">
         {loading ? (
-          <p className="services-state">Đang tải dịch vụ...</p>
+          <p className="services-state">Loading services...</p>
         ) : error ? (
           <p className="services-state error">{error}</p>
         ) : services.length === 0 ? (
-          <p className="services-state">Chưa có dịch vụ nào.</p>
+          <p className="services-state">No services available.</p>
         ) : (
           <div className="services-grid">
             {services.map((service) => (
@@ -51,7 +48,7 @@ export default function ServicesPage() {
                 <div className="service-card-footer">
                   <div className="service-meta">
                     <span className="service-price">{formatPrice(service.price)}</span>
-                    <span className="service-duration">⏱ {service.duration} phút</span>
+                    <span className="service-duration">⏱ {service.duration} min</span>
                   </div>
                 </div>
               </div>

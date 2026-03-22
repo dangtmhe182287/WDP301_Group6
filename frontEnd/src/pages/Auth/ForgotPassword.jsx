@@ -20,19 +20,16 @@ export default function ForgotPassword() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(email)) {
-      toast.error("Email không đúng định dạng");
+      toast.error("Invalid email format");
       return;
     }
 
     setLoading(true);
 
     try {
-      const res = await axios.post(
-        "http://localhost:3000/auth/forgot-password",
-        { email }
-      );
+      const res = await axios.post("http://localhost:3000/auth/forgot-password", { email });
 
-      toast.success("Link đặt lại mật khẩu đã được gửi");
+      toast.success("Password reset link sent");
 
       console.log("Reset link:", res.data.resetLink);
 
@@ -40,9 +37,7 @@ export default function ForgotPassword() {
         navigate("/login");
       }, 2000);
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Không thể gửi yêu cầu reset"
-      );
+      toast.error(error.response?.data?.message || "Unable to send reset request");
     } finally {
       setLoading(false);
     }
@@ -50,7 +45,6 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen flex bg-white">
-      {/* Left side */}
       <div
         className="hidden lg:flex lg:w-1/2 items-center justify-center p-12 bg-cover bg-center"
         style={{
@@ -62,37 +56,26 @@ export default function ForgotPassword() {
       >
         <div className="max-w-md">
           <h1 className="text-4xl font-bold mb-4 text-white">Elysina</h1>
-          <p className="text-white text-lg">
-            Luxury Haircare, One Booking Away.
-          </p>
+          <p className="text-white text-lg">Luxury Haircare, One Booking Away.</p>
         </div>
       </div>
 
-      {/* Right side */}
       <div className="flex-1 flex items-center justify-center p-6 bg-white">
         <Card className="w-full max-w-md bg-white border-gray-200 shadow-2xl">
           <div className="p-8">
-
-            {/* Title */}
-            <h2 className="text-2xl font-bold text-black mb-2">
-              Quên mật khẩu
-            </h2>
+            <h2 className="text-2xl font-bold text-black mb-2">Forgot Password</h2>
 
             <p className="text-sm text-gray-500 mb-6">
-              Nhập email của bạn để nhận link đặt lại mật khẩu
+              Enter your email to receive a password reset link.
             </p>
 
-            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
-
               <div className="space-y-2">
-                <Label className="text-sm text-black font-medium">
-                  Địa chỉ Email
-                </Label>
+                <Label className="text-sm text-black font-medium">Email</Label>
 
                 <Input
                   type="email"
-                  placeholder="Nhập email của bạn"
+                  placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="h-11 bg-[#F4F4F4] border-gray-300 text-black placeholder:text-gray-500 focus:border-blue-600 focus:ring-blue-600"
@@ -107,26 +90,23 @@ export default function ForgotPassword() {
                 {loading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Đang gửi...
+                    Sending...
                   </div>
                 ) : (
-                  "Gửi link reset"
+                  "Send reset link"
                 )}
               </Button>
-
             </form>
 
-            {/* Back to login */}
             <p className="text-sm text-gray-600 text-center mt-6">
-              Nhớ mật khẩu rồi?{" "}
+              Remember your password?{" "}
               <span
                 onClick={() => navigate("/login")}
                 className="text-blue-600 hover:text-blue-700 cursor-pointer font-medium"
               >
-                Đăng nhập
+                Log in
               </span>
             </p>
-
           </div>
         </Card>
       </div>

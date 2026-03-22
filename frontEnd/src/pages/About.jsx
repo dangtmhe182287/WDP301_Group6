@@ -28,13 +28,11 @@ export default function About() {
 
   return (
     <main className="about-page">
-
-      {/* ── Hero ── */}
       <section className="about-hero">
         <div className="container about-hero-inner">
-          <h1>Về chúng tôi</h1>
+          <h1>About Us</h1>
           <p className="about-subtitle">
-            Elysina — nơi mỗi lần ghé thăm là một trải nghiệm chăm sóc trọn vẹn.
+            Elysina — where every visit becomes a complete care experience.
           </p>
         </div>
       </section>
@@ -42,17 +40,15 @@ export default function About() {
       {/* ── Summary + Hours ── */}
       <section className="about-summary container">
         <div className="about-summary-text">
-          <h2>Câu chuyện của chúng tôi</h2>
+          <h2>Our Story</h2>
           <p>
-            Elysina Salon được thành lập với một sứ mệnh đơn giản — mang đến dịch vụ
-            chăm sóc tóc chất lượng cao trong một không gian hiện đại, thân thiện và
-            chuyên nghiệp.
+            Elysina Salon was founded with a simple mission: to deliver high-quality hair
+            care in a modern, friendly, and professional space.
           </p>
           <p>
-            Đội ngũ thợ cắt của chúng tôi được đào tạo bài bản, luôn cập nhật các xu
-            hướng mới nhất để mang lại phong cách phù hợp nhất cho từng khách hàng.
-            Dù bạn đến để cắt tóc đơn giản hay thực hiện một bộ tóc hoàn toàn mới,
-            chúng tôi đều sẵn sàng phục vụ tận tâm.
+            Our stylists are rigorously trained and stay up to date on the latest trends so
+            every guest gets a look that fits them best. Whether you are here for a classic
+            cut or a full transformation, we are ready to take great care of you.
           </p>
           <p>
             Với hệ thống đặt lịch trực tuyến tiện lợi, bạn có thể chọn dịch vụ, thợ
@@ -93,13 +89,12 @@ export default function About() {
         </section>
       )}
 
-      {/* ── Location + Contact ── */}
       <section className="about-location container">
         <div className="about-location-info">
-          <h2>Địa chỉ & Liên hệ</h2>
+          <h2>Address & Contact</h2>
           <div className="about-contact-item">
             <span className="about-contact-icon">📍</span>
-            <span>123 Đường Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh</span>
+            <span>123 Nguyen Hue Street, District 1, Ho Chi Minh City</span>
           </div>
           <div className="about-contact-item">
             <span className="about-contact-icon">📞</span>

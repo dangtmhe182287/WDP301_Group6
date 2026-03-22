@@ -19,12 +19,12 @@ export default function StaffRequests() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.message || "Không tải được danh sách yêu cầu");
+        throw new Error(data?.message || "Unable to load requests");
       }
 
       setRequests(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || "Lỗi khi tải dữ liệu");
+      setError(err.message || "Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -61,39 +61,39 @@ export default function StaffRequests() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.message || "Có lỗi xảy ra khi xử lý yêu cầu");
+        throw new Error(data?.message || "Error processing the request");
       }
 
-      alert(`Đã ${actionType === "approve" ? "duyệt" : "từ chối"} yêu cầu thành công!`);
+      alert(`Request ${actionType === "approve" ? "approved" : "rejected"} successfully!`);
       setShowModal(false);
       await loadRequests();
     } catch (err) {
-      alert("Lỗi: " + err.message);
+      alert("Error: " + err.message);
     }
   };
 
   return (
     <div className="staff-requests-admin">
       <div className="page-header">
-        <h2>Quản lý yêu cầu ứng tuyển</h2>
+        <h2>Staff Application Requests</h2>
       </div>
 
       {loading ? (
-        <p>Đang tải...</p>
+        <p>Loading...</p>
       ) : error ? (
         <p className="error">{error}</p>
       ) : requests.length === 0 ? (
-        <p>Không có yêu cầu ứng tuyển nào.</p>
+        <p>No application requests.</p>
       ) : (
         <div className="table-container">
           <table className="requests-table">
             <thead>
               <tr>
-                <th>Người dùng</th>
-                <th>Chuyên môn</th>
-                <th>Chứng chỉ ngắn gọn</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th>User</th>
+                <th>Specialty</th>
+                <th>Certificate</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -105,11 +105,11 @@ export default function StaffRequests() {
                 return (
                   <tr key={req._id}>
                     <td>
-                      <strong>{user.fullName || "Không tên"}</strong>
+                      <strong>{user.fullName || "No name"}</strong>
                       <br />
-                      <span className="text-secondary">{user.email || "Không email"}</span>
+                      <span className="text-secondary">{user.email || "No email"}</span>
                       <br />
-                      <span className="text-secondary">{user.phone || "Không SĐT"}</span>
+                      <span className="text-secondary">{user.phone || "No phone"}</span>
                     </td>
                     <td>{specialityText || "-"}</td>
                     <td>
@@ -124,31 +124,25 @@ export default function StaffRequests() {
                     <td>
                       <span className={`status-badge status-${req.status}`}>
                         {req.status === "pending"
-                          ? "Chờ duyệt"
+                          ? "Pending"
                           : req.status === "approved"
-                          ? "Đã duyệt"
-                          : "Từ chối"}
+                          ? "Approved"
+                          : "Rejected"}
                       </span>
                       {req.adminNote && (
                         <div className="admin-note-text">
-                          <small>Ghi chú: {req.adminNote}</small>
+                          <small>Note: {req.adminNote}</small>
                         </div>
                       )}
                     </td>
                     <td>
                       {req.status === "pending" && (
                         <>
-                          <button
-                            className="approve-btn"
-                            onClick={() => openModal(req, "approve")}
-                          >
-                            Duyệt
+                          <button className="approve-btn" onClick={() => openModal(req, "approve")}>
+                            Approve
                           </button>
-                          <button
-                            className="reject-btn"
-                            onClick={() => openModal(req, "reject")}
-                          >
-                            Từ chối
+                          <button className="reject-btn" onClick={() => openModal(req, "reject")}>
+                            Reject
                           </button>
                         </>
                       )}
@@ -164,20 +158,16 @@ export default function StaffRequests() {
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">
-            <h2>
-              {actionType === "approve"
-                ? "Theo tác Duyệt yêu cầu"
-                : "Thao tác Từ chối yêu cầu"}
-            </h2>
+            <h2>{actionType === "approve" ? "Approve request" : "Reject request"}</h2>
             <form onSubmit={handleProcessRequest}>
               <div className="form-group">
-                <label>Ghi chú (Admin Note):</label>
+                <label>Admin note:</label>
                 <textarea
                   name="adminNote"
                   value={adminNote}
                   onChange={(e) => setAdminNote(e.target.value)}
                   rows="3"
-                  placeholder="Điền ghi chú hoặc lời nhắn cho ứng viên (không bắt buộc)..."
+                  placeholder="Add a note for the applicant (optional)..."
                 />
               </div>
               <div className="modal-actions">
@@ -185,10 +175,10 @@ export default function StaffRequests() {
                   type="submit"
                   className={actionType === "approve" ? "approve-btn" : "reject-btn"}
                 >
-                  Xác nhận
+                  Confirm
                 </button>
                 <button type="button" onClick={() => setShowModal(false)} className="cancel-btn">
-                  Hủy
+                  Cancel
                 </button>
               </div>
             </form>
@@ -299,16 +289,16 @@ export default function StaffRequests() {
         }
 
         .cancel-btn {
-           background: #e5e7eb;
-           color: #374151;
-           border: none;
-           padding: 6px 12px;
-           border-radius: 4px;
-           cursor: pointer;
+          background: #e5e7eb;
+          color: #374151;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 4px;
+          cursor: pointer;
         }
 
         .cancel-btn:hover {
-           background: #d1d5db;
+          background: #d1d5db;
         }
 
         .error {

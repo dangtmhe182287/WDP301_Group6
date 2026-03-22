@@ -7,43 +7,43 @@ export default function Home() {
     <main className="home-page">
       <section className="home-hero">
         <div className="home-hero-content">
-          <p className="home-eyebrow">Chăm sóc chủ động, dịch vụ tận tâm</p>
-          <h1>Đặt lịch nhanh, chọn dịch vụ linh hoạt cho nhu cầu của bạn.</h1>
+          <p className="home-eyebrow">Thoughtful care, attentive service</p>
+          <h1>Book fast and choose flexible services that fit your needs.</h1>
           <p>
-            Hành trình chăm sóc tốt bắt đầu từ lựa chọn đúng dịch vụ. Chúng tôi giúp bạn
-            kết nối với staff phù hợp chỉ trong vài bước.
+            Great care starts with the right service. We help you connect with the right
+            staff in just a few steps.
           </p>
           <div className="home-actions">
             <button className="primary-btn" onClick={() => navigate("/appointment")}>
-              Đặt lịch ngay
+              Book now
             </button>
             <button className="ghost-btn" onClick={() => navigate("/appointment")}>
-              Xem dịch vụ
+              View services
             </button>
           </div>
         </div>
         <div className="home-hero-card">
-          <h3>Vì sao khách hàng chọn chúng tôi</h3>
+          <h3>Why clients choose us</h3>
           <ul>
-            <li>Tư vấn rõ ràng, lộ trình minh bạch</li>
-            <li>Staff chuyên môn cao, lịch làm việc linh hoạt</li>
-            <li>Dịch vụ đa dạng, dễ chọn nhiều dịch vụ cùng lúc</li>
+            <li>Clear guidance and transparent plans</li>
+            <li>Highly skilled staff with flexible schedules</li>
+            <li>Wide range of services, easy to bundle</li>
           </ul>
         </div>
       </section>
 
       <section className="home-quotes">
         <div className="quote-card">
-          <p>“Sắp xếp lịch chăm sóc không còn mất thời gian.”</p>
-          <span>Khách hàng thân thiết</span>
+          <p>“Scheduling care is no longer time-consuming.”</p>
+          <span>Loyal client</span>
         </div>
         <div className="quote-card">
-          <p>“Chọn nhiều dịch vụ cùng lúc giúp tối ưu lịch làm việc.”</p>
-          <span>Chuyên viên tư vấn</span>
+          <p>“Bundling services helps optimize my schedule.”</p>
+          <span>Consultant</span>
         </div>
         <div className="quote-card">
-          <p>“Đặt lịch nhanh, nhận xác nhận rõ ràng.”</p>
-          <span>Khách hàng mới</span>
+          <p>“Fast booking with clear confirmation.”</p>
+          <span>New client</span>
         </div>
       </section>
     </main>

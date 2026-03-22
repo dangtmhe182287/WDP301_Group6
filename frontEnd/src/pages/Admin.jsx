@@ -15,58 +15,61 @@ function DashboardView() {
     totalStaff: 0,
     totalAppointments: 0,
     pendingAppointments: 0,
-    totalRevenue: 0
+    totalRevenue: 0,
   });
 
   React.useEffect(() => {
     fetch("http://localhost:3000/users/admin/dashboard-stats")
-      .then(res => res.json())
-      .then(data => {
-        if(!data.message) setStats(data);
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.message) setStats(data);
       })
       .catch(console.error);
   }, []);
 
   return (
     <section className="dashboard">
-      <h2 className="dashboard-title">Bảng tin</h2>
+      <h2 className="dashboard-title">Dashboard</h2>
       <div className="stats">
         <div className="stat-card">
           <div className="stat-icon">👥</div>
           <div>
             <div className="stat-value">{stats.totalCustomers}</div>
-            <div className="stat-label">Khách hàng</div>
+            <div className="stat-label">Customers</div>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon">✂️</div>
           <div>
             <div className="stat-value">{stats.totalStaff}</div>
-            <div className="stat-label">Thợ cắt (Staff)</div>
+            <div className="stat-label">Stylists (Staff)</div>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon">⏳</div>
           <div>
             <div className="stat-value">{stats.pendingAppointments}</div>
-            <div className="stat-label">Lịch chờ duyệt</div>
+            <div className="stat-label">Pending appointments</div>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon">💰</div>
           <div>
-            <div className="stat-value">{stats.totalRevenue ? stats.totalRevenue.toLocaleString("vi-VN") : "0"}đ</div>
-            <div className="stat-label">Doanh thu tạm tính</div>
+            <div className="stat-value">
+              {stats.totalRevenue ? stats.totalRevenue.toLocaleString("en-US") : "0"} VND
+            </div>
+            <div className="stat-label">Estimated revenue</div>
           </div>
         </div>
       </div>
 
       <div className="table-card">
         <div className="table-card-header">
-          <div className="table-card-title">Quản lý chi tiết</div>
+          <div className="table-card-title">Detailed Management</div>
         </div>
         <p style={{ color: "#64748b", marginTop: "10px" }}>
-          Vui lòng chuyển hướng sang tab <strong>Lịch hẹn</strong> hoặc <strong>Thống kê</strong> bên menu trái để xem và quản lý chi tiết.
+          Please switch to the <strong>Appointments</strong> or <strong>Analytics</strong>{" "}
+          tab in the left menu to view and manage details.
         </p>
       </div>
     </section>
@@ -80,34 +83,34 @@ export default function Admin() {
         <div className="admin-logo">Admin</div>
         <nav className="admin-nav">
           <Link to="/admin" className="admin-nav-item">
-            Bảng tin
+            Dashboard
           </Link>
           <Link to="/admin/staff" className="admin-nav-item">
-            Thợ cắt
+            Stylists
           </Link>
           <Link to="/admin/services" className="admin-nav-item">
-            Dịch vụ
+            Services
           </Link>
           <Link to="/admin/staff-requests" className="admin-nav-item">
-            Yêu cầu thợ cắt
+            Staff Requests
           </Link>
           <Link to="/admin/appointments" className="admin-nav-item">
-            Lịch hẹn
+            Appointments
           </Link>
           <Link to="/admin/members" className="admin-nav-item">
-            Thành viên
+            Members
           </Link>
           <Link to="/admin/feedback" className="admin-nav-item">
-            Phản hồi
+            Feedback
           </Link>
           <Link to="/admin/gallery" className="admin-nav-item">
-            Thư viện ảnh
+            Gallery
           </Link>
           <Link to="/admin/analytics" className="admin-nav-item">
-            Thống kê
+            Analytics
           </Link>
           <Link to="/admin/settings" className="admin-nav-item">
-            Quản lý website
+            Website Settings
           </Link>
         </nav>
       </aside>
@@ -115,19 +118,19 @@ export default function Admin() {
       <main className="admin-main">
         <header className="admin-header">
           <div className="admin-search">
-            <input type="text" placeholder="Tìm kiếm..." />
+            <input type="text" placeholder="Search..." />
             <button>🔍</button>
           </div>
           <div className="admin-actions">
-            <button 
-              className="btn-primary" 
+            <button
+              className="btn-primary"
               onClick={() => {
                 localStorage.removeItem("token");
                 localStorage.removeItem("user");
                 window.location.href = "/login";
               }}
             >
-              Đăng xuất
+              Log out
             </button>
             <div className="admin-user">admin</div>
           </div>
@@ -140,8 +143,8 @@ export default function Admin() {
           <Route path="staff-requests" element={<StaffRequests />} />
           <Route path="appointments" element={<AdminAppointments />} />
           <Route path="members" element={<Members />} />
-          <Route path="feedback" element={<Placeholder title="Phản hồi" />} />
-          <Route path="gallery" element={<Placeholder title="Thư viện ảnh" />} />
+          <Route path="feedback" element={<Placeholder title="Feedback" />} />
+          <Route path="gallery" element={<Placeholder title="Gallery" />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="*" element={<Navigate to="." replace />} />

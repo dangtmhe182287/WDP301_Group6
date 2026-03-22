@@ -33,13 +33,13 @@ export default function LoginForm() {
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      toast.error("Wrong format email!");
+      toast.error("Invalid email format");
       return;
     }
 
     // Validate password
     if (formData.password.length < 8) {
-      toast.error("Min length password is 8");
+      toast.error("Password must be at least 8 characters");
       return;
     }
 
@@ -47,23 +47,22 @@ export default function LoginForm() {
 
     try {
       const result = await login(formData.email, formData.password);
-      
+
       if (result.success) {
-        toast.success("Đăng nhập thành công!");
+        toast.success("Logged in successfully!");
         const role = result.user?.role || "";
         if (role === "admin") {
           navigate("/admin");
-        }else if(role === "staff"){
-          navigate("/staff")
-        }
-         else {
+        } else if (role === "staff") {
+          navigate("/staff");
+        } else {
           navigate("/");
         }
       } else {
-        toast.error(result.message || "Đăng nhập thất bại");
+        toast.error(result.message || "Login failed");
       }
     } catch (error) {
-      toast.error("Không thể kết nối server");
+      toast.error("Unable to connect to the server");
       console.error(error);
     } finally {
       setLoading(false);
@@ -73,20 +72,18 @@ export default function LoginForm() {
   return (
     <div className="min-h-screen flex bg-white">
       {/* Left side - Branding */}
-         <div
-  className="hidden lg:flex lg:w-1/2 items-center justify-center p-12 bg-cover bg-center"
-  style={{
-    backgroundImage: `
+      <div
+        className="hidden lg:flex lg:w-1/2 items-center justify-center p-12 bg-cover bg-center"
+        style={{
+          backgroundImage: `
       linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0.2), rgba(0,0,0,0)),
       url('https://images.unsplash.com/photo-1659036354224-48dd0a9a6b86?q=80&w=880&auto=format&fit=crop')
     `,
-  }}>
+        }}
+      >
         <div className="max-w-md text-black">
-       
           <h1 className="text-4xl font-bold mb-4 text-white">Elysina</h1>
-          <p className="text-white text-lg">
-            Luxury Haircare, One Booking Away.
-          </p>
+          <p className="text-white text-lg">Luxury Haircare, One Booking Away.</p>
         </div>
       </div>
 
@@ -97,40 +94,34 @@ export default function LoginForm() {
             {/* Tabs */}
             <div className="flex gap-8 mb-8 border-b border-gray-200">
               <button
-                onClick={() => window.location.href = '/login'}
+                onClick={() => (window.location.href = "/login")}
                 className={`pb-3 text-sm font-medium transition-colors relative ${
-                  activeTab === "login"
-                    ? "text-black"
-                    : "text-gray-500 hover:text-gray-700"
+                  activeTab === "login" ? "text-black" : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                Đăng nhập
+                Log in
                 {activeTab === "login" && (
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>
                 )}
               </button>
               <button
-                onClick={() => window.location.href = '/register'}
+                onClick={() => (window.location.href = "/register")}
                 className={`pb-3 text-sm font-medium transition-colors ${
-                  activeTab === "register"
-                    ? "text-black"
-                    : "text-gray-500 hover:text-gray-700"
+                  activeTab === "register" ? "text-black" : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                Đăng ký
+                Sign up
               </button>
             </div>
 
             {/* Welcome Text */}
-            <h2 className="text-2xl font-bold text-black mb-6">
-              Chào mừng trở lại!
-            </h2>
+            <h2 className="text-2xl font-bold text-black mb-6">Welcome back!</h2>
 
             {/* Google Sign In */}
             <Button
-              variant="outline" 
-              className="w-full mb-6 bg-white border-gray-300 text-black hover:bg-gray-50 h-11" onClick={() =>
-    (window.location.href = "http://localhost:3000/auth/google")}
+              variant="outline"
+              className="w-full mb-6 bg-white border-gray-300 text-black hover:bg-gray-50 h-11"
+              onClick={() => (window.location.href = "http://localhost:3000/auth/google")}
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path
@@ -150,13 +141,13 @@ export default function LoginForm() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Tiếp tục với Google Workspace
+              Continue with Google Workspace
             </Button>
 
             {/* Divider */}
             <div className="flex items-center gap-4 mb-6">
               <div className="flex-1 h-px bg-gray-300"></div>
-              <span className="text-gray-500 text-sm">hoặc</span>
+              <span className="text-gray-500 text-sm">or</span>
               <div className="flex-1 h-px bg-gray-300"></div>
             </div>
 
@@ -165,13 +156,13 @@ export default function LoginForm() {
               {/* Email Field */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm text-black font-medium">
-                  Địa chỉ Email
+                  Email
                 </Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="Nhập email của bạn"
+                  placeholder="Enter your email"
                   value={formData.email}
                   onChange={handleChange}
                   required
@@ -182,14 +173,14 @@ export default function LoginForm() {
               {/* Password Field */}
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm text-black font-medium">
-                  Mật khẩu
+                  Password
                 </Label>
                 <div className="relative">
                   <Input
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Nhập mật khẩu của bạn"
+                    placeholder="Enter your password"
                     value={formData.password}
                     onChange={handleChange}
                     required
@@ -200,11 +191,7 @@ export default function LoginForm() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-black"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
@@ -219,18 +206,15 @@ export default function LoginForm() {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded border-gray-300 bg-white text-blue-600 focus:ring-blue-600 focus:ring-offset-0"
                   />
-                  <label
-                    htmlFor="remember"
-                    className="text-sm text-gray-600 cursor-pointer"
-                  >
-                    Ghi nhớ đăng nhập
+                  <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">
+                    Remember me
                   </label>
                 </div>
                 <a
                   href="/forgot-password"
                   className="text-sm text-blue-600 hover:text-blue-700 transition-colors font-medium"
                 >
-                  Quên mật khẩu?
+                  Forgot password?
                 </a>
               </div>
 
@@ -243,25 +227,25 @@ export default function LoginForm() {
                 {loading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Đang xử lý...
+                    Processing...
                   </div>
                 ) : (
-                  "Đăng nhập"
+                  "Log in"
                 )}
               </Button>
             </form>
 
             {/* Terms & Privacy */}
             <p className="text-xs text-gray-600 text-center mt-6">
-              Bằng việc tiếp tục, bạn đồng ý với{" "}
+              By continuing, you agree to our{" "}
               <a href="/terms" className="text-blue-600 hover:text-blue-700 font-medium">
-                Điều khoản Dịch vụ
+                Terms of Service
               </a>{" "}
-              và{" "}
+              and{" "}
               <a href="/privacy" className="text-blue-600 hover:text-blue-700 font-medium">
-                Chính sách Bảo mật
-              </a>{" "}
-              của chúng tôi.
+                Privacy Policy
+              </a>
+              .
             </p>
           </div>
         </Card>

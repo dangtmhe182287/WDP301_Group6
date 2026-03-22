@@ -1005,6 +1005,15 @@ body {
   color: #475569;
 }
 
+.booking-comment {
+  margin-top: 8px;
+  width: min(320px, 100%);
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  font-size: 13px;
+}
+
 .booking-rating {
   margin-top: 10px;
   font-size: 13px;

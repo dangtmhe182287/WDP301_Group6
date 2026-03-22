@@ -15,12 +15,12 @@ export default function AdminAppointments() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.message || "Lỗi tải lịch hẹn");
+        throw new Error(data?.message || "Unable to load appointments");
       }
 
       setAppointments(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || "Không thể kết nối Server");
+      setError(err.message || "Unable to connect to the server");
     } finally {
       setLoading(false);
     }
@@ -30,7 +30,6 @@ export default function AdminAppointments() {
     fetchAppointments();
   }, []);
 
-  // Format the time display smoothly
   const formatTime = (minutes) => {
     const hrs = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -40,38 +39,41 @@ export default function AdminAppointments() {
   return (
     <div className="admin-appointments">
       <div className="page-header">
-        <h2>Quản lý Lịch hẹn</h2>
-        <p className="subtitle">Xem và theo dõi tất cả lịch hẹn trên toàn hệ thống</p>
+        <h2>Appointment Management</h2>
+        <p className="subtitle">View and track all appointments across the system</p>
       </div>
 
       {loading ? (
-        <div className="loading">Đang tải lịch hẹn...</div>
+        <div className="loading">Loading appointments...</div>
       ) : error ? (
         <div className="error">{error}</div>
       ) : appointments.length === 0 ? (
-        <div className="empty">Hiện tại không có lịch hẹn nào.</div>
+        <div className="empty">There are no appointments at the moment.</div>
       ) : (
         <div className="table-container">
           <table className="appointments-table">
             <thead>
               <tr>
-                <th>Khách hàng</th>
-                <th>Thợ cắt (Staff)</th>
-                <th>Dịch vụ</th>
-                <th>Thời gian</th>
-                <th>Trạng thái</th>
+                <th>Customer</th>
+                <th>Staff</th>
+                <th>Services</th>
+                <th>Time</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {appointments.map((app) => {
-                const customer = app.customerId || { fullName: app.customerName || "Khách ngoại lai", phone: "" };
-                const staff = app.staffId || { fullName: "Không xác định" };
+                const customer = app.customerId || {
+                  fullName: app.customerName || "Walk-in",
+                  phone: "",
+                };
+                const staff = app.staffId || { fullName: "Unknown" };
                 const services = Array.isArray(app.serviceIds) ? app.serviceIds : [];
-                
-                let sName = services.map(s => s.name).join(", ");
-                if (!sName) sName = "Chưa rõ";
 
-                const dateStr = new Date(app.appointmentDate).toLocaleDateString("vi-VN");
+                let sName = services.map((s) => s.name).join(", ");
+                if (!sName) sName = "N/A";
+
+                const dateStr = new Date(app.appointmentDate).toLocaleDateString("en-GB");
                 const timeStr = `${formatTime(app.startTime)} - ${formatTime(app.endTime)}`;
 
                 return (
@@ -93,7 +95,7 @@ export default function AdminAppointments() {
                       </div>
                     </td>
                     <td>
-                      <span className={`status-pill status-${app.status?.toLowerCase() || 'pending'}`}>
+                      <span className={`status-pill status-${app.status?.toLowerCase() || "pending"}`}>
                         {app.status}
                       </span>
                     </td>

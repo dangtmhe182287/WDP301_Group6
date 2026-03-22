@@ -27,7 +27,7 @@ export default function AdminSettings() {
           setCloseTime(toTimeValue(response.data.closeMinute));
         }
       } catch (error) {
-        setMessage("Không tải được giờ làm.");
+        setMessage("Unable to load business hours.");
       }
     };
 
@@ -42,9 +42,9 @@ export default function AdminSettings() {
         openMinute: toMinuteValue(openTime),
         closeMinute: toMinuteValue(closeTime),
       });
-      setMessage("Cập nhật giờ làm thành công.");
+      setMessage("Business hours updated.");
     } catch (error) {
-      setMessage(error.response?.data?.message || "Cập nhật thất bại.");
+      setMessage(error.response?.data?.message || "Update failed.");
     } finally {
       setLoading(false);
     }
@@ -52,18 +52,18 @@ export default function AdminSettings() {
 
   return (
     <section className="admin-settings">
-      <h2>Giờ làm việc</h2>
+      <h2>Business Hours</h2>
       <div className="admin-settings-card">
         <label>
-          Giờ mở cửa
+          Opening time
           <input type="time" value={openTime} onChange={(e) => setOpenTime(e.target.value)} />
         </label>
         <label>
-          Giờ đóng cửa
+          Closing time
           <input type="time" value={closeTime} onChange={(e) => setCloseTime(e.target.value)} />
         </label>
         <button className="btn-primary" onClick={handleSave} disabled={loading}>
-          {loading ? "Đang lưu..." : "Lưu thay đổi"}
+          {loading ? "Saving..." : "Save changes"}
         </button>
         {message ? <p className="message">{message}</p> : null}
       </div>

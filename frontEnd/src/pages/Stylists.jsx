@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 
 const API_BASE = "http://localhost:3000";
 
@@ -20,7 +19,7 @@ export default function Stylists() {
     experienceYears: 0,
     certificate: { name: "", organization: "", certificateId: "", image: "" },
     portfolio: [],
-    schedule: []
+    schedule: [],
   });
 
   const loadStaffs = async () => {
@@ -31,13 +30,13 @@ export default function Stylists() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.message || "Không tải được danh sách thợ cắt");
+        throw new Error(data?.message || "Unable to load stylists");
       }
 
       const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
       setStaffs(list);
     } catch (err) {
-      setError(err.message || "Lỗi khi tải dữ liệu");
+      setError(err.message || "Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -60,7 +59,7 @@ export default function Stylists() {
       experienceYears: 0,
       certificate: { name: "", organization: "", certificateId: "", image: "" },
       portfolio: [],
-      schedule: []
+      schedule: [],
     });
     setShowModal(true);
   };
@@ -80,25 +79,25 @@ export default function Stylists() {
       experienceYears: staffInfo.experienceYears || staffInfo.staffExperienceYears || 0,
       certificate: staffInfo.certificate || { name: "", organization: "", certificateId: "", image: "" },
       portfolio: Array.isArray(staffInfo.portfolio) ? staffInfo.portfolio : [],
-      schedule: Array.isArray(staffInfo.schedule) ? staffInfo.schedule : []
+      schedule: Array.isArray(staffInfo.schedule) ? staffInfo.schedule : [],
     });
     setShowModal(true);
   };
 
   const handleDelete = async (staffId) => {
-    if (!confirm("Bạn có chắc muốn xóa thợ cắt này?")) return;
+    if (!confirm("Are you sure you want to delete this stylist?")) return;
 
     try {
       const response = await fetch(`${API_BASE}/staffs/${staffId}`, {
-        method: "DELETE"
+        method: "DELETE",
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data?.message || "Lỗi khi xóa thợ cắt");
+        throw new Error(data?.message || "Failed to delete stylist");
       }
 
-      await loadStaffs(); // Reload list
+      await loadStaffs();
     } catch (err) {
       setError(err.message);
     }
@@ -119,9 +118,9 @@ export default function Stylists() {
       const response = await fetch(url, {
         method,
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
       console.log("Response status:", response.status);
@@ -132,12 +131,12 @@ export default function Stylists() {
         throw new Error(data?.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      alert(editingStaff ? "Cập nhật thành công!" : "Thêm thợ cắt thành công!");
+      alert(editingStaff ? "Updated successfully!" : "Stylist created successfully!");
       setShowModal(false);
-      await loadStaffs(); // Reload list
+      await loadStaffs();
     } catch (err) {
       console.error("Submit error:", err);
-      alert("Lỗi: " + err.message);
+      alert("Error: " + err.message);
       setError(err.message);
     }
   };
@@ -146,48 +145,49 @@ export default function Stylists() {
     const { name, value, type } = e.target;
 
     if (name === "speciality") {
-      setFormData(prev => ({ ...prev, speciality: value.split(",").map(s => s.trim()) }));
+      setFormData((prev) => ({ ...prev, speciality: value.split(",").map((s) => s.trim()) }));
     } else if (name.startsWith("certificate.")) {
       const certField = name.split(".")[1];
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        certificate: { ...prev.certificate, [certField]: value }
+        certificate: { ...prev.certificate, [certField]: value },
       }));
     } else {
-      // Convert number inputs to numbers
       const processedValue = type === "number" ? (value === "" ? 0 : Number(value)) : value;
-      setFormData(prev => ({ ...prev, [name]: processedValue }));
+      setFormData((prev) => ({ ...prev, [name]: processedValue }));
     }
   };
 
   return (
     <main className="stylists-page">
       <div className="page-header">
-        <h1>Thợ cắt</h1>
+        <h1>Stylists</h1>
         <div>
-          <button className="add-btn" onClick={handleCreate}>Thêm thợ cắt</button>
+          <button className="add-btn" onClick={handleCreate}>
+            Add stylist
+          </button>
         </div>
       </div>
 
       {loading ? (
-        <p>Đang tải...</p>
+        <p>Loading...</p>
       ) : error ? (
         <p className="error">{error}</p>
       ) : staffs.length === 0 ? (
-        <p>Chưa có thợ cắt nào.</p>
+        <p>No stylists available.</p>
       ) : (
         <div className="staff-table-wrapper">
           <table className="staff-table">
             <thead>
               <tr>
-                <th>Ảnh</th>
-                <th>Họ tên</th>
+                <th>Photo</th>
+                <th>Full name</th>
                 <th>Email</th>
-                <th>Điện thoại</th>
-                <th>Chuyên môn</th>
-                <th>Kinh nghiệm</th>
+                <th>Phone</th>
+                <th>Specialty</th>
+                <th>Experience</th>
                 <th>Rating</th>
-                <th>Thao tác</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -196,42 +196,52 @@ export default function Stylists() {
                 const user = staff.userId
                   ? staff.userId
                   : {
-                    fullName: staff.fullName,
-                    email: staff.email,
-                    phone: staff.phone,
-                    role: staff.role,
-                    imgUrl: staff.imgUrl,
-                  };
+                      fullName: staff.fullName,
+                      email: staff.email,
+                      phone: staff.phone,
+                      role: staff.role,
+                      imgUrl: staff.imgUrl,
+                    };
 
                 const staffInfo = staff.staff || staff;
 
                 const speciality =
-                  (Array.isArray(staffInfo.speciality) && staffInfo.speciality.length && staffInfo.speciality.join(", ")) ||
+                  (Array.isArray(staffInfo.speciality) &&
+                    staffInfo.speciality.length &&
+                    staffInfo.speciality.join(", ")) ||
                   staffInfo.staffSpecialty ||
                   user.speciality ||
                   "-";
 
-                const experience =
-                  staffInfo.experienceYears ?? staffInfo.staffExperienceYears ?? "-";
+                const experience = staffInfo.experienceYears ?? staffInfo.staffExperienceYears ?? "-";
 
                 return (
                   <tr key={staff._id}>
                     <td>
-                      <img 
-                        src={user.imgUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || "Staff")}&background=random`}
+                      <img
+                        src={
+                          user.imgUrl ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                            user.fullName || "Staff",
+                          )}&background=random`
+                        }
                         alt="avatar"
                         style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
                       />
                     </td>
-                    <td>{user.fullName || "Không có tên"}</td>
+                    <td>{user.fullName || "No name"}</td>
                     <td>{user.email || "-"}</td>
                     <td>{user.phone || "-"}</td>
                     <td>{speciality}</td>
-                    <td>{experience === "-" ? "-" : `${experience} năm`}</td>
+                    <td>{experience === "-" ? "-" : `${experience} years`}</td>
                     <td>{staffInfo.rating ?? "-"}</td>
                     <td>
-                      <button className="edit-btn" onClick={() => handleEdit(staff)}>Sửa</button>
-                      <button className="delete-btn" onClick={() => handleDelete(staff._id)}>Xóa</button>
+                      <button className="edit-btn" onClick={() => handleEdit(staff)}>
+                        Edit
+                      </button>
+                      <button className="delete-btn" onClick={() => handleDelete(staff._id)}>
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 );
@@ -244,10 +254,10 @@ export default function Stylists() {
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">
-            <h2>{editingStaff ? "Sửa thợ cắt" : "Thêm thợ cắt"}</h2>
+            <h2>{editingStaff ? "Edit stylist" : "Add stylist"}</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Họ tên:</label>
+                <label>Full name:</label>
                 <input
                   type="text"
                   name="fullName"
@@ -267,7 +277,7 @@ export default function Stylists() {
                 />
               </div>
               <div className="form-group">
-                <label>Điện thoại:</label>
+                <label>Phone:</label>
                 <input
                   type="tel"
                   name="phone"
@@ -277,7 +287,7 @@ export default function Stylists() {
                 />
               </div>
               <div className="form-group">
-                <label>Chuyên môn:</label>
+                <label>Specialty:</label>
                 <input
                   type="text"
                   name="staffSpecialty"
@@ -286,7 +296,7 @@ export default function Stylists() {
                 />
               </div>
               <div className="form-group">
-                <label>Kinh nghiệm (năm):</label>
+                <label>Experience (years):</label>
                 <input
                   type="number"
                   name="staffExperienceYears"
@@ -296,18 +306,15 @@ export default function Stylists() {
               </div>
               <div className="form-group">
                 <label>Rating:</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  name="rating"
-                  value={formData.rating}
-                  readOnly
-                  disabled
-                />
+                <input type="number" step="0.1" name="rating" value={formData.rating} readOnly disabled />
               </div>
               <div className="modal-actions">
-                <button type="submit" className="save-btn">Lưu</button>
-                <button type="button" onClick={() => setShowModal(false)}>Hủy</button>
+                <button type="submit" className="save-btn">
+                  Save
+                </button>
+                <button type="button" onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
               </div>
             </form>
           </div>

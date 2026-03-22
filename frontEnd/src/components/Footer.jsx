@@ -1,57 +1,46 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
+
 export default function Footer() {
   const navigate = useNavigate();
   return (
     <>
       <footer className="footer">
         <div className="container footer-grid">
-
           <div className="footer-brand">
-            <div className="logo"  onClick={() => navigate("/")}>
+            <div className="logo" onClick={() => navigate("/")}>
               <img src={logo} alt="logo" className="logo-icon" />
               <span>Elysina.</span>
             </div>
 
             <p>
-              Tái định nghĩa trải nghiệm salon hiện đại bằng sự sáng tạo, 
-              tay nghề tinh tế và dịch vụ chăm sóc vượt trội 
-              và tối ưu thời gian của bạn.
+              Redefining the modern salon experience with creativity, refined craft, and
+              premium care that respects your time.
             </p>
             <p>ElysinaCut@gmail.com</p>
-
-
           </div>
 
           <div className="footer-links">
-            <h4>Tiện ích</h4>
+            <h4>Quick Links</h4>
             <ul>
-              <li>Dịch vụ</li>
-              <li onClick={() => navigate("/appointment")}>Đặt lịch</li>
-              <li>Thẻ quà tặng</li>
-              <li>Chính sách</li>
+              <li>Services</li>
+              <li onClick={() => navigate("/appointment")}>Book an Appointment</li>
+              <li>Gift Cards</li>
+              <li>Policies</li>
             </ul>
           </div>
 
           <div className="footer-location">
-            <h4>Vị trí</h4>
-            <p>
-
-            </p>
+            <h4>Location</h4>
+            <p></p>
           </div>
-
-
-
         </div>
 
-        <div className="footer-bottom">
-          © 2026 Elysina Salon. All rights reserved.
-        </div>
+        <div className="footer-bottom">© 2026 Elysina Salon. All rights reserved.</div>
       </footer>
 
       <style>{`
-
         .footer{
           background:#020d1b;
           color:white;
@@ -144,7 +133,6 @@ export default function Footer() {
           text-align:center;
           color:#94a3b8;
         }
-
       `}</style>
     </>
   );
