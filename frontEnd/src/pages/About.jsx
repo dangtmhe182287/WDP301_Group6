@@ -5,127 +5,127 @@ export default function About() {
 
   return (
     <main className="about-page">
-
-      {/* ── Hero ── */}
       <section className="about-hero">
         <div className="container about-hero-inner">
-          <h1>Về chúng tôi</h1>
+          <h1>About Us</h1>
           <p className="about-subtitle">
-            Elysina — nơi mỗi lần ghé thăm là một trải nghiệm chăm sóc trọn vẹn.
+            Elysina — where every visit becomes a complete care experience.
           </p>
         </div>
       </section>
 
-      {/* ── Summary ── */}
       <section className="about-summary container">
         <div className="about-summary-text">
-          <h2>Câu chuyện của chúng tôi</h2>
+          <h2>Our Story</h2>
           <p>
-            Elysina Salon được thành lập với một sứ mệnh đơn giản — mang đến dịch vụ
-            chăm sóc tóc chất lượng cao trong một không gian hiện đại, thân thiện và
-            chuyên nghiệp.
+            Elysina Salon was founded with a simple mission: to deliver high-quality hair
+            care in a modern, friendly, and professional space.
           </p>
           <p>
-            Đội ngũ thợ cắt của chúng tôi được đào tạo bài bản, luôn cập nhật các xu
-            hướng mới nhất để mang lại phong cách phù hợp nhất cho từng khách hàng.
-            Dù bạn đến để cắt tóc đơn giản hay thực hiện một bộ tóc hoàn toàn mới,
-            chúng tôi đều sẵn sàng phục vụ tận tâm.
+            Our stylists are rigorously trained and stay up to date on the latest trends so
+            every guest gets a look that fits them best. Whether you are here for a classic
+            cut or a full transformation, we are ready to take great care of you.
           </p>
           <p>
-            Với hệ thống đặt lịch trực tuyến tiện lợi, bạn có thể chọn dịch vụ, thợ
-            cắt và thời gian phù hợp chỉ trong vài phút — không cần chờ đợi, không
-            cần gọi điện.
+            With a convenient online booking system, you can choose your services, stylist,
+            and time in just a few minutes — no waiting and no phone calls.
           </p>
         </div>
         <div className="about-summary-highlights">
           <div className="about-highlight-card">
             <div className="about-highlight-icon">✂️</div>
             <div className="about-highlight-value">10+</div>
-            <div className="about-highlight-label">Thợ cắt chuyên nghiệp</div>
+            <div className="about-highlight-label">Professional stylists</div>
           </div>
           <div className="about-highlight-card">
-            <div className="about-highlight-icon">📅</div>
+            <div className="about-highlight-icon">🗓</div>
             <div className="about-highlight-value">500+</div>
-            <div className="about-highlight-label">Lịch hẹn mỗi tháng</div>
+            <div className="about-highlight-label">Appointments per month</div>
           </div>
           <div className="about-highlight-card">
             <div className="about-highlight-icon">⭐</div>
             <div className="about-highlight-value">4.8</div>
-            <div className="about-highlight-label">Đánh giá trung bình</div>
+            <div className="about-highlight-label">Average rating</div>
           </div>
         </div>
       </section>
 
-      {/* ── Opening Hours ── */}
       <section className="about-hours-section">
         <div className="container about-hours-inner">
-          <h2>Giờ mở cửa</h2>
+          <h2>Opening Hours</h2>
           <div className="about-hours-grid">
             <div className="about-hours-row">
-              <span>Thứ Hai — Thứ Sáu</span>
+              <span>Monday — Friday</span>
               <span>08:00 — 21:00</span>
             </div>
             <div className="about-hours-row">
-              <span>Thứ Bảy</span>
+              <span>Saturday</span>
               <span>08:00 — 21:00</span>
             </div>
             <div className="about-hours-row">
-              <span>Chủ Nhật</span>
+              <span>Sunday</span>
               <span>09:00 — 18:00</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Testimonials ── */}
       <section className="about-testimonials container">
         <div className="about-hours-inner">
-          <h2>Khách hàng nói gì về chúng tôi</h2>
+          <h2>What Clients Say</h2>
         </div>
         <div className="about-testimonials-grid">
           <div className="about-testimonial-card">
             <div className="about-stars">★★★★★</div>
-            <p>"Không gian sạch sẽ, thợ cắt rất tận tâm. Mình đã đặt lịch online lần đầu và rất hài lòng với kết quả. Chắc chắn sẽ quay lại!"</p>
+            <p>
+              "Clean space, very attentive stylist. I booked online for the first time and
+              loved the result. I will definitely be back!"
+            </p>
             <div className="about-reviewer">
               <div className="about-reviewer-avatar">NA</div>
               <div>
-                <div className="about-reviewer-name">Nguyễn Thị Anh</div>
-                <div className="about-reviewer-date">Tháng 3, 2026</div>
+                <div className="about-reviewer-name">Anh Nguyen</div>
+                <div className="about-reviewer-date">March 2026</div>
               </div>
             </div>
           </div>
           <div className="about-testimonial-card">
             <div className="about-stars">★★★★★</div>
-            <p>"Đặt lịch nhanh, đúng giờ, thợ cắt hiểu ý khách. Mình làm highlight lần đầu mà ra màu đẹp hơn mong đợi. Rất recommend!"</p>
+            <p>
+              "Fast booking, on time, and the stylist really understood what I wanted.
+              First-time highlights turned out better than expected. Highly recommended!"
+            </p>
             <div className="about-reviewer">
               <div className="about-reviewer-avatar">TM</div>
               <div>
-                <div className="about-reviewer-name">Trần Văn Minh</div>
-                <div className="about-reviewer-date">Tháng 2, 2026</div>
+                <div className="about-reviewer-name">Minh Tran</div>
+                <div className="about-reviewer-date">February 2026</div>
               </div>
             </div>
           </div>
           <div className="about-testimonial-card">
             <div className="about-stars">★★★★☆</div>
-            <p>"Dịch vụ tốt, giá cả hợp lý. Mình thích là có thể chọn thợ cắt theo chuyên môn. Lần sau mình sẽ thử keratin treatment."</p>
+            <p>
+              "Great service and fair prices. I love being able to choose a stylist based on
+              specialty. Next time I will try a keratin treatment."
+            </p>
             <div className="about-reviewer">
               <div className="about-reviewer-avatar">LH</div>
               <div>
-                <div className="about-reviewer-name">Lê Thị Hoa</div>
-                <div className="about-reviewer-date">Tháng 1, 2026</div>
+                <div className="about-reviewer-name">Hoa Le</div>
+                <div className="about-reviewer-date">January 2026</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Location + Contact ── */}
       <section className="about-location container">
         <div className="about-location-info">
-          <h2>Địa chỉ & Liên hệ</h2>
+          <h2>Address & Contact</h2>
           <div className="about-contact-item">
             <span className="about-contact-icon">📍</span>
-            <span>123 Đường Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh</span>
+            <span>123 Nguyen Hue Street, District 1, Ho Chi Minh City</span>
           </div>
           <div className="about-contact-item">
             <span className="about-contact-icon">📞</span>
@@ -137,7 +137,7 @@ export default function About() {
           </div>
           <div className="about-contact-item">
             <span className="about-contact-icon">🕐</span>
-            <span>Mở cửa hàng ngày — 08:00 đến 21:00</span>
+            <span>Open daily — 08:00 to 21:00</span>
           </div>
         </div>
         <div className="about-map-wrap">

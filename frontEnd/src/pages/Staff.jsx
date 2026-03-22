@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../utils/axiosInstance";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 const formatTime = (minutes) => {
   const hrs = Math.floor(minutes / 60);
@@ -11,10 +11,9 @@ const formatTime = (minutes) => {
   return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
 };
 
-const formatDate = (dateStr) =>
-  new Date(dateStr).toLocaleDateString("vi-VN");
+const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString("en-GB");
 
-// ─── Dashboard View ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 function DashboardView() {
   const [stats, setStats] = useState([]);
@@ -28,72 +27,63 @@ function DashboardView() {
       .finally(() => setLoading(false));
   }, []);
 
-  const getCount = (status) =>
-    stats.find((s) => s._id === status)?.count ?? 0;
+  const getCount = (status) => stats.find((s) => s._id === status)?.count ?? 0;
 
   const totalToday = stats.reduce((acc, s) => acc + s.count, 0);
 
   return (
     <section className="staff-section">
-      <h2 className="staff-page-title">Bảng tin</h2>
+      <h2 className="staff-page-title">Dashboard</h2>
       <div className="staff-stats">
         <div className="staff-stat-card">
           <div className="staff-stat-icon">📅</div>
           <div>
-            <div className="staff-stat-value">
-              {loading ? "..." : totalToday}
-            </div>
-            <div className="staff-stat-label">Tổng lịch hẹn</div>
+            <div className="staff-stat-value">{loading ? "..." : totalToday}</div>
+            <div className="staff-stat-label">Total appointments</div>
           </div>
         </div>
         <div className="staff-stat-card">
           <div className="staff-stat-icon">⏳</div>
           <div>
-            <div className="staff-stat-value">
-              {loading ? "..." : getCount("Pending")}
-            </div>
-            <div className="staff-stat-label">Chờ xác nhận</div>
+            <div className="staff-stat-value">{loading ? "..." : getCount("Pending")}</div>
+            <div className="staff-stat-label">Pending</div>
           </div>
         </div>
         <div className="staff-stat-card">
           <div className="staff-stat-icon">✅</div>
           <div>
-            <div className="staff-stat-value">
-              {loading ? "..." : getCount("Completed")}
-            </div>
-            <div className="staff-stat-label">Hoàn thành</div>
+            <div className="staff-stat-value">{loading ? "..." : getCount("Completed")}</div>
+            <div className="staff-stat-label">Completed</div>
           </div>
         </div>
         <div className="staff-stat-card">
           <div className="staff-stat-icon">❌</div>
           <div>
-            <div className="staff-stat-value">
-              {loading ? "..." : getCount("Cancelled")}
-            </div>
-            <div className="staff-stat-label">Đã huỷ</div>
+            <div className="staff-stat-value">{loading ? "..." : getCount("Cancelled")}</div>
+            <div className="staff-stat-label">Cancelled</div>
           </div>
         </div>
       </div>
 
       <div className="staff-table-card">
         <div className="staff-table-card-header">
-          <div className="staff-table-card-title">Tổng quan</div>
+          <div className="staff-table-card-title">Overview</div>
         </div>
         <p style={{ color: "#64748b", padding: "0 18px 18px", fontSize: 14 }}>
-          Chuyển sang tab <strong>Lịch hẹn</strong> để xem và quản lý chi tiết.
+          Switch to the <strong>Appointments</strong> tab to view and manage details.
         </p>
       </div>
     </section>
   );
 }
 
-// ─── Appointments View ───────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 function AppointmentsView() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("Tất cả");
+  const [filter, setFilter] = useState("All");
 
   const fetchAppointments = () => {
     setLoading(true);
@@ -101,9 +91,7 @@ function AppointmentsView() {
     axiosInstance
       .get("/staffs/appointments")
       .then((res) => setAppointments(Array.isArray(res.data) ? res.data : []))
-      .catch((err) =>
-        setError(err.response?.data?.message || "Không thể kết nối Server")
-      )
+      .catch((err) => setError(err.response?.data?.message || "Unable to connect to the server"))
       .finally(() => setLoading(false));
   };
 
@@ -114,41 +102,32 @@ function AppointmentsView() {
   const confirmPayment = async (id) => {
     try {
       await axiosInstance.patch(`/appointments/${id}/confirm-payment`);
-      setAppointments((prev) =>
-        prev.map((a) =>
-          a._id === id ? { ...a, paymentStatus: "Paid" } : a
-        )
-      );
+      setAppointments((prev) => prev.map((a) => (a._id === id ? { ...a, paymentStatus: "Paid" } : a)));
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi xác nhận thanh toán");
+      alert(err.response?.data?.message || "Payment confirmation error");
     }
   };
 
   const updateStatus = async (id, status) => {
     try {
       await axiosInstance.patch(`/staffs/appointments/${id}/status`, { status });
-      setAppointments((prev) =>
-        prev.map((a) => (a._id === id ? { ...a, status } : a))
-      );
+      setAppointments((prev) => prev.map((a) => (a._id === id ? { ...a, status } : a)));
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi cập nhật trạng thái");
+      alert(err.response?.data?.message || "Status update error");
     }
   };
 
-  const filters = ["Tất cả", "Pending", "Scheduled", "Completed", "Cancelled"];
+  const filters = ["All", "Pending", "Scheduled", "Completed", "Cancelled"];
 
-  const filtered =
-    filter === "Tất cả"
-      ? appointments
-      : appointments.filter((a) => a.status === filter);
+  const filtered = filter === "All" ? appointments : appointments.filter((a) => a.status === filter);
 
   return (
     <section className="staff-section">
-      <h2 className="staff-page-title">Lịch hẹn</h2>
+      <h2 className="staff-page-title">Appointments</h2>
 
       <div className="staff-table-card">
         <div className="staff-table-card-header">
-          <div className="staff-table-card-title">Danh sách lịch hẹn</div>
+          <div className="staff-table-card-title">Appointments list</div>
           <div className="staff-filter-wrap">
             {filters.map((f) => (
               <button
@@ -163,31 +142,31 @@ function AppointmentsView() {
         </div>
 
         {loading ? (
-          <div className="staff-state-msg">Đang tải...</div>
+          <div className="staff-state-msg">Loading...</div>
         ) : error ? (
           <div className="staff-state-msg error">{error}</div>
         ) : filtered.length === 0 ? (
-          <div className="staff-state-msg">Không có lịch hẹn nào.</div>
+          <div className="staff-state-msg">No appointments.</div>
         ) : (
           <table className="staff-table">
             <thead>
               <tr>
-                <th>Khách hàng</th>
-                <th>Dịch vụ</th>
-                <th>Thời gian</th>
-                <th>Trạng thái</th>
-                <th>Thanh toán</th>
+                <th>Customer</th>
+                <th>Services</th>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Payment</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((app) => {
                 const customer = app.customerId || {
-                  fullName: app.walkInCustomerName || "Khách vãng lai",
+                  fullName: app.walkInCustomerName || "Walk-in",
                   phone: "",
                 };
                 const services = Array.isArray(app.serviceIds)
                   ? app.serviceIds.map((s) => s.name).join(", ")
-                  : "Chưa rõ";
+                  : "N/A";
 
                 return (
                   <tr key={app._id}>
@@ -198,12 +177,9 @@ function AppointmentsView() {
                     <td>{services}</td>
                     <td>
                       <div className="staff-time-block">
+                        <span className="staff-badge">📅 {formatDate(app.appointmentDate)}</span>
                         <span className="staff-badge">
-                          📅 {formatDate(app.appointmentDate)}
-                        </span>
-                        <span className="staff-badge">
-                          ⏰ {formatTime(app.startTime)} -{" "}
-                          {formatTime(app.endTime)}
+                          ⏰ {formatTime(app.startTime)} - {formatTime(app.endTime)}
                         </span>
                       </div>
                     </td>
@@ -213,31 +189,22 @@ function AppointmentsView() {
                         value={app.status}
                         onChange={(e) => updateStatus(app._id, e.target.value)}
                       >
-                        {["Pending", "Scheduled", "Completed", "Cancelled"].map(
-                          (s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          )
-                        )}
+                        {["Pending", "Scheduled", "Completed", "Cancelled"].map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
                       </select>
                     </td>
                     <td>
                       <span
-                        className={`staff-pay-pill ${
-                          app.paymentStatus === "Paid"
-                            ? "pay-paid"
-                            : "pay-unpaid"
-                        }`}
+                        className={`staff-pay-pill ${app.paymentStatus === "Paid" ? "pay-paid" : "pay-unpaid"}`}
                       >
                         {app.paymentStatus}
                       </span>
                       {app.paymentStatus === "Unpaid" && (
-                        <button
-                          className="staff-confirm-btn"
-                          onClick={() => confirmPayment(app._id)}
-                        >
-                          Xác nhận thanh toán
+                        <button className="staff-confirm-btn" onClick={() => confirmPayment(app._id)}>
+                          Confirm payment
                         </button>
                       )}
                     </td>
@@ -252,7 +219,7 @@ function AppointmentsView() {
   );
 }
 
-// ─── Schedule View ───────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 function ScheduleView() {
   const [schedule, setSchedule] = useState([]);
@@ -263,34 +230,32 @@ function ScheduleView() {
     axiosInstance
       .get("/staffs/schedule")
       .then((res) => setSchedule(Array.isArray(res.data) ? res.data : []))
-      .catch((err) =>
-        setError(err.response?.data?.message || "Không thể tải lịch làm việc")
-      )
+      .catch((err) => setError(err.response?.data?.message || "Unable to load schedule"))
       .finally(() => setLoading(false));
   }, []);
 
   return (
     <section className="staff-section">
-      <h2 className="staff-page-title">Lịch làm việc</h2>
+      <h2 className="staff-page-title">Schedule</h2>
 
       <div className="staff-table-card">
         <div className="staff-table-card-header">
-          <div className="staff-table-card-title">Lịch của tôi</div>
+          <div className="staff-table-card-title">My schedule</div>
         </div>
 
         {loading ? (
-          <div className="staff-state-msg">Đang tải...</div>
+          <div className="staff-state-msg">Loading...</div>
         ) : error ? (
           <div className="staff-state-msg error">{error}</div>
         ) : schedule.length === 0 ? (
-          <div className="staff-state-msg">Chưa có lịch làm việc.</div>
+          <div className="staff-state-msg">No schedule available.</div>
         ) : (
           <table className="staff-table">
             <thead>
               <tr>
-                <th>Ngày làm việc</th>
-                <th>Bắt đầu</th>
-                <th>Kết thúc</th>
+                <th>Working date</th>
+                <th>Start</th>
+                <th>End</th>
               </tr>
             </thead>
             <tbody>
@@ -309,22 +274,20 @@ function ScheduleView() {
   );
 }
 
-// ─── Root Staff Layout ───────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function Staff() {
   const { user, logout } = useAuth();
   const location = useLocation();
 
   const navItems = [
-    { label: "Bảng tin", path: "/staff" },
-    { label: "Lịch hẹn", path: "/staff/appointments" },
-    { label: "Lịch làm việc", path: "/staff/schedule" },
+    { label: "Dashboard", path: "/staff" },
+    { label: "Appointments", path: "/staff/appointments" },
+    { label: "Schedule", path: "/staff/schedule" },
   ];
 
   const isActive = (path) =>
-    path === "/staff"
-      ? location.pathname === "/staff"
-      : location.pathname.startsWith(path);
+    path === "/staff" ? location.pathname === "/staff" : location.pathname.startsWith(path);
 
   return (
     <div className="staff-layout">
@@ -346,16 +309,14 @@ export default function Staff() {
       <main className="staff-main">
         <header className="staff-header">
           <div className="staff-search-wrap">
-            <input type="text" placeholder="Tìm kiếm..." />
+            <input type="text" placeholder="Search..." />
             <button className="staff-search-btn">🔍</button>
           </div>
           <div className="staff-header-right">
             <button className="staff-btn-logout" onClick={logout}>
-              Đăng xuất
+              Log out
             </button>
-            <div className="staff-user-chip">
-              {user?.fullName || user?.email || "Staff"}
-            </div>
+            <div className="staff-user-chip">{user?.fullName || user?.email || "Staff"}</div>
           </div>
         </header>
 

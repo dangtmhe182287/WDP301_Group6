@@ -15,12 +15,12 @@ export default function Members() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.message || "Không tải được danh sách thành viên");
+        throw new Error(data?.message || "Unable to load members");
       }
 
       setCustomers(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || "Lỗi khi tải dữ liệu");
+      setError(err.message || "Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -33,28 +33,26 @@ export default function Members() {
   return (
     <div className="members-admin">
       <div className="page-header">
-        <h2>Quản lý Thành viên</h2>
-        <p className="subtitle">
-          Danh sách khách hàng và thống kê lịch sử đặt hẹn
-        </p>
+        <h2>Member Management</h2>
+        <p className="subtitle">Customer list and booking history stats</p>
       </div>
 
       {loading ? (
-        <div className="loading">Đang tải danh sách thành viên...</div>
+        <div className="loading">Loading members...</div>
       ) : error ? (
         <div className="error">{error}</div>
       ) : customers.length === 0 ? (
-        <div className="empty">Hệ thống chưa có người dùng nào đăng ký làm khách hàng.</div>
+        <div className="empty">No customers have registered yet.</div>
       ) : (
         <div className="table-container">
           <table className="members-table">
             <thead>
               <tr>
-                <th>Họ tên</th>
-                <th>Thông tin liên hệ</th>
-                <th>Tổng đơn đặt hẹn</th>
-                <th>Lịch bị hủy</th>
-                <th>Tỉ lệ huỷ</th>
+                <th>Full name</th>
+                <th>Contact</th>
+                <th>Total bookings</th>
+                <th>Cancelled</th>
+                <th>Cancel rate</th>
               </tr>
             </thead>
             <tbody>
@@ -62,7 +60,7 @@ export default function Members() {
                 const total = customer.totalBookings || 0;
                 const cancelled = customer.cancelledBookings || 0;
                 let cancelRate = 0;
-                
+
                 if (total > 0) {
                   cancelRate = Math.round((cancelled / total) * 100);
                 }
@@ -70,7 +68,7 @@ export default function Members() {
                 return (
                   <tr key={customer._id}>
                     <td>
-                      <strong>{customer.fullName || "Không tên"}</strong>
+                      <strong>{customer.fullName || "No name"}</strong>
                     </td>
                     <td>
                       <div className="contact-info">
@@ -79,19 +77,19 @@ export default function Members() {
                       </div>
                     </td>
                     <td>
-                      <span className="stat-pill booking-pill">
-                        {total} đơn
-                      </span>
+                      <span className="stat-pill booking-pill">{total} bookings</span>
                     </td>
                     <td>
                       <span className={cancelled > 0 ? "stat-pill cancel-pill" : "stat-pill zero-pill"}>
-                        {cancelled} bị huỷ
+                        {cancelled} cancelled
                       </span>
                     </td>
                     <td>
                       <div className="rate-text">
-                        <span 
-                          className={`rate-percent ${cancelRate > 30 ? 'high-rate' : cancelRate > 0 ? 'medium-rate' : 'good-rate'}`}
+                        <span
+                          className={`rate-percent ${
+                            cancelRate > 30 ? "high-rate" : cancelRate > 0 ? "medium-rate" : "good-rate"
+                          }`}
                         >
                           {cancelRate}%
                         </span>

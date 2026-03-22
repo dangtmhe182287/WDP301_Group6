@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../utils/axiosInstance";
@@ -60,10 +60,6 @@ export default function Settings() {
           ? response.data.find((staff) => staff._id === user._id)
           : null;
         setStaffInfo(matched || null);
-        console.log("Matched:", matched);
-        console.log("Response:", response.data);
-        console.log("User:", user._id);
-        
       } catch (error) {
         setStaffInfo(null);
       }
@@ -82,7 +78,7 @@ export default function Settings() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!user) {
-      setMessage("Vui lòng đăng nhập để cập nhật thông tin.");
+      setMessage("Please log in to update your profile.");
       return;
     }
 
@@ -101,11 +97,11 @@ export default function Settings() {
       const response = await axiosInstance.put("/users/me", payload);
       updateUser(response.data.user);
       setAvatarPreview(resolveAvatar(response.data.user?.imgUrl));
-      setMessage("Cập nhật thông tin thành công.");
+      setMessage("Profile updated.");
       setForm((prev) => ({ ...prev, password: "" }));
       setIsEditing(false);
     } catch (error) {
-      setMessage(error.response?.data?.message || "Cập nhật thất bại.");
+      setMessage(error.response?.data?.message || "Update failed.");
     }
   };
 
@@ -120,9 +116,9 @@ export default function Settings() {
       updateUser(response.data.user);
       setAvatarPreview(resolveAvatar(response.data.user?.imgUrl));
       setForm((prev) => ({ ...prev, imgUrl: response.data.user?.imgUrl || "" }));
-      setMessage("Cập nhật ảnh đại diện thành công.");
+      setMessage("Avatar updated.");
     } catch (error) {
-      setMessage(error.response?.data?.message || "Tải ảnh thất bại.");
+      setMessage(error.response?.data?.message || "Upload failed.");
     }
   };
 
@@ -147,10 +143,10 @@ export default function Settings() {
     return (
       <main className="settings-page">
         <div className="settings-card">
-          <h2>Hồ sơ cá nhân</h2>
-          <p>Bạn cần đăng nhập để chỉnh sửa thông tin.</p>
+          <h2>Profile</h2>
+          <p>Please log in to edit your profile.</p>
           <button className="primary-btn" onClick={() => navigate("/login")}>
-            Đăng nhập
+            Log in
           </button>
         </div>
       </main>
@@ -160,39 +156,38 @@ export default function Settings() {
   return (
     <main className="settings-page">
       <div className="settings-card">
-        <h2>Hồ sơ cá nhân</h2>
+        <h2>Profile</h2>
         <div className="settings-avatar">
           <img src={avatarPreview || anonymousAvatar} alt="avatar" />
         </div>
         <form onSubmit={handleSubmit} className="settings-form">
           <label>
-            Họ và tên
+            Full name
             <input value={form.fullName} onChange={handleChange("fullName")} disabled={!isEditing} />
           </label>
-          
+
           <label>
-            Số điện thoại
+            Phone
             <input value={form.phone} onChange={handleChange("phone")} disabled={!isEditing} />
           </label>
 
           {user.role === "staff" && staffInfo ? (
             <div className="staff-profile">
               <div>
-                <strong>Chuyên môn:</strong>{" "}
+                <strong>Specialty:</strong>{" "}
                 {Array.isArray(staffInfo.speciality) && staffInfo.speciality.length
                   ? staffInfo.speciality.join(", ")
-                  : "Chưa cập nhật"}
+                  : "Not updated"}
               </div>
               <div>
-                <strong>Đánh giá:</strong>{" "}
-                {staffInfo.rating !== undefined ? staffInfo.rating : "Chưa có"}
+                <strong>Rating:</strong> {staffInfo.rating !== undefined ? staffInfo.rating : "No ratings"}
               </div>
             </div>
           ) : null}
           {isEditing ? (
             <>
               <label>
-                Link ảnh đại diện
+                Avatar URL
                 <input
                   value={form.imgUrl}
                   onChange={(event) => {
@@ -204,7 +199,7 @@ export default function Settings() {
                 />
               </label>
               <label>
-                Tải ảnh lên
+                Upload image
                 <input
                   type="file"
                   accept="image/*"
@@ -216,12 +211,12 @@ export default function Settings() {
                 />
               </label>
               <label>
-                Mật khẩu mới
+                New password
                 <input
                   type="password"
                   value={form.password}
                   onChange={handleChange("password")}
-                  placeholder="Để trống nếu không đổi"
+                  placeholder="Leave blank to keep current password"
                 />
               </label>
             </>
@@ -229,15 +224,15 @@ export default function Settings() {
           {isEditing ? (
             <div className="settings-actions">
               <button type="submit" className="primary-btn">
-                Lưu thay đổi
+                Save changes
               </button>
               <button type="button" className="ghost-btn" onClick={handleCancelEdit}>
-                Hủy
+                Cancel
               </button>
             </div>
           ) : (
             <button type="button" className="primary-btn" onClick={handleStartEdit}>
-              Chỉnh sửa thông tin
+              Edit profile
             </button>
           )}
         </form>
