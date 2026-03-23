@@ -3,13 +3,15 @@ import {
     CreateRate,
     GetRateByAppointmentId,
     GetRatesByStaffId,
-    GetStaffAverageRate
+    GetStaffAverageRate,
+    GetRecentFiveStarRates
 } from "../controllers/rate.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
 router.post("/staff/:staffId", authMiddleware, CreateRate);
+router.get("/recent", GetRecentFiveStarRates);
 router.get("/appointment/:appointmentId", GetRateByAppointmentId);
 router.get("/staff/:staffId", GetRatesByStaffId);
 router.get("/staff/:staffId/average", GetStaffAverageRate);

@@ -12,7 +12,7 @@ export default function Services() {
     name: "",
     price: 0,
     duration: 0,
-    description: ""
+    description: "",
   });
 
   const loadServices = async () => {
@@ -23,13 +23,13 @@ export default function Services() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.message || "Không tải được danh sách dịch vụ");
+        throw new Error(data?.message || "Unable to load services");
       }
 
       const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
       setServices(list);
     } catch (err) {
-      setError(err.message || "Lỗi khi tải dữ liệu");
+      setError(err.message || "Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -45,7 +45,7 @@ export default function Services() {
       name: "",
       price: 0,
       duration: 0,
-      description: ""
+      description: "",
     });
     setShowModal(true);
   };
@@ -56,25 +56,25 @@ export default function Services() {
       name: service.name || "",
       price: service.price || 0,
       duration: service.duration || 0,
-      description: service.description || ""
+      description: service.description || "",
     });
     setShowModal(true);
   };
 
   const handleDelete = async (serviceId) => {
-    if (!confirm("Bạn có chắc muốn xóa dịch vụ này?")) return;
+    if (!confirm("Are you sure you want to delete this service?")) return;
 
     try {
       const response = await fetch(`${API_BASE}/services/delete/${serviceId}`, {
-        method: "DELETE"
+        method: "DELETE",
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data?.message || "Lỗi khi xóa dịch vụ");
+        throw new Error(data?.message || "Failed to delete service");
       }
 
-      await loadServices(); // Reload list
+      await loadServices();
     } catch (err) {
       setError(err.message);
     }
@@ -83,21 +83,20 @@ export default function Services() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
     if (!formData.name.trim()) {
-      alert("Vui lòng nhập tên dịch vụ!");
+      alert("Please enter a service name.");
       return;
     }
     if (formData.price <= 0) {
-      alert("Giá phải lớn hơn 0!");
+      alert("Price must be greater than 0.");
       return;
     }
     if (formData.duration <= 0) {
-      alert("Thời gian phải lớn hơn 0!");
+      alert("Duration must be greater than 0.");
       return;
     }
     if (!formData.description.trim()) {
-      alert("Vui lòng nhập mô tả!");
+      alert("Please enter a description.");
       return;
     }
 
@@ -110,69 +109,73 @@ export default function Services() {
       const response = await fetch(url, {
         method,
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.message || "Lỗi khi lưu dịch vụ");
+        throw new Error(data?.message || "Failed to save service");
       }
 
-      alert(editingService ? "Cập nhật thành công!" : "Thêm dịch vụ thành công!");
+      alert(editingService ? "Updated successfully!" : "Created successfully!");
       setShowModal(false);
-      await loadServices(); // Reload list
+      await loadServices();
     } catch (err) {
-      alert("Lỗi: " + err.message);
+      alert("Error: " + err.message);
       setError(err.message);
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
-
-    // Convert number inputs to numbers
     const processedValue = type === "number" ? (value === "" ? 0 : Number(value)) : value;
-    setFormData(prev => ({ ...prev, [name]: processedValue }));
+    setFormData((prev) => ({ ...prev, [name]: processedValue }));
   };
 
   return (
     <div className="services-admin">
       <div className="page-header">
-        <h2>Quản lý dịch vụ</h2>
-        <button className="add-btn" onClick={handleCreate}>Thêm dịch vụ</button>
+        <h2>Service Management</h2>
+        <button className="add-btn" onClick={handleCreate}>
+          Add service
+        </button>
       </div>
 
       {loading ? (
-        <p>Đang tải...</p>
+        <p>Loading...</p>
       ) : error ? (
         <p className="error">{error}</p>
       ) : services.length === 0 ? (
-        <p>Chưa có dịch vụ nào.</p>
+        <p>No services available.</p>
       ) : (
         <div className="table-container">
           <table className="services-table">
             <thead>
               <tr>
-                <th>Tên dịch vụ</th>
-                <th>Giá</th>
-                <th>Thời gian</th>
-                <th>Mô tả</th>
-                <th>Thao tác</th>
+                <th>Service name</th>
+                <th>Price</th>
+                <th>Duration</th>
+                <th>Description</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {services.map((service) => (
                 <tr key={service._id}>
                   <td>{service.name}</td>
-                  <td>{service.price?.toLocaleString('vi-VN')} VND</td>
-                  <td>{service.duration} phút</td>
+                  <td>{service.price?.toLocaleString("en-US")} VND</td>
+                  <td>{service.duration} min</td>
                   <td>{service.description}</td>
                   <td>
-                    <button className="edit-btn" onClick={() => handleEdit(service)}>Sửa</button>
-                    <button className="delete-btn" onClick={() => handleDelete(service._id)}>Xóa</button>
+                    <button className="edit-btn" onClick={() => handleEdit(service)}>
+                      Edit
+                    </button>
+                    <button className="delete-btn" onClick={() => handleDelete(service._id)}>
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -184,10 +187,10 @@ export default function Services() {
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">
-            <h2>{editingService ? "Sửa dịch vụ" : "Thêm dịch vụ"}</h2>
+            <h2>{editingService ? "Edit service" : "Add service"}</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Tên dịch vụ:</label>
+                <label>Service name:</label>
                 <input
                   type="text"
                   name="name"
@@ -197,7 +200,7 @@ export default function Services() {
                 />
               </div>
               <div className="form-group">
-                <label>Giá (VND):</label>
+                <label>Price (VND):</label>
                 <input
                   type="number"
                   name="price"
@@ -208,7 +211,7 @@ export default function Services() {
                 />
               </div>
               <div className="form-group">
-                <label>Thời gian (phút):</label>
+                <label>Duration (min):</label>
                 <input
                   type="number"
                   name="duration"
@@ -219,7 +222,7 @@ export default function Services() {
                 />
               </div>
               <div className="form-group">
-                <label>Mô tả:</label>
+                <label>Description:</label>
                 <textarea
                   name="description"
                   value={formData.description}
@@ -229,8 +232,12 @@ export default function Services() {
                 />
               </div>
               <div className="modal-actions">
-                <button type="submit" className="save-btn">Lưu</button>
-                <button type="button" onClick={() => setShowModal(false)}>Hủy</button>
+                <button type="submit" className="save-btn">
+                  Save
+                </button>
+                <button type="button" onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
               </div>
             </form>
           </div>

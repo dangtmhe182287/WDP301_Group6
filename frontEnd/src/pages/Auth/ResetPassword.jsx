@@ -26,32 +26,27 @@ export default function ResetPassword() {
     e.preventDefault();
 
     if (password.length < 8) {
-      toast.error("Password phải ít nhất 8 ký tự");
+      toast.error("Password must be at least 8 characters");
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Mật khẩu xác nhận không khớp");
+      toast.error("Passwords do not match");
       return;
     }
 
     setLoading(true);
 
     try {
-      await axios.post(
-        `http://localhost:3000/auth/reset-password/${token}`,
-        { password }
-      );
+      await axios.post(`http://localhost:3000/auth/reset-password/${token}`, { password });
 
-      toast.success("Đặt lại mật khẩu thành công!");
+      toast.success("Password reset successfully!");
 
       setTimeout(() => {
         navigate("/login");
       }, 2000);
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Token không hợp lệ hoặc hết hạn"
-      );
+      toast.error(error.response?.data?.message || "Token is invalid or expired");
     } finally {
       setLoading(false);
     }
@@ -71,9 +66,7 @@ export default function ResetPassword() {
       >
         <div className="max-w-md">
           <h1 className="text-4xl font-bold mb-4 text-white">Elysina</h1>
-          <p className="text-white text-lg">
-            Luxury Haircare, One Booking Away.
-          </p>
+          <p className="text-white text-lg">Luxury Haircare, One Booking Away.</p>
         </div>
       </div>
 
@@ -81,27 +74,21 @@ export default function ResetPassword() {
       <div className="flex-1 flex items-center justify-center p-6 bg-white">
         <Card className="w-full max-w-md bg-white border-gray-200 shadow-2xl">
           <div className="p-8">
-
-            <h2 className="text-2xl font-bold text-black mb-2">
-              Đặt lại mật khẩu
-            </h2>
+            <h2 className="text-2xl font-bold text-black mb-2">Reset password</h2>
 
             <p className="text-sm text-gray-500 mb-6">
-              Nhập mật khẩu mới cho tài khoản của bạn
+              Enter a new password for your account.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-
               {/* Password */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Mật khẩu mới
-                </Label>
+                <Label className="text-sm font-medium">New password</Label>
 
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
-                    placeholder="Nhập mật khẩu mới"
+                    placeholder="Enter new password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="h-11 bg-[#F4F4F4] pr-10"
@@ -112,25 +99,19 @@ export default function ResetPassword() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2"
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
 
               {/* Confirm Password */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Xác nhận mật khẩu
-                </Label>
+                <Label className="text-sm font-medium">Confirm password</Label>
 
                 <div className="relative">
                   <Input
                     type={showConfirm ? "text" : "password"}
-                    placeholder="Nhập lại mật khẩu"
+                    placeholder="Re-enter your password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="h-11 bg-[#F4F4F4] pr-10"
@@ -141,11 +122,7 @@ export default function ResetPassword() {
                     onClick={() => setShowConfirm(!showConfirm)}
                     className="absolute right-3 top-1/2 -translate-y-1/2"
                   >
-                    {showConfirm ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
+                    {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
@@ -158,25 +135,20 @@ export default function ResetPassword() {
                 {loading ? (
                   <div className="flex gap-2 items-center">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Đang xử lý...
+                    Processing...
                   </div>
                 ) : (
-                  "Đặt lại mật khẩu"
+                  "Reset password"
                 )}
               </Button>
-
             </form>
 
             <p className="text-sm text-center text-gray-600 mt-6">
-              Quay lại{" "}
-              <span
-                onClick={() => navigate("/login")}
-                className="text-blue-600 cursor-pointer"
-              >
-                đăng nhập
+              Back to{" "}
+              <span onClick={() => navigate("/login")} className="text-blue-600 cursor-pointer">
+                log in
               </span>
             </p>
-
           </div>
         </Card>
       </div>

@@ -109,9 +109,9 @@ const getTotalDuration = async (serviceIds) => {
 };
 
 export const createAppointment = async (payload) => {
-  const {// Required fields: staffId, appointmentDate, startTime. Optional: customerId, walkInCustomerName, note.
+  const {// Required fields: staffId, appointmentDate, startTime. Optional: customerId, customerName, note.
     customerId,
-    walkInCustomerName,
+    customerName,
     staffId,
     bookingChannel = "online",
     createdByRole = "customer",
@@ -184,7 +184,7 @@ export const createAppointment = async (payload) => {
 
   return Appointment.create({
     customerId,
-    walkInCustomerName,
+    customerName,
     staffId,
     serviceIds,
     bookingChannel,

@@ -5,13 +5,15 @@ import {
     CreateService,
     UpdateService,
     DeleteService,
+    GetServiceBookingStats
 } from "../controllers/service.controller.js";
 
 const router = express.Router();
 
 router.get("/", GetAllServices);
+router.get("/stats/bookings", GetServiceBookingStats);
 router.get("/:id", GetServiceById);
-router.post("/create/", CreateService);
+router.post("/create", CreateService);
 router.put("/update/:id", UpdateService);
 router.delete("/delete/:id", DeleteService);
 

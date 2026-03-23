@@ -95,11 +95,11 @@ function AppointmentPage() {
     [weekStart],
   )
   const monthLabel = useMemo(
-    () => new Intl.DateTimeFormat("vi-VN", { month: "long", year: "numeric" }).format(selectedDateObject),
+    () => new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(selectedDateObject),
     [selectedDateObject],
   )
   const todayDate = useMemo(() => startOfDay(new Date()), [])
-  const weekdayLabels = ["CN", "Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7"]
+  const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
   const minLeadStart = useMemo(() => {
     if (!selectedDateObject) return null
     if (!isSameDay(selectedDateObject, new Date())) return null
@@ -124,7 +124,7 @@ function AppointmentPage() {
       prev.includes(serviceId)
         ? prev.filter((id) => id !== serviceId)
         : prev.length >= MAX_SERVICE_PER_APPOINTMENT
-          ? (toast.error(`Tối đa ${MAX_SERVICE_PER_APPOINTMENT} dịch vụ mỗi lần đặt.`), prev)
+          ? (toast.error(`Maximum ${MAX_SERVICE_PER_APPOINTMENT} services per booking.`), prev)
           : [...prev, serviceId],
     )
   }
@@ -135,13 +135,13 @@ function AppointmentPage() {
       try {
         const response = await fetch(`${API_BASE}/services`)
         if (!response.ok) {
-          throw new Error("Không tải được danh sách dịch vụ")
+          throw new Error("Unable to load services")
         }
         const data = await response.json()
         const list = Array.isArray(data) ? data : []
         setServices(list)
       } catch (error) {
-        toast.error(`Không tải được dịch vụ: ${error.message}`)
+        toast.error(`Unable to load services: ${error.message}`)
       } finally {
         setLoadingServices(false)
       }
@@ -156,12 +156,12 @@ function AppointmentPage() {
       try {
         const response = await fetch(`${API_BASE}/staffs`)
         if (!response.ok) {
-          throw new Error("Không tải được danh sách staff")
+          throw new Error("Unable to load staff list")
         }
         const data = await response.json()
         setStaffs(Array.isArray(data) ? data : [])
       } catch (error) {
-        toast.error(`Không tải được staff: ${error.message}`)
+        toast.error(`Unable to load staff: ${error.message}`)
       } finally {
         setLoadingStaffs(false)
       }
@@ -194,7 +194,7 @@ function AppointmentPage() {
         const data = await response.json()
 
         if (!response.ok) {
-          throw new Error(data?.error || data?.message || "Không tải được slot trống")
+          throw new Error(data?.error || data?.message || "Unable to load available slots")
         }
 
         setSlots(data.slots || [])
@@ -211,19 +211,19 @@ function AppointmentPage() {
 
   const handleBook = async () => {
     if (!user) {
-      toast.error("Vui lòng đăng nhập để đặt lịch.")
+      toast.error("Please log in to book an appointment.")
       return
     }
     if (selectedServiceIds.length === 0 || !selectedStaffId || selectedStart === null) {
-      toast.error("Vui lòng chọn đủ dịch vụ, staff và giờ bắt đầu.")
+      toast.error("Please select services, staff, and a start time.")
       return
     }
     if (selectedServiceIds.length > MAX_SERVICE_PER_APPOINTMENT) {
-      toast.error(`Tối đa ${MAX_SERVICE_PER_APPOINTMENT} dịch vụ mỗi lần đặt.`)
+      toast.error(`Maximum ${MAX_SERVICE_PER_APPOINTMENT} services per booking.`)
       return
     }
     if (totalDuration > MAX_TOTAL_DURATION) {
-      toast.error(`Tổng thời lượng phải <= ${MAX_TOTAL_DURATION} phút.`)
+      toast.error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes.`)
       return
     }
     if (checkingLimit) return
@@ -231,7 +231,7 @@ function AppointmentPage() {
     if (!limitOk) return
     const latestAllowed = addDays(startOfDay(new Date()), MAX_DAYS_AHEAD)
     if (toLocalDate(selectedDate) > latestAllowed) {
-      toast.error(`Không được đặt quá ${MAX_DAYS_AHEAD} ngày từ hôm nay.`)
+      toast.error(`You can only book within ${MAX_DAYS_AHEAD} days from today.`)
       return
     }
 
@@ -241,7 +241,7 @@ function AppointmentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerId: user._id || user.id,
-          walkInCustomerName: user.fullName || user.email || "Customer",
+          name: user.fullName || user.email || "Customer",
           staffId: selectedStaffId,
           serviceIds: selectedServiceIds,
           note,
@@ -254,13 +254,13 @@ function AppointmentPage() {
 
       const data = await response.json()
       if (!response.ok) {
-        throw new Error(data?.error || data?.message || "Đặt lịch thất bại")
+        throw new Error(data?.error || data?.message || "Booking failed")
       }
 
       toast.success(
-        `Đặt lịch thành công: ${toMinuteLabel(data.startTime)} - ${toMinuteLabel(
+        `Booked: ${toMinuteLabel(data.startTime)} - ${toMinuteLabel(
           data.endTime,
-        )} (${totalDuration} phút).`,
+        )} (${totalDuration} minutes).`,
       )
 
       const params = new URLSearchParams({
@@ -283,7 +283,7 @@ function AppointmentPage() {
 
   const checkBookingLimit = async () => {
     if (!user) {
-      toast.error("Vui lòng đăng nhập để đặt lịch.")
+      toast.error("Please log in to book an appointment.")
       return false
     }
     setCheckingLimit(true)
@@ -295,12 +295,12 @@ function AppointmentPage() {
         return booking?.paymentStatus === "Unpaid" || booking?.status === "Scheduled"
       }).length
       if (blockedCount >= 2) {
-        toast.error("Bạn đang có 2 lịch chưa thanh toán hoặc đã lên lịch. Không thể đặt thêm.")
+        toast.error("You already have 2 unpaid or scheduled appointments. You cannot book more.")
         return false
       }
       return true
     } catch (error) {
-      toast.error("Không kiểm tra được lịch hiện tại. Vui lòng thử lại.")
+      toast.error("Unable to check your current bookings. Please try again.")
       return false
     } finally {
       setCheckingLimit(false)
@@ -309,7 +309,7 @@ function AppointmentPage() {
 
   const handleGoStep2 = async () => {
     if (totalDuration > MAX_TOTAL_DURATION) {
-      toast.error(`Tổng thời lượng phải <= ${MAX_TOTAL_DURATION} phút.`)
+      toast.error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes.`)
       return
     }
     const limitOk = await checkBookingLimit()
@@ -322,24 +322,24 @@ function AppointmentPage() {
       <div className="appointment-shell">
         <section className="appointment-panel">
           <div className="appointment-header">
-            <h1>Đặt Lịch hẹn</h1>
-            <p>Chọn dịch vụ trước, sau đó chọn barber, ngày và giờ phù hợp.</p>
+            <h1>Book an Appointment</h1>
+            <p>Select services first, then choose a barber, date, and time.</p>
             <p className={user?._id ? "muted" : "login-required"}>
-              {user?._id ? "" : "Bạn cần đăng nhập để đặt lịch."}
+              {user?._id ? "" : "You need to log in to book an appointment."}
             </p>
           </div>
-          <div className="appointment-steps" aria-label="Các bước đặt lịch">
-            <span className={`step-item ${step === 1 ? "active" : ""}`}>Dịch vụ</span>
+          <div className="appointment-steps" aria-label="Booking steps">
+            <span className={`step-item ${step === 1 ? "active" : ""}`}>Services</span>
             <span className="step-sep">›</span>
-            <span className={`step-item ${step === 2 ? "active" : ""}`}>Barber & thời gian</span>
+            <span className={`step-item ${step === 2 ? "active" : ""}`}>Barber & time</span>
             <span className="step-sep">›</span>
-            <span className={`step-item ${step === 3 ? "active" : ""}`}>Xác nhận</span>
+            <span className={`step-item ${step === 3 ? "active" : ""}`}>Confirm</span>
           </div>
 
           {step === 1 ? (
             <div className="appointment-block">
-              <h2>1. Chọn dịch vụ</h2>
-              {loadingServices ? <p className="muted">Đang tải dịch vụ...</p> : null}
+              <h2>1. Select services</h2>
+              {loadingServices ? <p className="muted">Loading services...</p> : null}
               <div className="service-grid">
                 {services.map((service) => {
                   const id = String(service._id)
@@ -353,16 +353,16 @@ function AppointmentPage() {
                     >
                       <div className="service-title">
                         <span>{service.name}</span>
-                        <span className="service-check">{isSelected ? "Đã chọn" : "Chọn"}</span>
+                        <span className="service-check">{isSelected ? "Selected" : "Select"}</span>
                       </div>
-                      <div className="service-meta">{service.duration} phút</div>
+                      <div className="service-meta">{service.duration} min</div>
                       {service.description ? (
                         <div className="service-description line-clamp-2">
                           {service.description}
                         </div>
                       ) : null}
                       <div className="service-price">
-                        {(service.price || 0).toLocaleString("vi-VN")} VND
+                        {(service.price || 0).toLocaleString("en-US")} VND
                       </div>
                     </button>
                   )
@@ -374,19 +374,19 @@ function AppointmentPage() {
           {step === 2 ? (
             <div className="appointment-block">
               <div className="schedule-header">
-                <h2>2. Chọn barber & thời gian</h2>
+                <h2>2. Select barber & time</h2>
 
 
 
                 <button type="button" className="ghost-btn back-btn" onClick={() => setStep(1)}>
-                  Quay lại
+                  Back
                 </button>
               </div>
               <div className="staff-column">
                 <div className="staff-section horizontal">
-                  {loadingStaffs ? <p className="muted">Đang tải barber...</p> : null}
+                  {loadingStaffs ? <p className="muted">Loading barbers...</p> : null}
                   {!loadingStaffs && staffs.length === 0 ? (
-                    <p className="muted">Chưa có barber phù hợp.</p>
+                    <p className="muted">No matching barbers yet.</p>
                   ) : null}
 
                   <div className="staff-grid horizontal" role="list">
@@ -428,22 +428,22 @@ function AppointmentPage() {
                               <div className="staff-speciality">{staffSpeciality}</div>
                             ) : (
                               <div className="staff-speciality muted">
-                                Chưa cập nhật chuyên môn
+                                Specialty not updated
                               </div>
                             )}
                             <div className="staff-meta">
 
                               <span>
                                 {staffRating !== null
-                                  ? `Đánh giá ${staffRating}`
-                                  : "Chưa có đánh giá"}
+                                  ? `Rating ${staffRating}`
+                                  : "No ratings yet"}
                               </span>
                             </div>
                           </div>
 
                           <div className="staff-action">
                             <span className="staff-select">
-                              {isSelected ? "Đã chọn" : "Chọn"}
+                              {isSelected ? "Selected" : "Select"}
                             </span>
                           </div>
                         </button>
@@ -459,7 +459,7 @@ function AppointmentPage() {
                     <button
                       type="button"
                       className="date-nav"
-                      aria-label="Tuần trước"
+                      aria-label="Previous week"
                       onClick={() => setSelectedDate(formatDate(addDays(selectedDateObject, -7)))}
                     >
                       &#8249;
@@ -467,7 +467,7 @@ function AppointmentPage() {
                     <button
                       type="button"
                       className="date-nav"
-                      aria-label="Tuần sau"
+                      aria-label="Next week"
                       onClick={() => setSelectedDate(formatDate(addDays(selectedDateObject, 7)))}
                     >
                       &#8250;
@@ -501,9 +501,9 @@ function AppointmentPage() {
 
               <div className="time-staff-grid">
                 <div className="time-column">
-                  {loadingSlots ? <p className="muted">Đang tải slot...</p> : null}
+                  {loadingSlots ? <p className="muted">Loading slots...</p> : null}
                   {!selectedStaffId ? (
-                    <p className="muted">Chọn barber trước để hiển thị giờ.</p>
+                    <p className="muted">Select a barber to see available times.</p>
                   ) : null}
                   {slots.length === 0 ? null : (
                     (() => {
@@ -517,7 +517,7 @@ function AppointmentPage() {
                       if (!hasAvailable) {
                         return (
                           <p className="muted">
-                            Nhân viên này đã hết slot trong ngày này. Vui lòng chọn ngày khác.
+                            This barber has no available slots for this day. Please choose another date.
                           </p>
                         )
                       }
@@ -546,29 +546,29 @@ function AppointmentPage() {
           {step === 3 ? (
             <div className="appointment-block">
               <div className="review-header">
-                <h2>3. Xem lại và xác nhận</h2>
+                <h2>3. Review & confirm</h2>
                 <button type="button" className="ghost-btn back-btn" onClick={() => setStep(2)}>
-                  Quay lại
+                  Back
                 </button>
               </div>
 
               <div className="review-card">
-                <h3>Chính sách hủy</h3>
+                <h3>Cancellation policy</h3>
                 <p>
-                  Vui lòng hủy ít nhất <strong>6 giờ</strong> trước cuộc hẹn.
+                  Please cancel at least <strong>6 hours</strong> before your appointment.
                 </p>
               </div>
               <div className="review-note">
-                <h3>Nhận xét hoặc yêu cầu</h3>
+                <h3>Notes or requests</h3>
                 <div className="note-input">
                   <input
                     type="text"
-                    placeholder="Bạn có điều gì muốn chúng tôi biết không?"
+                    placeholder="Anything you'd like us to know?"
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
                   />
                   <button type="button" className="ghost-btn add-note">
-                    Thêm
+                    Add
                   </button>
                 </div>
               </div>
@@ -584,17 +584,17 @@ function AppointmentPage() {
         <aside className="appointment-summary">
           <h3>Appointment Summary</h3>
           <div className="summary-section">
-            <span>Dịch vụ đã chọn</span>
+            <span>Selected services</span>
             {selectedServices.length === 0 ? (
-              <p className="muted">Chưa chọn dịch vụ</p>
+              <p className="muted">No services selected</p>
             ) : (
               <ul>
                 {selectedServices.map((service) => (
                   <li key={service._id} className="summary-service">
                     <span>
-                      {service.name} ({service.duration} phút)
+                      {service.name} ({service.duration} min)
                     </span>
-                    <strong>{(service.price || 0).toLocaleString("vi-VN")} VND</strong>
+                    <strong>{(service.price || 0).toLocaleString("en-US")} VND</strong>
                   </li>
                 ))}
               </ul>
@@ -602,28 +602,28 @@ function AppointmentPage() {
           </div>
 
           <div className="summary-section">
-            <span>Tổng thời lượng</span>
-            <strong>{totalDuration} phút</strong>
+            <span>Total duration</span>
+            <strong>{totalDuration} min</strong>
           </div>
           <div className="summary-section">
-            <span>Baber</span>
+            <span>Barber</span>
             <strong>
               {selectedStaffId
                 ? staffs.find((staff) => staff._id === selectedStaffId)?.fullName || selectedStaffId
-                : "Chưa chọn"}
+                : "Not selected"}
             </strong>
           </div>
           <div className="summary-section">
-            <span>Ngày</span>
-            <strong>{selectedDate ? formatDateShort(selectedDate) : "Chưa chọn"}</strong>
+            <span>Date</span>
+            <strong>{selectedDate ? formatDateShort(selectedDate) : "Not selected"}</strong>
           </div>
           <div className="summary-section">
-            <span>Giờ bắt đầu</span>
-            <strong>{selectedStart !== null ? toMinuteLabel(selectedStart) : "Chưa chọn"}</strong>
+            <span>Start time</span>
+            <strong>{selectedStart !== null ? toMinuteLabel(selectedStart) : "Not selected"}</strong>
           </div>
           <div className="summary-section total">
-            <span>Tổng tiền</span>
-            <strong>{totalPrice.toLocaleString("vi-VN")} VND</strong>
+            <span>Total price</span>
+            <strong>{totalPrice.toLocaleString("en-US")} VND</strong>
           </div>
           {step === 3 ? (
             <button
@@ -632,7 +632,7 @@ function AppointmentPage() {
               onClick={handleBook}
               disabled={selectedServiceIds.length === 0 || !selectedStaffId || selectedStart === null}
             >
-              Xác nhận đặt lịch
+              Confirm booking
             </button>
           ) : step === 2 ? (
             <button
@@ -641,7 +641,7 @@ function AppointmentPage() {
               onClick={() => setStep(3)}
               disabled={selectedServiceIds.length === 0 || !selectedStaffId || selectedStart === null}
             >
-              Tiếp tục
+              Continue
             </button>
           ) : (
             <button
@@ -650,7 +650,7 @@ function AppointmentPage() {
               onClick={handleGoStep2}
               disabled={selectedServiceIds.length === 0 || checkingLimit}
             >
-              Tiếp tục
+              Continue
             </button>
           )}
         </aside>

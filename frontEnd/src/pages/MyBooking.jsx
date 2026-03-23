@@ -10,6 +10,7 @@ export default function MyBooking() {
   const [bookings, setBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [rateByAppointment, setRateByAppointment] = useState({});
+  const [commentByAppointment, setCommentByAppointment] = useState({});
   const [submittingRatingId, setSubmittingRatingId] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -23,23 +24,23 @@ export default function MyBooking() {
     if (!value) return "";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat("vi-VN").format(date);
+    return new Intl.DateTimeFormat("en-GB").format(date);
   };
 
   const bookingStatusLabel = useMemo(
     () => ({
-      Scheduled: "Chưa hoàn thành",
-      Pending: "Chờ xác nhận",
-      Completed: "Hoàn thành",
-      Cancelled: "Đã hủy",
+      Scheduled: "Scheduled",
+      Pending: "Pending",
+      Completed: "Completed",
+      Cancelled: "Cancelled",
     }),
     [],
   );
 
   const paymentStatusLabel = useMemo(
     () => ({
-      Paid: "Đã thanh toán",
-      Unpaid: "Chưa thanh toán",
+      Paid: "Paid",
+      Unpaid: "Unpaid",
     }),
     [],
   );
@@ -115,28 +116,31 @@ export default function MyBooking() {
       await axiosInstance.post(`/appointments/${bookingId}/cancel`);
       const response = await axiosInstance.get("/appointments/my");
       setBookings(Array.isArray(response.data) ? response.data : []);
-      toast.success("Đã hủy lịch thành công.");
+      toast.success("Appointment cancelled.");
     } catch (error) {
-      toast.error(error.response?.data?.error || "Không thể hủy lịch.");
+      toast.error(error.response?.data?.error || "Unable to cancel appointment.");
     }
   };
 
   const handleSubmitRating = async (booking, ratingValue) => {
     if (ratingValue < 1 || ratingValue > 5) {
-      toast.error("Vui lòng chọn đánh giá từ 1 đến 5.");
+      toast.error("Please select a rating from 1 to 5.");
       return;
     }
     setSubmittingRatingId(booking._id);
     try {
+      const comment = (commentByAppointment[booking._id] || "").trim();
       await axiosInstance.post(`/rates/staff/${booking.staffId?._id || booking.staffId}`, {
         appointmentId: booking._id,
         rating: ratingValue,
+        comment: comment || undefined,
       });
       const response = await axiosInstance.get(`/rates/appointment/${booking._id}`);
       setRateByAppointment((prev) => ({ ...prev, [booking._id]: response.data }));
-      toast.success("Đã gửi đánh giá.");
+      setCommentByAppointment((prev) => ({ ...prev, [booking._id]: "" }));
+      toast.success("Rating submitted.");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Gửi đánh giá thất bại.");
+      toast.error(error.response?.data?.message || "Failed to submit rating.");
     } finally {
       setSubmittingRatingId(null);
     }
@@ -184,10 +188,10 @@ export default function MyBooking() {
     return (
       <main className="settings-page">
         <div className="settings-card">
-          <h2>Lịch hẹn</h2>
-          <p>Bạn cần đăng nhập để xem lịch hẹn.</p>
+          <h2>Appointments</h2>
+          <p>Please log in to view your appointments.</p>
           <button className="primary-btn" onClick={() => navigate("/login")}>
-            Đăng nhập
+            Log in
           </button>
         </div>
       </main>
@@ -198,21 +202,21 @@ export default function MyBooking() {
     <main className="settings-page">
       <div className="settings-card booking-card">
         <div className="booking-header">
-          <h2>Lịch hẹn</h2>
+          <h2>Appointments</h2>
           <button
             type="button"
             className="ghost-btn"
             onClick={() => setShowHistory((prev) => !prev)}
           >
-            {showHistory ? "Quay lại" : "Lịch sử"}
+            {showHistory ? "Back" : "History"}
           </button>
         </div>
-        {loadingBookings ? <p className="muted">Đang tải lịch đã đặt...</p> : null}
+        {loadingBookings ? <p className="muted">Loading bookings...</p> : null}
         {!loadingBookings && visibleBookings.length === 0 ? (
           <p className="muted">
             {showHistory
-              ? "Chưa có lịch đã hủy hoặc đã hoàn thành."
-              : "Không có lịch đang chờ xử lý."}
+              ? "No cancelled or completed bookings yet."
+              : "No active bookings."}
           </p>
         ) : null}
         <div className="booking-list">
@@ -239,20 +243,40 @@ export default function MyBooking() {
                     <div className="booking-services">{services.join(", ")}</div>
                   ) : null}
                   {totalPrice > 0 ? (
-                    <div className="booking-price">{totalPrice.toLocaleString("vi-VN")} VND</div>
+                    <div className="booking-price">{totalPrice.toLocaleString("en-US")} VND</div>
                   ) : null}
-                  {booking.note ? <div className="booking-note">Ghi chú: {booking.note}</div> : null}
+                  {booking.note ? <div className="booking-note">Note: {booking.note}</div> : null}
                   {canRate(booking) ? (
                     <div className="booking-rating">
                       {rated ? (
-                        <div className="star-row">{renderStars(5, null, rated.rating)}</div>
-                      ) : (
-                        <div className="star-row">
-                          {renderStars(5, (value) => handleSubmitRating(booking, value), 0)}
-                          {submittingRatingId === booking._id ? (
-                            <span className="muted">Đang gửi...</span>
+                        <>
+                          <div className="star-row">{renderStars(5, null, rated.rating)}</div>
+                          {rated.comment ? (
+                            <div className="booking-note">Comment: {rated.comment}</div>
                           ) : null}
-                        </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="star-row">
+                            {renderStars(5, (value) => handleSubmitRating(booking, value), 0)}
+                            {submittingRatingId === booking._id ? (
+                              <span className="muted">Submitting...</span>
+                            ) : null}
+                          </div>
+                          <input
+                            type="text"
+                            className="booking-comment"
+                            placeholder="Comment (optional)"
+                            value={commentByAppointment[booking._id] || ""}
+                            onChange={(e) =>
+                              setCommentByAppointment((prev) => ({
+                                ...prev,
+                                [booking._id]: e.target.value,
+                              }))
+                            }
+                            disabled={submittingRatingId === booking._id}
+                          />
+                        </>
                       )}
                     </div>
                   ) : null}
@@ -270,7 +294,7 @@ export default function MyBooking() {
                       className="booking-cancel"
                       onClick={() => handleCancel(booking._id)}
                     >
-                      Hủy lịch
+                      Cancel
                     </button>
                   ) : null}
                 </div>

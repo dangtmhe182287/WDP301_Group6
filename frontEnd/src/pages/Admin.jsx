@@ -2,85 +2,75 @@ import React from "react";
 import { Link, Routes, Route, Navigate } from "react-router-dom";
 import Stylists from "./Stylists";
 import Services from "./Services";
+import StaffRequests from "./StaffRequests";
+import Analytics from "./Analytics";
+import Members from "./Members";
+import AdminAppointments from "./AdminAppointments";
 import Placeholder from "./Placeholder";
 import AdminSettings from "./AdminSettings";
 
 function DashboardView() {
+  const [stats, setStats] = React.useState({
+    totalCustomers: 0,
+    totalStaff: 0,
+    totalAppointments: 0,
+    pendingAppointments: 0,
+    totalRevenue: 0,
+  });
+
+  React.useEffect(() => {
+    fetch("http://localhost:3000/users/admin/dashboard-stats")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.message) setStats(data);
+      })
+      .catch(console.error);
+  }, []);
+
   return (
     <section className="dashboard">
-      <h2 className="dashboard-title">Bảng tin</h2>
+      <h2 className="dashboard-title">Dashboard</h2>
       <div className="stats">
         <div className="stat-card">
           <div className="stat-icon">👥</div>
           <div>
-            <div className="stat-value">4</div>
-            <div className="stat-label">Thợ cắt</div>
+            <div className="stat-value">{stats.totalCustomers}</div>
+            <div className="stat-label">Customers</div>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon">✂️</div>
           <div>
-            <div className="stat-value">15</div>
-            <div className="stat-label">Dịch vụ</div>
+            <div className="stat-value">{stats.totalStaff}</div>
+            <div className="stat-label">Stylists (Staff)</div>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">👤</div>
+          <div className="stat-icon">⏳</div>
           <div>
-            <div className="stat-value">9</div>
-            <div className="stat-label">Người dùng</div>
+            <div className="stat-value">{stats.pendingAppointments}</div>
+            <div className="stat-label">Pending appointments</div>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">📅</div>
+          <div className="stat-icon">💰</div>
           <div>
-            <div className="stat-value">11</div>
-            <div className="stat-label">Lịch hẹn</div>
+            <div className="stat-value">
+              {stats.totalRevenue ? stats.totalRevenue.toLocaleString("en-US") : "0"} VND
+            </div>
+            <div className="stat-label">Estimated revenue</div>
           </div>
         </div>
       </div>
 
       <div className="table-card">
         <div className="table-card-header">
-          <div className="table-card-title">Lịch hẹn sắp tới</div>
-          <div className="table-card-actions">
-            <button className="btn-secondary">Tất cả lịch hẹn</button>
-            <button className="btn-secondary">Lịch hẹn đã hủy</button>
-          </div>
+          <div className="table-card-title">Detailed Management</div>
         </div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Mã lịch hẹn</th>
-              <th>Thợ cắt</th>
-              <th>Tên khách hàng</th>
-              <th>Số điện thoại</th>
-              <th>Ngày cắt</th>
-              <th>Thời gian bắt đầu</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>
-                <input type="checkbox" />
-              </td>
-              <td>25</td>
-              <td>minhvt</td>
-              <td>thanhnhanshop</td>
-              <td>0364877526</td>
-              <td>2023-08-24</td>
-              <td>13:00:00</td>
-              <td>Sắp tới</td>
-              <td>
-                <button className="btn-icon">i</button>
-                <button className="btn-icon">🗑️</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <p style={{ color: "#64748b", marginTop: "10px" }}>
+          Please switch to the <strong>Appointments</strong> or <strong>Analytics</strong>{" "}
+          tab in the left menu to view and manage details.
+        </p>
       </div>
     </section>
   );
@@ -93,31 +83,34 @@ export default function Admin() {
         <div className="admin-logo">Admin</div>
         <nav className="admin-nav">
           <Link to="/admin" className="admin-nav-item">
-            Bảng tin
+            Dashboard
           </Link>
           <Link to="/admin/staff" className="admin-nav-item">
-            Thợ cắt
+            Stylists
           </Link>
           <Link to="/admin/services" className="admin-nav-item">
-            Dịch vụ
+            Services
+          </Link>
+          <Link to="/admin/staff-requests" className="admin-nav-item">
+            Staff Requests
           </Link>
           <Link to="/admin/appointments" className="admin-nav-item">
-            Lịch hẹn
+            Appointments
           </Link>
           <Link to="/admin/members" className="admin-nav-item">
-            Thành viên
+            Members
           </Link>
           <Link to="/admin/feedback" className="admin-nav-item">
-            Phản hồi
+            Feedback
           </Link>
           <Link to="/admin/gallery" className="admin-nav-item">
-            Thư viện ảnh
+            Gallery
           </Link>
           <Link to="/admin/analytics" className="admin-nav-item">
-            Thống kê
+            Analytics
           </Link>
           <Link to="/admin/settings" className="admin-nav-item">
-            Quản lý website
+            Website Settings
           </Link>
         </nav>
       </aside>
@@ -125,11 +118,20 @@ export default function Admin() {
       <main className="admin-main">
         <header className="admin-header">
           <div className="admin-search">
-            <input type="text" placeholder="Tìm kiếm..." />
+            <input type="text" placeholder="Search..." />
             <button>🔍</button>
           </div>
           <div className="admin-actions">
-            <button className="btn-primary">Xem trang web</button>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                window.location.href = "/login";
+              }}
+            >
+              Log out
+            </button>
             <div className="admin-user">admin</div>
           </div>
         </header>
@@ -138,11 +140,12 @@ export default function Admin() {
           <Route index element={<DashboardView />} />
           <Route path="staff" element={<Stylists />} />
           <Route path="services" element={<Services />} />
-          <Route path="appointments" element={<Placeholder title="Lịch hẹn" />} />
-          <Route path="members" element={<Placeholder title="Thành viên" />} />
-          <Route path="feedback" element={<Placeholder title="Phản hồi" />} />
-          <Route path="gallery" element={<Placeholder title="Thư viện ảnh" />} />
-          <Route path="analytics" element={<Placeholder title="Thống kê" />} />
+          <Route path="staff-requests" element={<StaffRequests />} />
+          <Route path="appointments" element={<AdminAppointments />} />
+          <Route path="members" element={<Members />} />
+          <Route path="feedback" element={<Placeholder title="Feedback" />} />
+          <Route path="gallery" element={<Placeholder title="Gallery" />} />
+          <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="*" element={<Navigate to="." replace />} />
         </Routes>
@@ -158,7 +161,7 @@ export default function Admin() {
 
         .admin-sidebar {
           width: 220px;
-          background: #0b2e5c;
+          background: #0dbacaff;
           color: #fff;
           display: flex;
           flex-direction: column;

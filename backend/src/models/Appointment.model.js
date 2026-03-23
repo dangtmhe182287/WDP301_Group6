@@ -15,13 +15,13 @@ const appointmentSchema = new mongoose.Schema(
       ref: "User",
       default: null
     },
-    walkInCustomerName: {
+    customerName: {
       type: String,
       trim: true,
     },
     staffId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Staff",
+      ref: "User",
       required: true,
     },
     serviceIds: [{
