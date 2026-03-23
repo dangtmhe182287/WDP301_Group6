@@ -11,7 +11,10 @@ import MyBooking from "./pages/MyBooking";
 import Admin from "./pages/Admin";
 import { useAuth } from "./context/AuthContext";
 import { Toaster } from "sonner";
-
+import Schedule from "./pages/Staff/Schedule.jsx";
+import Dashboard from "./pages/Staff/Dashboard.jsx";
+import Appointments from "./pages/Staff/Appointments.jsx";
+import CustomerDetail from "./pages/Staff/CustomerDetail.jsx";
 import "./App.css";
 import "./index.css";
 import { Skeleton } from "./components/ui/skeleton.jsx";
@@ -58,6 +61,10 @@ function Layout() {
         <Route path="/forgot-password" element={<ForgotPassword/>}/>
         <Route path="/reset-password/:token" element={<ResetPassword/>}/>
         <Route path="/" element={<Home/>} />
+        <Route path="/staff/dashboard" element={<Dashboard />} />
+        <Route path="/staff/appointments" element={<Appointments />} />
+        <Route path="/staff/schedule" element={<Schedule />} />
+        <Route path="/staff/customer/:id" element={<CustomerDetail />} />
         <Route path="/appointment" element={<AppointmentPage />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/my-bookings" element={<MyBooking />} />
