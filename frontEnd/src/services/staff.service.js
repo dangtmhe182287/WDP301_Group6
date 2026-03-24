@@ -3,7 +3,7 @@ export const staffService = {
     getAppointments: () => axiosInstance.get("/staffs/appointments"),
 
     updateStatus: (id, status) => 
-        axiosInstance.put(`/staffs/appointments/${id}`, {status}),
+        axiosInstance.patch(`/staffs/appointments/${id}/status`, {status}),
 
     getSchedule: () => axiosInstance.get("/staffs/schedule"),
 
