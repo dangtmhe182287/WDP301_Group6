@@ -7,7 +7,7 @@ export const getAppointments = async (userId) => {
   const staff = await staffRepo.findByUserId(userId);
   if (!staff) throw new Error("Staff not found");
 
-  return appointmentRepo.findByStaff(staff._id);
+  return appointmentRepo.findByStaff(staff.userId);
 };
 
 /* ================= Update Status ================= */
@@ -43,7 +43,7 @@ export const getCustomerDetail = async (customerId) => {
 export const getDashboard = async (userId) => {
   const staff = await staffRepo.findByUserId(userId);
 
-  const stats = await appointmentRepo.countByStatus(staff._id);
+  const stats = await appointmentRepo.countByStatus(staff.userId);
 
   return stats;
 };
