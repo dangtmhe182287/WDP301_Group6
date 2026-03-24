@@ -13,6 +13,7 @@ export default function MyBooking() {
   const [commentByAppointment, setCommentByAppointment] = useState({});
   const [submittingRatingId, setSubmittingRatingId] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState("all");
 
   const formatTime = (minute) => {
     const h = String(Math.floor(minute / 60)).padStart(2, "0");
@@ -170,6 +171,11 @@ export default function MyBooking() {
     booking?.status === "Scheduled" ||
     (booking?.status === "Completed" && booking?.paymentStatus === "Unpaid");
 
+  const isCompletedHistory = (booking) =>
+    booking?.status === "Completed" && booking?.paymentStatus === "Paid";
+
+  const isCancelledHistory = (booking) => booking?.status === "Cancelled";
+
   const getSortedBookings = (list, direction = "desc") =>
     [...list].sort((a, b) => {
       const aTime = getAppointmentStart(a)?.getTime?.() || 0;
@@ -178,11 +184,18 @@ export default function MyBooking() {
     });
 
   const visibleBookings = useMemo(() => {
-    const filtered = showHistory
+    let filtered = showHistory
       ? bookings.filter(isHistoryBooking)
       : bookings.filter(isActiveBooking);
+    if (showHistory) {
+      if (historyFilter === "completed") {
+        filtered = filtered.filter(isCompletedHistory);
+      } else if (historyFilter === "cancelled") {
+        filtered = filtered.filter(isCancelledHistory);
+      }
+    }
     return getSortedBookings(filtered, showHistory ? "desc" : "asc");
-  }, [bookings, showHistory]);
+  }, [bookings, showHistory, historyFilter]);
 
   if (!user) {
     return (
@@ -211,17 +224,42 @@ export default function MyBooking() {
             {showHistory ? "Back" : "History"}
           </button>
         </div>
+        {showHistory ? (
+          <div className="booking-filters">
+            <button
+              type="button"
+              className={`booking-filter-btn${historyFilter === "all" ? " active" : ""}`}
+              onClick={() => setHistoryFilter("all")}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              className={`booking-filter-btn${historyFilter === "completed" ? " active" : ""}`}
+              onClick={() => setHistoryFilter("completed")}
+            >
+              Completed
+            </button>
+            <button
+              type="button"
+              className={`booking-filter-btn${historyFilter === "cancelled" ? " active" : ""}`}
+              onClick={() => setHistoryFilter("cancelled")}
+            >
+              Cancelled
+            </button>
+          </div>
+        ) : null}
         {loadingBookings ? <p className="muted">Loading bookings...</p> : null}
         {!loadingBookings && visibleBookings.length === 0 ? (
           <p className="muted">
             {showHistory
-              ? "No cancelled or completed bookings yet."
+              ? "No booking found."
               : "No active bookings."}
           </p>
         ) : null}
         <div className="booking-list">
           {visibleBookings.map((booking) => {
-            const staffName = booking?.staffId?.fullName || booking?.staffId?.email || "Staff";
+            const staffName = booking?.staffId?.fullName || booking?.staffId?.email || "No staff info";
             const services = Array.isArray(booking.serviceIds)
               ? booking.serviceIds.map((service) => service?.name).filter(Boolean)
               : [];

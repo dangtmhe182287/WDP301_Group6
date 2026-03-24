@@ -182,6 +182,20 @@ export const createAppointment = async (payload) => {
     throw new Error("Selected slot conflicts with existing appointments");
   }
 
+  if (customerId) {
+    const customerAppointments = await Appointment.find({
+      customerId,
+      appointmentDate: { $gte: dayStart, $lt: dayEnd },
+      status: { $nin: ["Cancelled"] },
+    });
+    const customerOverlap = customerAppointments.some((appointment) =>
+      isOverlap(startTime, endTime, appointment.startTime, appointment.endTime)
+    );
+    if (customerOverlap) {
+      throw new Error("You already have an appointment at this time");
+    }
+  }
+
   return Appointment.create({
     customerId,
     customerName,

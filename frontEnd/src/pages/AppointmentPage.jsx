@@ -58,6 +58,8 @@ function AppointmentPage() {
   const [loadingStaffs, setLoadingStaffs] = useState(true)
   const [selectedServiceIds, setSelectedServiceIds] = useState([])
   const [selectedStaffId, setSelectedStaffId] = useState("")
+  const [anyStaffId, setAnyStaffId] = useState("")
+  const [slotStaffMap, setSlotStaffMap] = useState({})
   const [selectedDate, setSelectedDate] = useState(getToday())
   const [slots, setSlots] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
@@ -105,6 +107,20 @@ function AppointmentPage() {
     if (!isSameDay(selectedDateObject, new Date())) return null
     return getCurrentMinuteOfDay() + 60
   }, [selectedDateObject])
+
+  const selectedStaffName = useMemo(() => {
+    if (!selectedStaffId) return "Not selected"
+    if (selectedStaffId === "ANY") {
+      if (anyStaffId) {
+        return (
+          staffs.find((staff) => staff._id === anyStaffId)?.fullName ||
+          "Any staff"
+        )
+      }
+      return "Any staff"
+    }
+    return staffs.find((staff) => staff._id === selectedStaffId)?.fullName || selectedStaffId
+  }, [selectedStaffId, anyStaffId, staffs])
 
   const getStaffInfo = (staff) => staff?.staff || staff || {}
 
@@ -179,35 +195,87 @@ function AppointmentPage() {
 
       setLoadingSlots(true)
       setSelectedStart(null)
+      setAnyStaffId("")
       try {
-        const params = new URLSearchParams({
-          staffId: selectedStaffId,
-          appointmentDate: selectedDate,
-        })
-        if (selectedServiceIds.length === 1) {
-          params.set("serviceId", selectedServiceIds[0])
+        if (selectedStaffId === "ANY") {
+          const staffIds = staffs.map((s) => s._id).filter(Boolean)
+          if (staffIds.length === 0) {
+            setSlots([])
+            setSlotStaffMap({})
+            return
+          }
+
+          const responses = await Promise.all(
+            staffIds.map(async (staffId) => {
+              const params = new URLSearchParams({
+                staffId,
+                appointmentDate: selectedDate,
+              })
+              if (selectedServiceIds.length === 1) {
+                params.set("serviceId", selectedServiceIds[0])
+              } else {
+                params.set("serviceIds", selectedServiceIds.join(","))
+              }
+              const res = await fetch(`${API_BASE}/appointments/availability?${params.toString()}`)
+              const data = await res.json()
+              if (!res.ok) {
+                throw new Error(data?.error || data?.message || "Unable to load available slots")
+              }
+              return { staffId, slots: data.slots || [] }
+            }),
+          )
+
+          const baseSlots = responses[0]?.slots || []
+          const combined = baseSlots.map((slot) => {
+            let available = false
+            let staffId = null
+            for (const entry of responses) {
+              const match = entry.slots.find((s) => s.startMinute === slot.startMinute)
+              if (match?.available) {
+                available = true
+                staffId = entry.staffId
+                break
+              }
+            }
+            return { ...slot, available, staffId }
+          })
+
+          setSlots(combined)
+          setSlotStaffMap(
+            Object.fromEntries(combined.map((s) => [s.startMinute, s.staffId])),
+          )
         } else {
-          params.set("serviceIds", selectedServiceIds.join(","))
+          const params = new URLSearchParams({
+            staffId: selectedStaffId,
+            appointmentDate: selectedDate,
+          })
+          if (selectedServiceIds.length === 1) {
+            params.set("serviceId", selectedServiceIds[0])
+          } else {
+            params.set("serviceIds", selectedServiceIds.join(","))
+          }
+
+          const response = await fetch(`${API_BASE}/appointments/availability?${params.toString()}`)
+          const data = await response.json()
+
+          if (!response.ok) {
+            throw new Error(data?.error || data?.message || "Unable to load available slots")
+          }
+
+          setSlots(data.slots || [])
+          setSlotStaffMap({})
         }
-
-        const response = await fetch(`${API_BASE}/appointments/availability?${params.toString()}`)
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data?.error || data?.message || "Unable to load available slots")
-        }
-
-        setSlots(data.slots || [])
       } catch (error) {
         toast.error(error.message)
         setSlots([])
+        setSlotStaffMap({})
       } finally {
         setLoadingSlots(false)
       }
     }
 
     loadAvailability()
-  }, [selectedDate, selectedServiceIds, selectedStaffId, step])
+  }, [selectedDate, selectedServiceIds, selectedStaffId, step, staffs])
 
   const handleBook = async () => {
     if (!user) {
@@ -216,6 +284,10 @@ function AppointmentPage() {
     }
     if (selectedServiceIds.length === 0 || !selectedStaffId || selectedStart === null) {
       toast.error("Please select services, staff, and a start time.")
+      return
+    }
+    if (selectedStaffId === "ANY" && !anyStaffId) {
+      toast.error("Please pick a time slot to assign a staff member.")
       return
     }
     if (selectedServiceIds.length > MAX_SERVICE_PER_APPOINTMENT) {
@@ -242,7 +314,7 @@ function AppointmentPage() {
         body: JSON.stringify({
           customerId: user._id || user.id,
           name: user.fullName || user.email || "Customer",
-          staffId: selectedStaffId,
+          staffId: selectedStaffId === "ANY" ? anyStaffId : selectedStaffId,
           serviceIds: selectedServiceIds,
           note,
           bookingChannel: "online",
@@ -289,7 +361,12 @@ function AppointmentPage() {
     setCheckingLimit(true)
     try {
       const response = await axiosInstance.get("/appointments/my")
-      const list = Array.isArray(response.data) ? response.data : []
+      if (response.status === 204) return true
+      const list = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.appointments)
+          ? response.data.appointments
+          : []
       const blockedCount = list.filter((booking) => {
         if (booking?.status === "Cancelled") return false
         return booking?.paymentStatus === "Unpaid" || booking?.status === "Scheduled"
@@ -300,7 +377,10 @@ function AppointmentPage() {
       }
       return true
     } catch (error) {
-      toast.error("Unable to check your current bookings. Please try again.")
+      if (error.response?.status === 404 || error.response?.status === 204) {
+        return true
+      }
+      toast.error("Unable to check your current booking. Please try again.")
       return false
     } finally {
       setCheckingLimit(false)
@@ -389,7 +469,29 @@ function AppointmentPage() {
                     <p className="muted">No matching barbers yet.</p>
                   ) : null}
 
-                  <div className="staff-grid horizontal" role="list">
+                <div className="staff-grid horizontal" role="list">
+                  <button
+                    type="button"
+                    className={`staff-card ${selectedStaffId === "ANY" ? "selected" : ""}`}
+                    onClick={() => setSelectedStaffId("ANY")}
+                    role="listitem"
+                  >
+                    <div className="staff-avatar">
+                      <span className="staff-initials">★</span>
+                    </div>
+                    <div className="staff-info">
+                      <div className="staff-name">Any staff</div>
+                      <div className="staff-speciality muted">We will assign the first available</div>
+                      <div className="staff-meta">
+                        <span>Auto selection</span>
+                      </div>
+                    </div>
+                    <div className="staff-action">
+                      <span className="staff-select">
+                        {selectedStaffId === "ANY" ? "Selected" : "Select"}
+                      </span>
+                    </div>
+                  </button>
                     {staffs.map((staff) => {
                       const staffInfo = getStaffInfo(staff)
                       const staffName = getStaffDisplay(staff)
@@ -435,7 +537,7 @@ function AppointmentPage() {
 
                               <span>
                                 {staffRating !== null
-                                  ? `Rating ${staffRating}`
+                                  ? `Rating ${staffRating}⭐`
                                   : "No ratings yet"}
                               </span>
                             </div>
@@ -529,7 +631,12 @@ function AppointmentPage() {
                               type="button"
                               disabled={isDisabled}
                               className={`slot-btn ${selectedStart === slot.startMinute ? "selected" : ""}`}
-                              onClick={() => setSelectedStart(slot.startMinute)}
+                              onClick={() => {
+                                setSelectedStart(slot.startMinute)
+                                if (selectedStaffId === "ANY") {
+                                  setAnyStaffId(slot.staffId || "")
+                                }
+                              }}
                             >
                               {toMinuteLabel(slot.startMinute)}
                             </button>
@@ -607,11 +714,7 @@ function AppointmentPage() {
           </div>
           <div className="summary-section">
             <span>Barber</span>
-            <strong>
-              {selectedStaffId
-                ? staffs.find((staff) => staff._id === selectedStaffId)?.fullName || selectedStaffId
-                : "Not selected"}
-            </strong>
+            <strong>{selectedStaffName}</strong>
           </div>
           <div className="summary-section">
             <span>Date</span>
