@@ -949,6 +949,29 @@ body {
   gap: 12px;
 }
 
+.booking-filters {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 16px;
+  flex-wrap: wrap;
+}
+
+.booking-filter-btn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.booking-filter-btn.active {
+  background: #22d3c5;
+  border-color: #22d3c5;
+  color: #fff;
+}
+
 .booking-list {
   display: grid;
   gap: 14px;

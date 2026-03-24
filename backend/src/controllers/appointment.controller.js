@@ -1,6 +1,5 @@
-import * as appointmentService from "../services/appointment.service.js";
 import Appointment from "../models/Appointment.model.js";
-
+import * as appointmentService from "../services/appointment.service.js";
 // Controller tạo lịch hẹn: validate/business rules nằm ở service layer.
 export const CreateAppointment = async (req, res) => {
   try {
@@ -26,7 +25,8 @@ export const GetMyAppointments = async (req, res) => {
     const customerId = req.user?.id; 
     console.log("Customer ID from token:", customerId);
     const data = await appointmentService.getAppointmentsByCustomer(customerId);
-    res.status(200).json(data);
+    console.log("Appointments found:", data);
+    res.status(200).json(data || []);
   } catch (error) {
     res.status(400).json({ message: "Get appointments error", error: error.message });
   }

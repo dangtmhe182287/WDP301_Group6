@@ -30,7 +30,7 @@ export default function Stylists() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.message || "Unable to load stylists");
+        throw new Error(data?.message || "Unable to load staff");
       }
 
       const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
@@ -85,7 +85,7 @@ export default function Stylists() {
   };
 
   const handleDelete = async (staffId) => {
-    if (!confirm("Are you sure you want to delete this stylist?")) return;
+    if (!confirm("Are you sure you want to delete this staff?")) return;
 
     try {
       const response = await fetch(`${API_BASE}/staffs/${staffId}`, {
@@ -94,7 +94,7 @@ export default function Stylists() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data?.message || "Failed to delete stylist");
+        throw new Error(data?.message || "Failed to delete staff");
       }
 
       await loadStaffs();
@@ -111,7 +111,7 @@ export default function Stylists() {
 
     try {
       const method = editingStaff ? "PUT" : "POST";
-      const url = editingStaff ? `${API_BASE}/staffs/${editingStaff._id}` : `${API_BASE}/staffs`;
+      const url = editingStaff ? `${API_BASE}/staffs/${editingStaff.staff?._id || editingStaff._id}` : `${API_BASE}/staffs`;
 
       console.log("Making request:", method, url);
 
@@ -131,7 +131,7 @@ export default function Stylists() {
         throw new Error(data?.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      alert(editingStaff ? "Updated successfully!" : "Stylist created successfully!");
+      alert(editingStaff ? "Updated successfully!" : "Staff created successfully!");
       setShowModal(false);
       await loadStaffs();
     } catch (err) {
@@ -161,10 +161,10 @@ export default function Stylists() {
   return (
     <main className="stylists-page">
       <div className="page-header">
-        <h1>Stylists</h1>
+        <h1>Staff</h1>
         <div>
           <button className="add-btn" onClick={handleCreate}>
-            Add stylist
+            Add staff
           </button>
         </div>
       </div>
@@ -174,7 +174,7 @@ export default function Stylists() {
       ) : error ? (
         <p className="error">{error}</p>
       ) : staffs.length === 0 ? (
-        <p>No stylists available.</p>
+        <p>No staff available.</p>
       ) : (
         <div className="staff-table-wrapper">
           <table className="staff-table">
@@ -239,7 +239,7 @@ export default function Stylists() {
                       <button className="edit-btn" onClick={() => handleEdit(staff)}>
                         Edit
                       </button>
-                      <button className="delete-btn" onClick={() => handleDelete(staff._id)}>
+                      <button className="delete-btn" onClick={() => handleDelete(staff.staff?._id || staff._id)}>
                         Delete
                       </button>
                     </td>
@@ -254,7 +254,7 @@ export default function Stylists() {
       {showModal && (
         <div className="modal-overlay">
           <div className="modal">
-            <h2>{editingStaff ? "Edit stylist" : "Add stylist"}</h2>
+            <h2>{editingStaff ? "Edit staff" : "Add staff"}</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>Full name:</label>

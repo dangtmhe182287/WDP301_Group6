@@ -1,5 +1,6 @@
 import * as serviceService from "../services/services.service.js";
 import Appointment from "../models/Appointment.model.js";
+import Rate from "../models/Rate.model.js";
 
 export const GetAllServices = async (req, res) => {
     try{
@@ -104,5 +105,57 @@ export const GetServiceBookingStats = async (req, res) => {
         res.status(200).json(stats);
     } catch (error) {
         res.status(400).json({ message: "Get service stats error!", error: error.message });
+    }
+};
+
+export const GetServiceFeedbacks = async (req, res) => {
+    try {
+        const rates = await Rate.find().populate({
+            path: "appointmentId",
+            populate: [
+                { path: "customerId", select: "fullName phone" },
+                { path: "staffId", select: "fullName" },
+                { path: "serviceIds", select: "name" }
+            ]
+        }).sort({ createdAt: -1 }).lean();
+
+        const serviceFeedbacks = [];
+
+        rates.forEach(rate => {
+            const app = rate.appointmentId;
+            if (!app) return;
+            
+            const services = Array.isArray(app.serviceIds) ? app.serviceIds : [];
+            if (services.length === 0) {
+                 serviceFeedbacks.push({
+                     _id: rate._id,
+                     rating: rate.rating,
+                     comment: rate.comment,
+                     createdAt: rate.createdAt,
+                     serviceName: "N/A",
+                     customerName: app.customerId?.fullName || app.customerName || "Anonymous",
+                     customerPhone: app.customerId?.phone || "",
+                     staffName: app.staffId?.fullName || "Unknown",
+                 });
+            } else {
+                 services.forEach(service => {
+                     serviceFeedbacks.push({
+                         _id: `${rate._id}-${service._id}`,
+                         rateId: rate._id,
+                         rating: rate.rating,
+                         comment: rate.comment,
+                         createdAt: rate.createdAt,
+                         serviceName: service.name,
+                         customerName: app.customerId?.fullName || app.customerName || "Anonymous",
+                         customerPhone: app.customerId?.phone || "",
+                         staffName: app.staffId?.fullName || "Unknown",
+                     });
+                 });
+            }
+        });
+
+        res.status(200).json(serviceFeedbacks);
+    } catch (error) {
+        res.status(400).json({ message: "Get service feedbacks error", error: error.message });
     }
 };

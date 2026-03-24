@@ -1,293 +1,321 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
-import axiosInstance from "../utils/axiosInstance";
-import anonymousAvatar from "../assets/anomyous.jpg";
-import { toast } from "sonner";
+  import { useEffect, useState } from "react";
+  import { useAuth } from "../context/AuthContext";
+  import axiosInstance from "../utils/axiosInstance";
+  import anonymousAvatar from "../assets/anomyous.jpg";
+  import { toast } from "sonner";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input as ShadInput } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+  import { Input as ShadInput } from "@/components/ui/input";
+  import { Button } from "@/components/ui/button";
+  import { Textarea } from "@/components/ui/textarea";
 
-export default function Settings() {
-  const { user, updateUser } = useAuth();
+  export default function Settings() {
+    const { user, updateUser } = useAuth();
 
   const [form, setForm] = useState({
     fullName: "",
     phone: "",
     password: "",
-    imgUrl: "",
   });
 
   const [avatarPreview, setAvatarPreview] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showRequest, setShowRequest] = useState(false);
 
-  const [staffForm, setStaffForm] = useState({
-    speciality: "",
-    certificateName: "",
-    organization: "",
-    certificateId: "",
-    portfolio: "",
-  });
+    const [staffForm, setStaffForm] = useState({
+      speciality: "",
+      certificateName: "",
+      organization: "",
+      certificateId: "",
+      portfolio: "",
+    });
 
-  const [requestLoading, setRequestLoading] = useState(false);
+    const [requestLoading, setRequestLoading] = useState(false);
 
-  const API_BASE = import.meta.env.VITE_SERVER_API || "http://localhost:3000";
+    const API_BASE = import.meta.env.VITE_SERVER_API || "http://localhost:3000";
 
-  const resolveAvatar = (value) => {
-    if (!value) return anonymousAvatar;
-    if (value.startsWith("http")) return value;
-    return `${API_BASE}${value}`;
-  };
+    const resolveAvatar = (value) => {
+      if (!value) return anonymousAvatar;
+      if (value.startsWith("http")) return value;
+      return `${API_BASE}${value}`;
+    };
 
-  useEffect(() => {
+    useEffect(() => {
     if (user) {
       setForm({
         fullName: user.fullName || "",
         phone: user.phone || "",
         password: "",
-        imgUrl: user.imgUrl || "",
       });
       setAvatarPreview(resolveAvatar(user.imgUrl));
     }
   }, [user]);
 
-  const handleChange = (field) => (event) => {
-    setForm((prev) => ({
-      ...prev,
-      [field]: event.target.value,
-    }));
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    const payload = {
-      fullName: form.fullName,
-      phone: form.phone,
+    const handleChange = (field) => (event) => {
+      setForm((prev) => ({
+        ...prev,
+        [field]: event.target.value,
+      }));
     };
 
+    const handleSubmit = async (event) => {
+      event.preventDefault();
+
+      const payload = {
+        fullName: form.fullName,
+        phone: form.phone,
+      };
+
     if (form.password) payload.password = form.password;
-    if (form.imgUrl) payload.imgUrl = form.imgUrl;
 
     try {
       const res = await axiosInstance.put("/users/me", payload);
       updateUser(res.data.user);
       setAvatarPreview(resolveAvatar(res.data.user?.imgUrl));
-      toast.success("Profile updated ");
-      setIsEditing(false);
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Update failed ");
+        toast.success("Profile updated ");
+        setIsEditing(false);
+      } catch (err) {
+        toast.error(err.response?.data?.message || "Update failed ");
     }
   };
 
-  // ✅ VALIDATE
-  const validateForm = () => {
-    if (!staffForm.speciality) return "Speciality is required";
-    if (!staffForm.certificateName) return "Certificate name is required";
-    if (!staffForm.organization) return "Organization is required";
-    if (!staffForm.certificateId) return "Certificate ID is required";
-    if (!staffForm.portfolio) return "Portfolio is required";
-    return null;
-  };
+  const handleAvatarUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  // ✅ DISABLE BUTTON
-  const isInvalid =
-    !staffForm.speciality ||
-    !staffForm.certificateName ||
-    !staffForm.organization ||
-    !staffForm.certificateId ||
-    !staffForm.portfolio;
-
-  // ✅ HANDLE REQUEST
-  const handleSubmitRequest = async () => {
-    const error = validateForm();
-    if (error) return toast.error(error);
+    const formData = new FormData();
+    formData.append("avatar", file);
 
     try {
-      setRequestLoading(true);
-
-      await axiosInstance.post("/staff-request/applyStaffRequest", {
-        speciality: [staffForm.speciality],
-        certificate: {
-          name: staffForm.certificateName,
-          organization: staffForm.organization,
-          certificateId: staffForm.certificateId,
-          image: "",
-        },
-        portfolio: staffForm.portfolio,
+      setAvatarUploading(true);
+      const res = await axiosInstance.post("/users/me/avatar", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
-
-      toast.success("Request sent successfully ");
-
-      // reset form
-      setStaffForm({
-        speciality: "",
-        certificateName: "",
-        organization: "",
-        certificateId: "",
-        portfolio: "",
-      });
-
-      setShowRequest(false);
+      updateUser(res.data.user);
+      setAvatarPreview(resolveAvatar(res.data.user?.imgUrl));
+      toast.success("Avatar updated");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Send failed ");
+      toast.error(err.response?.data?.message || "Avatar upload failed");
     } finally {
-      setRequestLoading(false);
+      setAvatarUploading(false);
+      event.target.value = "";
     }
   };
 
-  if (!user) return <div className="p-6">Please login</div>;
+    // ✅ VALIDATE
+    const validateForm = () => {
+      if (!staffForm.speciality) return "Speciality is required";
+      if (!staffForm.certificateName) return "Certificate name is required";
+      if (!staffForm.organization) return "Organization is required";
+      if (!staffForm.certificateId) return "Certificate ID is required";
+      if (!staffForm.portfolio) return "Portfolio is required";
+      return null;
+    };
 
-  return (
-    <main className="min-h-[80vh] flex justify-center py-10">
-      <div className="w-full max-w-3xl space-y-6 px-4">
+    // ✅ DISABLE BUTTON
+    const isInvalid =
+      !staffForm.speciality ||
+      !staffForm.certificateName ||
+      !staffForm.organization ||
+      !staffForm.certificateId ||
+      !staffForm.portfolio;
 
-        {/* PROFILE */}
-        <Card className="rounded-2xl shadow-md">
-          <CardHeader>
-            <CardTitle>Profile</CardTitle>
-          </CardHeader>
+    // ✅ HANDLE REQUEST
+    const handleSubmitRequest = async () => {
+      const error = validateForm();
+      if (error) return toast.error(error);
 
-          <CardContent className="space-y-4">
-            <img
-              src={avatarPreview}
-              className="w-16 h-16 rounded-full object-cover"
-            />
+      try {
+        setRequestLoading(true);
 
-            <ShadInput
-              value={form.fullName}
-              onChange={handleChange("fullName")}
-              disabled={!isEditing}
-              placeholder="Full name"
-            />
+        await axiosInstance.post("/staff-request/applyStaffRequest", {
+          speciality: [staffForm.speciality],
+          certificate: {
+            name: staffForm.certificateName,
+            organization: staffForm.organization,
+            certificateId: staffForm.certificateId,
+            image: "",
+          },
+          portfolio: staffForm.portfolio,
+        });
 
-            <ShadInput
-              value={form.phone}
-              onChange={handleChange("phone")}
-              disabled={!isEditing}
-              placeholder="Phone"
-            />
+        toast.success("Request sent successfully ");
 
-            {isEditing && (
-              <>
-                <ShadInput
-                  value={form.imgUrl}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setForm((p) => ({ ...p, imgUrl: val }));
-                    setAvatarPreview(resolveAvatar(val));
-                  }}
-                  placeholder="Avatar URL"
-                />
+        // reset form
+        setStaffForm({
+          speciality: "",
+          certificateName: "",
+          organization: "",
+          certificateId: "",
+          portfolio: "",
+        });
 
-                <ShadInput
-                  type="password"
-                  value={form.password}
-                  onChange={handleChange("password")}
-                  placeholder="New password"
-                />
-              </>
-            )}
+        setShowRequest(false);
+      } catch (err) {
+        toast.error(err.response?.data?.message || "Send failed ");
+      } finally {
+        setRequestLoading(false);
+      }
+    };
 
-            <div className="flex gap-2">
-              {isEditing ? (
-                <>
-                  <Button onClick={handleSubmit}>Save</Button>
-                  <Button variant="outline" onClick={() => setIsEditing(false)}>
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => setIsEditing(true)}>
-                  Edit profile
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+    if (!user) return <div className="p-6">Please login</div>;
 
-        {/* STAFF REQUEST */}
-        {user.role === "customer" && (
+    return (
+      <main className="min-h-[80vh] flex justify-center py-10">
+        <div className="w-full max-w-3xl space-y-6 px-4">
+
+          {/* PROFILE */}
           <Card className="rounded-2xl shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Become Staff</CardTitle>
-
-              <Button
-                variant={showRequest ? "outline" : "default"}
-                onClick={() => setShowRequest(!showRequest)}
-              >
-                {showRequest ? "Close" : "Apply"}
-              </Button>
+            <CardHeader>
+              <CardTitle>Profile</CardTitle>
             </CardHeader>
 
-            {showRequest && (
-              <CardContent className="space-y-3">
-                <ShadInput
-                  placeholder="Speciality"
-                  value={staffForm.speciality}
-                  onChange={(e) =>
-                    setStaffForm((p) => ({ ...p, speciality: e.target.value }))
-                  }
-                />
+            <CardContent className="space-y-4">
+              <img
+                src={avatarPreview}
+                className="w-16 h-16 rounded-full object-cover"
+              />
 
-                <ShadInput
-                  placeholder="Certificate name"
-                  value={staffForm.certificateName}
-                  onChange={(e) =>
-                    setStaffForm((p) => ({
-                      ...p,
-                      certificateName: e.target.value,
-                    }))
-                  }
-                />
+              <ShadInput
+                value={form.fullName}
+                onChange={handleChange("fullName")}
+                disabled={!isEditing}
+                placeholder="Full name"
+              />
 
-                <ShadInput
-                  placeholder="Organization"
-                  value={staffForm.organization}
-                  onChange={(e) =>
-                    setStaffForm((p) => ({
-                      ...p,
-                      organization: e.target.value,
-                    }))
-                  }
-                />
+              <ShadInput
+                value={form.phone}
+                onChange={handleChange("phone")}
+                disabled={!isEditing}
+                placeholder="Phone"
+              />
 
-                <ShadInput
-                  placeholder="Certificate ID"
-                  value={staffForm.certificateId}
-                  onChange={(e) =>
-                    setStaffForm((p) => ({
-                      ...p,
-                      certificateId: e.target.value,
-                    }))
-                  }
-                />
+              {isEditing && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Avatar image</label>
+                    <ShadInput
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      disabled={avatarUploading}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Upload a new avatar image (JPG/PNG).
+                    </p>
+                  </div>
 
-                <Textarea
-                  placeholder="Portfolio"
-                  value={staffForm.portfolio}
-                  onChange={(e) =>
-                    setStaffForm((p) => ({
-                      ...p,
-                      portfolio: e.target.value,
-                    }))
-                  }
-                />
+                  <ShadInput
+                    type="password"
+                    value={form.password}
+                    onChange={handleChange("password")}
+                    placeholder="New password"
+                    autoComplete="new-password"
+                    name="new-password"
+                  />
+                </>
+              )}
+
+              <div className="flex gap-2">
+                {isEditing ? (
+                  <>
+                    <Button onClick={handleSubmit} disabled={avatarUploading}>
+                      Save
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsEditing(false)}>
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={() => setIsEditing(true)}>
+                    Edit profile
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* STAFF REQUEST */}
+          {user.role === "customer" && (
+            <Card className="rounded-2xl shadow-md">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Become Staff</CardTitle>
 
                 <Button
-                  className="w-full"
-                  disabled={requestLoading || isInvalid}
-                  onClick={handleSubmitRequest}
+                  variant={showRequest ? "outline" : "default"}
+                  onClick={() => setShowRequest(!showRequest)}
                 >
-                  {requestLoading ? "Sending..." : "Send Request"}
+                  {showRequest ? "Close" : "Apply"}
                 </Button>
-              </CardContent>
-            )}
-          </Card>
-        )}
-      </div>
-    </main>
-  );
-}
+              </CardHeader>
+
+              {showRequest && (
+                <CardContent className="space-y-3">
+                  <ShadInput
+                    placeholder="Speciality"
+                    value={staffForm.speciality}
+                    onChange={(e) =>
+                      setStaffForm((p) => ({ ...p, speciality: e.target.value }))
+                    }
+                  />
+
+                  <ShadInput
+                    placeholder="Certificate name"
+                    value={staffForm.certificateName}
+                    onChange={(e) =>
+                      setStaffForm((p) => ({
+                        ...p,
+                        certificateName: e.target.value,
+                      }))
+                    }
+                  />
+
+                  <ShadInput
+                    placeholder="Organization"
+                    value={staffForm.organization}
+                    onChange={(e) =>
+                      setStaffForm((p) => ({
+                        ...p,
+                        organization: e.target.value,
+                      }))
+                    }
+                  />
+
+                  <ShadInput
+                    placeholder="Certificate ID"
+                    value={staffForm.certificateId}
+                    onChange={(e) =>
+                      setStaffForm((p) => ({
+                        ...p,
+                        certificateId: e.target.value,
+                      }))
+                    }
+                  />
+
+                  <Textarea
+                    placeholder="Portfolio"
+                    value={staffForm.portfolio}
+                    onChange={(e) =>
+                      setStaffForm((p) => ({
+                        ...p,
+                        portfolio: e.target.value,
+                      }))
+                    }
+                  />
+
+                  <Button
+                    className="w-full"
+                    disabled={requestLoading || isInvalid}
+                    onClick={handleSubmitRequest}
+                  >
+                    {requestLoading ? "Sending..." : "Send Request"}
+                  </Button>
+                </CardContent>
+              )}
+            </Card>
+          )}
+        </div>
+      </main>
+    );
+  }
