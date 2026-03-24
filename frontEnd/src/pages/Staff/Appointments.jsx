@@ -30,6 +30,11 @@ export default function Appointments() {
     fetchData();
   };
 
+  const confirmPayment = async (id) => {
+    await staffService.confirmPayment(id);
+    fetchData();
+  };
+
   const filters = ["All", "Pending", "Scheduled", "Completed", "Cancelled"];
 
   const filtered =
@@ -76,6 +81,7 @@ export default function Appointments() {
                 <TableHead>Customer</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Payment</TableHead>
                 <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -110,27 +116,42 @@ export default function Appointments() {
                       </Badge>
                     </TableCell>
 
-                    <TableCell className="space-x-2">
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          updateStatus(a._id, "Completed")
-                        }
-                        disabled={a.status === "Completed"}
-                      >
-                        Complete
-                      </Button>
+                    <TableCell>
+                      <Badge variant={a.paymentStatus === "Paid" ? "default" : "secondary"}>
+                        {a.paymentStatus || "Unpaid"}
+                      </Badge>
+                    </TableCell>
 
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() =>
-                          updateStatus(a._id, "Cancelled")
-                        }
-                        disabled={a.status === "Cancelled"}
-                      >
-                        Cancel
-                      </Button>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => updateStatus(a._id, "Completed")}
+                          disabled={a.status === "Completed"}
+                        >
+                          Complete
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => confirmPayment(a._id)}
+                          disabled={a.paymentStatus === "Paid" || a.status !== "Completed"}
+                        >
+                          Mark as Paid
+                        </Button>
+
+                        <div className="w-px h-5 bg-border mx-1" />
+
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => updateStatus(a._id, "Cancelled")}
+                          disabled={a.status === "Cancelled"}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

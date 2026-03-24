@@ -3,19 +3,21 @@ import * as staffController from "../controllers/staff.controller.js";
 
 const router = express.Router();
 
-
 router.get("/", staffController.getStaffs);
 router.post("/", staffController.createStaff);
 router.delete("/:id", staffController.deleteStaff);
+
 // appointments
 router.get("/appointments", staffController.getAppointments);
 router.patch("/appointments/:id/status", staffController.updateStatus);
+router.patch("/appointments/:id/payment", staffController.confirmPayment);
 
 // schedule
 router.get("/schedule", staffController.getSchedule);
 router.put("/schedule", staffController.updateSchedule);
 
 router.put("/:id", staffController.updateStaff);
+
 // customer
 router.get("/customer/:id", staffController.getCustomer);
 

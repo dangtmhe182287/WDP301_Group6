@@ -32,3 +32,11 @@ export const countByStatus = (staffId) => {
     }
   ]);
 };
+
+export const confirmPayment = (id) => {
+  return Appointment.findByIdAndUpdate(
+    id,
+    { paymentStatus: "Paid" },
+    { new: true }
+  );
+};
