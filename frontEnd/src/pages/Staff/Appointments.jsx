@@ -2,15 +2,23 @@ import { useEffect, useState } from "react";
 import { staffService } from "@/services/staff.service";
 import { Button } from "@/components/ui/button";
 import {
-  Table, TableHeader, TableRow, TableHead, TableBody, TableCell
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
 } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default function Appointments() {
   const [appointments, setAppointments] = useState([]);
+  const [filter, setFilter] = useState("All");
 
   const fetchData = async () => {
     const res = await staffService.getAppointments();
-    setAppointments(res.data);
+    setAppointments(res.data || []);
   };
 
   useEffect(() => {
@@ -22,51 +30,115 @@ export default function Appointments() {
     fetchData();
   };
 
+  const filters = ["All", "Pending", "Scheduled", "Completed", "Cancelled"];
+
+  const filtered =
+    filter === "All"
+      ? appointments
+      : appointments.filter((a) => a.status === filter);
+
+  const getBadgeVariant = (status) => {
+    switch (status) {
+      case "Completed":
+        return "default";
+      case "Cancelled":
+        return "destructive";
+      case "Pending":
+        return "secondary";
+      default:
+        return "outline";
+    }
+  };
+
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-semibold mb-4">Appointments</h1>
+    <div className="space-y-4">
+      <h1 className="text-xl font-semibold">Appointments</h1>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Customer</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Action</TableHead>
-          </TableRow>
-        </TableHeader>
+      {/* Filter */}
+      <div className="flex gap-2 flex-wrap">
+        {filters.map((f) => (
+          <Button
+            key={f}
+            size="sm"
+            variant={filter === f ? "default" : "outline"}
+            onClick={() => setFilter(f)}
+          >
+            {f}
+          </Button>
+        ))}
+      </div>
 
-        <TableBody>
-          {appointments.map((a) => (
-            <TableRow key={a._id}>
-              <TableCell>
-                {a.customerId?.fullName || a.walkInCustomerName}
-              </TableCell>
-              <TableCell>
-                {new Date(a.appointmentDate).toLocaleDateString()}
-              </TableCell>
-              <TableCell>{a.status}</TableCell>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Action</TableHead>
+              </TableRow>
+            </TableHeader>
 
-              <TableCell className="space-x-2">
-                <Button
-                  size="sm"
-                  onClick={() => updateStatus(a._id, "Completed")}
-                >
-                  Complete
-                </Button>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-6">
+                    No appointments
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((a) => (
+                  <TableRow key={a._id}>
+                    <TableCell>
+                      <div className="font-medium">
+                        {a.customerId?.fullName ||
+                          a.walkInCustomerName}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {a.customerId?.phone}
+                      </div>
+                    </TableCell>
 
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => updateStatus(a._id, "Cancelled")}
-                >
-                  Cancel
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                    <TableCell>
+                      {new Date(a.appointmentDate).toLocaleDateString()}
+                    </TableCell>
+
+                    <TableCell>
+                      <Badge variant={getBadgeVariant(a.status)}>
+                        {a.status}
+                      </Badge>
+                    </TableCell>
+
+                    <TableCell className="space-x-2">
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          updateStatus(a._id, "Completed")
+                        }
+                        disabled={a.status === "Completed"}
+                      >
+                        Complete
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() =>
+                          updateStatus(a._id, "Cancelled")
+                        }
+                        disabled={a.status === "Cancelled"}
+                      >
+                        Cancel
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

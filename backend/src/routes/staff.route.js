@@ -6,7 +6,6 @@ const router = express.Router();
 
 router.get("/", staffController.getStaffs);
 router.post("/", staffController.createStaff);
-router.put("/:id", staffController.updateStaff);
 router.delete("/:id", staffController.deleteStaff);
 // appointments
 router.get("/appointments", staffController.getAppointments);
@@ -16,6 +15,7 @@ router.patch("/appointments/:id/status", staffController.updateStatus);
 router.get("/schedule", staffController.getSchedule);
 router.put("/schedule", staffController.updateSchedule);
 
+router.put("/:id", staffController.updateStaff);
 // customer
 router.get("/customer/:id", staffController.getCustomer);
 
