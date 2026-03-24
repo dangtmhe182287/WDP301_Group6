@@ -8,6 +8,7 @@ import Members from "./Members";
 import AdminAppointments from "./AdminAppointments";
 import Placeholder from "./Placeholder";
 import AdminSettings from "./AdminSettings";
+import AdminFeedback from "./AdminFeedback";
 
 function DashboardView() {
   const [stats, setStats] = React.useState({
@@ -42,7 +43,7 @@ function DashboardView() {
           <div className="stat-icon">✂️</div>
           <div>
             <div className="stat-value">{stats.totalStaff}</div>
-            <div className="stat-label">Stylists (Staff)</div>
+            <div className="stat-label">Staff</div>
           </div>
         </div>
         <div className="stat-card">
@@ -86,7 +87,7 @@ export default function Admin() {
             Dashboard
           </Link>
           <Link to="/admin/staff" className="admin-nav-item">
-            Stylists
+            Staff
           </Link>
           <Link to="/admin/services" className="admin-nav-item">
             Services
@@ -143,7 +144,7 @@ export default function Admin() {
           <Route path="staff-requests" element={<StaffRequests />} />
           <Route path="appointments" element={<AdminAppointments />} />
           <Route path="members" element={<Members />} />
-          <Route path="feedback" element={<Placeholder title="Feedback" />} />
+          <Route path="feedback" element={<AdminFeedback />} />
           <Route path="gallery" element={<Placeholder title="Gallery" />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<AdminSettings />} />

@@ -1,4 +1,3 @@
-import * as appointmentService from "../services/appointment.service.js";
 import Appointment from "../models/Appointment.model.js";
 
 // Controller tạo lịch hẹn: validate/business rules nằm ở service layer.
