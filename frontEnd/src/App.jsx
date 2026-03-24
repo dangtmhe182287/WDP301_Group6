@@ -24,6 +24,7 @@ import "./index.css";
 import { Skeleton } from "./components/ui/skeleton.jsx";
 import ForgotPassword from "./pages/Auth/ForgotPassword.jsx";
 import ResetPassword from "./pages/Auth/ResetPassword.jsx";
+import ChatBubble from "./components/ChatBubble";
 
 
 /* ================= Protected Route ================= */
@@ -86,7 +87,7 @@ function Layout() {
             ) : user?.role === "admin" ? (
               <Navigate to="/admin" />
             ) : (
-              <Home />
+              <About />
             )
           }
         />
@@ -115,6 +116,7 @@ function Layout() {
       </Routes>
 
       {!hideLayout && <Footer />}
+      {!hideLayout && <ChatBubble />}
     </>
   );
 }
