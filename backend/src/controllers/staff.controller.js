@@ -64,6 +64,17 @@ export const updateStatus = async (req, res) => {
   }
 };
 
+/* ===== Confirm Payment ===== */
+export const confirmPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = await staffService.confirmPayment(id);
+    res.json(data);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 /* ===== Schedule ===== */
 export const getSchedule = async (req, res) => {
   try {

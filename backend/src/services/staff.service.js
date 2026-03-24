@@ -18,6 +18,11 @@ export const updateAppointmentStatus = async (id, status) => {
   return appointmentRepo.updateStatus(id, status);
 };
 
+/* ================= Confirm Payment ================= */
+export const confirmPayment = async (id) => {
+  return appointmentRepo.confirmPayment(id);
+};
+
 /* ================= Staff Schedule ================= */
 export const getSchedule = async (userId) => {
   const staff = await staffRepo.findByUserId(userId);

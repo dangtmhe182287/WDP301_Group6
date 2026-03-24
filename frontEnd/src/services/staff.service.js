@@ -5,6 +5,9 @@ export const staffService = {
     updateStatus: (id, status) => 
         axiosInstance.patch(`/staffs/appointments/${id}/status`, {status}),
 
+    confirmPayment: (id) =>
+        axiosInstance.patch(`/staffs/appointments/${id}/payment`),
+
     getSchedule: () => axiosInstance.get("/staffs/schedule"),
 
     updateSchedule: (schedule) =>
