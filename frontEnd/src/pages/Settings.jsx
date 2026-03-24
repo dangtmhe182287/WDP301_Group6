@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axiosInstance from "../utils/axiosInstance";
 import anonymousAvatar from "../assets/anomyous.jpg";
+import { toast } from "sonner";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input as ShadInput } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function Settings() {
   const { user, updateUser } = useAuth();
-  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     fullName: "",
     phone: "",
@@ -14,10 +19,20 @@ export default function Settings() {
     imgUrl: "",
   });
 
-  const [message, setMessage] = useState("");
   const [avatarPreview, setAvatarPreview] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  const [staffInfo, setStaffInfo] = useState(null);
+  const [showRequest, setShowRequest] = useState(false);
+
+  const [staffForm, setStaffForm] = useState({
+    speciality: "",
+    certificateName: "",
+    organization: "",
+    certificateId: "",
+    portfolio: "",
+  });
+
+  const [requestLoading, setRequestLoading] = useState(false);
+
   const API_BASE = import.meta.env.VITE_SERVER_API || "http://localhost:3000";
 
   const resolveAvatar = (value) => {
@@ -25,16 +40,6 @@ export default function Settings() {
     if (value.startsWith("http")) return value;
     return `${API_BASE}${value}`;
   };
-
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => {
-        setMessage("");
-      }, 2000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
 
   useEffect(() => {
     if (user) {
@@ -46,26 +51,6 @@ export default function Settings() {
       });
       setAvatarPreview(resolveAvatar(user.imgUrl));
     }
-  }, [user]);
-
-  useEffect(() => {
-    const loadStaffInfo = async () => {
-      if (!user || user.role !== "staff") {
-        setStaffInfo(null);
-        return;
-      }
-      try {
-        const response = await axiosInstance.get("/staffs");
-        const matched = Array.isArray(response.data)
-          ? response.data.find((staff) => staff._id === user._id)
-          : null;
-        setStaffInfo(matched || null);
-      } catch (error) {
-        setStaffInfo(null);
-      }
-    };
-
-    loadStaffInfo();
   }, [user]);
 
   const handleChange = (field) => (event) => {
@@ -77,166 +62,231 @@ export default function Settings() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!user) {
-      setMessage("Please log in to update your profile.");
-      return;
-    }
 
     const payload = {
       fullName: form.fullName,
       phone: form.phone,
     };
-    if (form.password) {
-      payload.password = form.password;
-    }
-    if (form.imgUrl) {
-      payload.imgUrl = form.imgUrl;
-    }
+
+    if (form.password) payload.password = form.password;
+    if (form.imgUrl) payload.imgUrl = form.imgUrl;
 
     try {
-      const response = await axiosInstance.put("/users/me", payload);
-      updateUser(response.data.user);
-      setAvatarPreview(resolveAvatar(response.data.user?.imgUrl));
-      setMessage("Profile updated.");
-      setForm((prev) => ({ ...prev, password: "" }));
+      const res = await axiosInstance.put("/users/me", payload);
+      updateUser(res.data.user);
+      setAvatarPreview(resolveAvatar(res.data.user?.imgUrl));
+      toast.success("Profile updated ");
       setIsEditing(false);
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Update failed.");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Update failed ");
     }
   };
 
-  const handleAvatarUpload = async (file) => {
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("avatar", file);
+  // ✅ VALIDATE
+  const validateForm = () => {
+    if (!staffForm.speciality) return "Speciality is required";
+    if (!staffForm.certificateName) return "Certificate name is required";
+    if (!staffForm.organization) return "Organization is required";
+    if (!staffForm.certificateId) return "Certificate ID is required";
+    if (!staffForm.portfolio) return "Portfolio is required";
+    return null;
+  };
+
+  // ✅ DISABLE BUTTON
+  const isInvalid =
+    !staffForm.speciality ||
+    !staffForm.certificateName ||
+    !staffForm.organization ||
+    !staffForm.certificateId ||
+    !staffForm.portfolio;
+
+  // ✅ HANDLE REQUEST
+  const handleSubmitRequest = async () => {
+    const error = validateForm();
+    if (error) return toast.error(error);
+
     try {
-      const response = await axiosInstance.post("/users/me/avatar", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      setRequestLoading(true);
+
+      await axiosInstance.post("/staff-request/applyStaffRequest", {
+        speciality: [staffForm.speciality],
+        certificate: {
+          name: staffForm.certificateName,
+          organization: staffForm.organization,
+          certificateId: staffForm.certificateId,
+          image: "",
+        },
+        portfolio: staffForm.portfolio,
       });
-      updateUser(response.data.user);
-      setAvatarPreview(resolveAvatar(response.data.user?.imgUrl));
-      setForm((prev) => ({ ...prev, imgUrl: response.data.user?.imgUrl || "" }));
-      setMessage("Avatar updated.");
-    } catch (error) {
-      setMessage(error.response?.data?.message || "Upload failed.");
+
+      toast.success("Request sent successfully ");
+
+      // reset form
+      setStaffForm({
+        speciality: "",
+        certificateName: "",
+        organization: "",
+        certificateId: "",
+        portfolio: "",
+      });
+
+      setShowRequest(false);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Send failed ");
+    } finally {
+      setRequestLoading(false);
     }
   };
 
-  const handleStartEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancelEdit = () => {
-    if (user) {
-      setForm({
-        fullName: user.fullName || "",
-        phone: user.phone || "",
-        password: "",
-        imgUrl: user.imgUrl || "",
-      });
-      setAvatarPreview(resolveAvatar(user.imgUrl));
-    }
-    setIsEditing(false);
-  };
-
-  if (!user) {
-    return (
-      <main className="settings-page">
-        <div className="settings-card">
-          <h2>Profile</h2>
-          <p>Please log in to edit your profile.</p>
-          <button className="primary-btn" onClick={() => navigate("/login")}>
-            Log in
-          </button>
-        </div>
-      </main>
-    );
-  }
+  if (!user) return <div className="p-6">Please login</div>;
 
   return (
-    <main className="settings-page">
-      <div className="settings-card">
-        <h2>Profile</h2>
-        <div className="settings-avatar">
-          <img src={avatarPreview || anonymousAvatar} alt="avatar" />
-        </div>
-        <form onSubmit={handleSubmit} className="settings-form">
-          <label>
-            Full name
-            <input value={form.fullName} onChange={handleChange("fullName")} disabled={!isEditing} />
-          </label>
+    <main className="min-h-[80vh] flex justify-center py-10">
+      <div className="w-full max-w-3xl space-y-6 px-4">
 
-          <label>
-            Phone
-            <input value={form.phone} onChange={handleChange("phone")} disabled={!isEditing} />
-          </label>
+        {/* PROFILE */}
+        <Card className="rounded-2xl shadow-md">
+          <CardHeader>
+            <CardTitle>Profile</CardTitle>
+          </CardHeader>
 
-          {user.role === "staff" && staffInfo ? (
-            <div className="staff-profile">
-              <div>
-                <strong>Specialty:</strong>{" "}
-                {Array.isArray(staffInfo.speciality) && staffInfo.speciality.length
-                  ? staffInfo.speciality.join(", ")
-                  : "Not updated"}
-              </div>
-              <div>
-                <strong>Rating:</strong> {staffInfo.rating !== undefined ? staffInfo.rating : "No ratings"}
-              </div>
-            </div>
-          ) : null}
-          {isEditing ? (
-            <>
-              <label>
-                Avatar URL
-                <input
+          <CardContent className="space-y-4">
+            <img
+              src={avatarPreview}
+              className="w-16 h-16 rounded-full object-cover"
+            />
+
+            <ShadInput
+              value={form.fullName}
+              onChange={handleChange("fullName")}
+              disabled={!isEditing}
+              placeholder="Full name"
+            />
+
+            <ShadInput
+              value={form.phone}
+              onChange={handleChange("phone")}
+              disabled={!isEditing}
+              placeholder="Phone"
+            />
+
+            {isEditing && (
+              <>
+                <ShadInput
                   value={form.imgUrl}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setForm((prev) => ({ ...prev, imgUrl: value }));
-                    setAvatarPreview(resolveAvatar(value));
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setForm((p) => ({ ...p, imgUrl: val }));
+                    setAvatarPreview(resolveAvatar(val));
                   }}
-                  placeholder="https://..."
+                  placeholder="Avatar URL"
                 />
-              </label>
-              <label>
-                Upload image
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (!file) return;
-                    handleAvatarUpload(file);
-                  }}
-                />
-              </label>
-              <label>
-                New password
-                <input
+
+                <ShadInput
                   type="password"
                   value={form.password}
                   onChange={handleChange("password")}
-                  placeholder="Leave blank to keep current password"
+                  placeholder="New password"
                 />
-              </label>
-            </>
-          ) : null}
-          {isEditing ? (
-            <div className="settings-actions">
-              <button type="submit" className="primary-btn">
-                Save changes
-              </button>
-              <button type="button" className="ghost-btn" onClick={handleCancelEdit}>
-                Cancel
-              </button>
+              </>
+            )}
+
+            <div className="flex gap-2">
+              {isEditing ? (
+                <>
+                  <Button onClick={handleSubmit}>Save</Button>
+                  <Button variant="outline" onClick={() => setIsEditing(false)}>
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={() => setIsEditing(true)}>
+                  Edit profile
+                </Button>
+              )}
             </div>
-          ) : (
-            <button type="button" className="primary-btn" onClick={handleStartEdit}>
-              Edit profile
-            </button>
-          )}
-        </form>
-        {message ? <p className="message">{message}</p> : null}
+          </CardContent>
+        </Card>
+
+        {/* STAFF REQUEST */}
+        {user.role === "customer" && (
+          <Card className="rounded-2xl shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Become Staff</CardTitle>
+
+              <Button
+                variant={showRequest ? "outline" : "default"}
+                onClick={() => setShowRequest(!showRequest)}
+              >
+                {showRequest ? "Close" : "Apply"}
+              </Button>
+            </CardHeader>
+
+            {showRequest && (
+              <CardContent className="space-y-3">
+                <ShadInput
+                  placeholder="Speciality"
+                  value={staffForm.speciality}
+                  onChange={(e) =>
+                    setStaffForm((p) => ({ ...p, speciality: e.target.value }))
+                  }
+                />
+
+                <ShadInput
+                  placeholder="Certificate name"
+                  value={staffForm.certificateName}
+                  onChange={(e) =>
+                    setStaffForm((p) => ({
+                      ...p,
+                      certificateName: e.target.value,
+                    }))
+                  }
+                />
+
+                <ShadInput
+                  placeholder="Organization"
+                  value={staffForm.organization}
+                  onChange={(e) =>
+                    setStaffForm((p) => ({
+                      ...p,
+                      organization: e.target.value,
+                    }))
+                  }
+                />
+
+                <ShadInput
+                  placeholder="Certificate ID"
+                  value={staffForm.certificateId}
+                  onChange={(e) =>
+                    setStaffForm((p) => ({
+                      ...p,
+                      certificateId: e.target.value,
+                    }))
+                  }
+                />
+
+                <Textarea
+                  placeholder="Portfolio"
+                  value={staffForm.portfolio}
+                  onChange={(e) =>
+                    setStaffForm((p) => ({
+                      ...p,
+                      portfolio: e.target.value,
+                    }))
+                  }
+                />
+
+                <Button
+                  className="w-full"
+                  disabled={requestLoading || isInvalid}
+                  onClick={handleSubmitRequest}
+                >
+                  {requestLoading ? "Sending..." : "Send Request"}
+                </Button>
+              </CardContent>
+            )}
+          </Card>
+        )}
       </div>
     </main>
   );

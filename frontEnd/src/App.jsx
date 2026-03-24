@@ -1,6 +1,7 @@
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate, useNavigate } from "react-router-dom";
 import Header from "./components/Header.jsx";
 import Footer from "./components/Footer.jsx";
+import { useEffect } from "react";
 
 import AppointmentPage from "./pages/AppointmentPage";
 import Login from "./pages/Auth/Login";
@@ -46,6 +47,8 @@ function ProtectedRoute({ children, allowedRoles }) {
 
 function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const hideLayout =
     location.pathname.startsWith("/login") ||
@@ -54,6 +57,17 @@ function Layout() {
     location.pathname.startsWith("/reset-password") ||
     location.pathname.startsWith("/admin") ||
     location.pathname.startsWith("/staff");
+    useEffect(() => {
+    if (!user) return;
+
+    if (user.role === "staff" && location.pathname === "/") {
+      navigate("/staff/dashboard");
+    }
+
+    if (user.role === "admin" && location.pathname === "/") {
+      navigate("/admin");
+    }
+  }, [user, location.pathname]);
 
   return (
     <>
@@ -64,10 +78,18 @@ function Layout() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword/>}/>
         <Route path="/reset-password/:token" element={<ResetPassword/>}/>
-        <Route path="/" element={<Home/>} />
-        <Route path="/staff/dashboard" element={<Dashboard />} />
-        <Route path="/staff/appointments" element={<Appointments />} />
-        <Route path="/staff/schedule" element={<Schedule />} />
+        <Route
+          path="/"
+          element={
+            user?.role === "staff" ? (
+              <Navigate to="/staff" />
+            ) : user?.role === "admin" ? (
+              <Navigate to="/admin" />
+            ) : (
+              <Home />
+            )
+          }
+        />
         <Route path="/staff/customer/:id" element={<CustomerDetail />} />
         <Route path="/appointment" element={<AppointmentPage />} />
         <Route path="/settings" element={<Settings />} />
