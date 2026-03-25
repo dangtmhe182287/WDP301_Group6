@@ -87,7 +87,7 @@ function Layout() {
             ) : user?.role === "admin" ? (
               <Navigate to="/admin" />
             ) : (
-              <About />
+              <Home/>
             )
           }
         />
