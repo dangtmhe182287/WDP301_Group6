@@ -142,7 +142,7 @@ export default function RegisterForm() {
             {/* Welcome Text */}
             <h2 className="text-2xl font-bold text-black mb-6">Create a new account</h2>
 
-            {/* Google Sign In */}
+            {/* Google Sign In
             <Button
               variant="outline"
               className="w-full mb-6 bg-white border-gray-300 text-black hover:bg-gray-50 h-11"
@@ -166,14 +166,13 @@ export default function RegisterForm() {
                 />
               </svg>
               Continue with Google Workspace
-            </Button>
+            </Button> */}
 
-            {/* Divider */}
-            <div className="flex items-center gap-4 mb-6">
+            {/* <div className="flex items-center gap-4 mb-6">
               <div className="flex-1 h-px bg-gray-300"></div>
-              <span className="text-gray-500 text-sm">or</span>
+              <span className="text-gray-500 text-sm"></span>
               <div className="flex-1 h-px bg-gray-300"></div>
-            </div>
+            </div> */}
 
             {/* Register Form */}
             <form onSubmit={handleSubmit} className="space-y-5">

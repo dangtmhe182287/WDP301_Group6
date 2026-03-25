@@ -198,7 +198,7 @@ export default function LoginForm() {
 
               {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="remember"
@@ -209,7 +209,7 @@ export default function LoginForm() {
                   <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">
                     Remember me
                   </label>
-                </div>
+                </div> */}
                 <a
                   href="/forgot-password"
                   className="text-sm text-blue-600 hover:text-blue-700 transition-colors font-medium"

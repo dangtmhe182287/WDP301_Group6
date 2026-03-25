@@ -91,7 +91,6 @@ function Layout() {
             )
           }
         />
-        <Route path="/staff/customer/:id" element={<CustomerDetail />} />
         <Route path="/appointment" element={<AppointmentPage />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/my-bookings" element={<MyBooking />} />
