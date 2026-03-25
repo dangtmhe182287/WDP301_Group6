@@ -16,7 +16,6 @@ export default function Dashboard() {
     total: 0,
     completed: 0,
     pending: 0,
-    scheduled: 0,
     cancelled: 0,
   });
 
@@ -34,28 +33,24 @@ export default function Dashboard() {
         total: 0,
         completed: 0,
         pending: 0,
-        scheduled: 0,
         cancelled: 0,
       };
 
       rawData.forEach((item) => {
         if (item._id === "Completed") mapped.completed = item.count;
         if (item._id === "Pending") mapped.pending = item.count;
-        if (item._id === "Scheduled") mapped.scheduled = item.count;
         if (item._id === "Cancelled") mapped.cancelled = item.count;
       });
 
       mapped.total =
         mapped.completed +
         mapped.pending +
-        mapped.scheduled +
         mapped.cancelled;
 
       setStats(mapped);
 
       setChartData([
         { status: "Pending", count: mapped.pending },
-        { status: "Scheduled", count: mapped.scheduled },
         { status: "Completed", count: mapped.completed },
         { status: "Cancelled", count: mapped.cancelled },
       ]);
@@ -86,7 +81,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* HEADER */}
       <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-sm md:flex-row md:items-center md:justify-between">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -126,7 +120,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* STATS */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="p-6">
@@ -157,7 +150,6 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* CHART */}
       <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle>Appointment Status Overview</CardTitle>

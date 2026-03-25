@@ -20,17 +20,27 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Search,
   CalendarDays,
   Users,
-  CheckCircle2,
-  Wallet,
 } from "lucide-react";
 
 export default function Appointments() {
   const [appointments, setAppointments] = useState([]);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [selectedAction, setSelectedAction] = useState(null);
   const navigate = useNavigate();
 
   const fetchData = async () => {
@@ -61,6 +71,36 @@ export default function Appointments() {
       fetchData();
     } catch (error) {
       console.error("Confirm payment error:", error);
+    }
+  };
+
+  const handleOpenAlert = (appointment, actionType) => {
+    setSelectedAction({
+      id: appointment._id,
+      customerName:
+        appointment.customerId?.fullName ||
+        appointment.customerName ||
+        appointment.walkInCustomerName ||
+        "Walk-in customer",
+      actionType,
+    });
+    setAlertOpen(true);
+  };
+
+  const handleConfirmAction = async () => {
+    if (!selectedAction) return;
+
+    try {
+      if (selectedAction.actionType === "complete") {
+        await updateStatus(selectedAction.id, "Completed");
+      } else if (selectedAction.actionType === "cancel") {
+        await updateStatus(selectedAction.id, "Cancelled");
+      } else if (selectedAction.actionType === "paid") {
+        await confirmPayment(selectedAction.id);
+      }
+    } finally {
+      setAlertOpen(false);
+      setSelectedAction(null);
     }
   };
 
@@ -105,13 +145,44 @@ export default function Appointments() {
     }
   };
 
-  const totalAppointments = appointments.length;
-  const completedAppointments = appointments.filter(
-    (a) => a.status === "Completed"
-  ).length;
-  const paidAppointments = appointments.filter(
-    (a) => a.paymentStatus === "Paid"
-  ).length;
+  const getAlertContent = () => {
+    if (!selectedAction) {
+      return {
+        title: "Confirm action",
+        description: "Are you sure?",
+        actionText: "Confirm",
+      };
+    }
+
+    switch (selectedAction.actionType) {
+      case "complete":
+        return {
+          title: "Complete appointment?",
+          description: `Are you sure you want to mark appointment of "${selectedAction.customerName}" as Completed?`,
+          actionText: "Complete",
+        };
+      case "cancel":
+        return {
+          title: "Cancel appointment?",
+          description: `Are you sure you want to cancel appointment of "${selectedAction.customerName}"?`,
+          actionText: "Cancel appointment",
+        };
+      case "paid":
+        return {
+          title: "Confirm payment?",
+          description: `Are you sure you want to mark payment of "${selectedAction.customerName}" as Paid?`,
+          actionText: "Mark as Paid",
+        };
+      default:
+        return {
+          title: "Confirm action",
+          description: "Are you sure?",
+          actionText: "Confirm",
+        };
+    }
+  };
+
+  const alertContent = getAlertContent();
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -144,7 +215,6 @@ export default function Appointments() {
             </div>
           </div>
         </div>
-
 
         {/* Filter */}
         <Card className="rounded-2xl shadow-sm">
@@ -265,7 +335,7 @@ export default function Appointments() {
                             <Button
                               size="sm"
                               className="rounded-lg"
-                              onClick={() => updateStatus(a._id, "Completed")}
+                              onClick={() => handleOpenAlert(a, "complete")}
                               disabled={a.status === "Completed"}
                             >
                               Complete
@@ -275,7 +345,7 @@ export default function Appointments() {
                               size="sm"
                               variant="outline"
                               className="rounded-lg"
-                              onClick={() => confirmPayment(a._id)}
+                              onClick={() => handleOpenAlert(a, "paid")}
                               disabled={
                                 a.paymentStatus === "Paid" ||
                                 a.status !== "Completed"
@@ -288,7 +358,7 @@ export default function Appointments() {
                               size="sm"
                               variant="destructive"
                               className="rounded-lg"
-                              onClick={() => updateStatus(a._id, "Cancelled")}
+                              onClick={() => handleOpenAlert(a, "cancel")}
                               disabled={a.status === "Cancelled"}
                             >
                               Cancel
@@ -304,6 +374,23 @@ export default function Appointments() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertContent.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertContent.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAction}>
+              {alertContent.actionText}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
