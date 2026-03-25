@@ -17,7 +17,7 @@ export default function Home() {
             <button className="primary-btn" onClick={() => navigate("/appointment")}>
               Book now
             </button>
-            <button className="ghost-btn" onClick={() => navigate("/appointment")}>
+            <button className="ghost-btn" onClick={() => navigate("/services")}>
               View services
             </button>
           </div>

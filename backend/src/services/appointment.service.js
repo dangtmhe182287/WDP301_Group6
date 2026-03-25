@@ -314,3 +314,134 @@ export const cancelAppointment = async ({ appointmentId, customerId, role }) => 
   await appointment.save();
   return appointment;
 };
+
+export const rescheduleAppointment = async (payload) => {
+  const {
+    appointmentId,
+    userId,
+    role,
+    staffId,
+    appointmentDate,
+    startTime,
+    note,
+  } = payload;
+
+  if (!appointmentId) {
+    throw new Error("appointmentId is required");
+  }
+
+  const appointment = await Appointment.findById(appointmentId);
+  if (!appointment) {
+    throw new Error("Appointment not found");
+  }
+
+  if (["Cancelled", "Completed"].includes(appointment.status)) {
+    throw new Error("Cannot reschedule this appointment");
+  }
+
+  if (role === "admin") {
+    // admin can reschedule any appointment
+  } else if (role === "staff") {
+    if (String(appointment.staffId) !== String(userId)) {
+      throw new Error("Not allowed to reschedule this appointment");
+    }
+  } else {
+    if (String(appointment.customerId) !== String(userId)) {
+      throw new Error("Not allowed to reschedule this appointment");
+    }
+  }
+
+  const originalStart = new Date(appointment.appointmentDate);
+  originalStart.setHours(0, 0, 0, 0);
+  originalStart.setMinutes(originalStart.getMinutes() + appointment.startTime);
+  if (new Date() >= originalStart) {
+    throw new Error("Cannot reschedule after the appointment start time");
+  }
+
+  const hasServiceUpdate =
+    Object.prototype.hasOwnProperty.call(payload, "serviceId") ||
+    Object.prototype.hasOwnProperty.call(payload, "serviceIds");
+
+  const resolvedServiceIds = hasServiceUpdate
+    ? toServiceIdList(payload)
+    : appointment.serviceIds;
+
+  if (resolvedServiceIds.length > MAX_SERVICE_PER_APPOINTMENT) {
+    throw new Error(`Maximum ${MAX_SERVICE_PER_APPOINTMENT} services per appointment`);
+  }
+
+  const totalDuration = await getTotalDuration(resolvedServiceIds);
+  if (totalDuration > MAX_TOTAL_DURATION) {
+    throw new Error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes`);
+  }
+
+  const nextStaffId = staffId || appointment.staffId;
+  const nextStartTime = startTime !== undefined ? startTime : appointment.startTime;
+  const nextDateInput = appointmentDate || appointment.appointmentDate;
+
+  if (nextStartTime % SLOT_STEP !== 0) {
+    throw new Error("Start time must be aligned to 15-minute slots");
+  }
+
+  const { dayStart, dayEnd } = normalizeDay(nextDateInput);
+  const todayStart = getTodayStart();
+  const latestAllowed = new Date(todayStart);
+  latestAllowed.setDate(latestAllowed.getDate() + MAX_DAYS_AHEAD);
+  if (dayStart > latestAllowed) {
+    throw new Error(`Appointment date must be within ${MAX_DAYS_AHEAD} days`);
+  }
+  if (isSameDay(dayStart, todayStart)) {
+    const minStart = getCurrentMinuteOfDay() + MIN_BOOKING_LEAD_MINUTES;
+    if (nextStartTime < minStart) {
+      throw new Error(`Appointments must be booked at least ${MIN_BOOKING_LEAD_MINUTES} minutes in advance`);
+    }
+  }
+
+  const { openMinute, closeMinute } = await getBusinessHours();
+  const nextEndTime = nextStartTime + totalDuration;
+  if (nextStartTime < openMinute || nextEndTime > closeMinute) {
+    throw new Error("Selected time is outside working hours");
+  }
+
+  const staffAppointments = await Appointment.find({
+    staffId: nextStaffId,
+    appointmentDate: { $gte: dayStart, $lt: dayEnd },
+    status: { $nin: ["Cancelled"] },
+    _id: { $ne: appointment._id },
+  });
+  const staffOverlap = staffAppointments.some((item) =>
+    isOverlap(nextStartTime, nextEndTime, item.startTime, item.endTime)
+  );
+  if (staffOverlap) {
+    throw new Error("Selected slot conflicts with existing appointments");
+  }
+
+  if (appointment.customerId) {
+    const customerAppointments = await Appointment.find({
+      customerId: appointment.customerId,
+      appointmentDate: { $gte: dayStart, $lt: dayEnd },
+      status: { $nin: ["Cancelled"] },
+      _id: { $ne: appointment._id },
+    });
+    const customerOverlap = customerAppointments.some((item) =>
+      isOverlap(nextStartTime, nextEndTime, item.startTime, item.endTime)
+    );
+    if (customerOverlap) {
+      throw new Error("You already have an appointment at this time");
+    }
+  }
+
+  appointment.staffId = nextStaffId;
+  appointment.appointmentDate = dayStart;
+  appointment.startTime = nextStartTime;
+  appointment.endTime = nextEndTime;
+  appointment.serviceIds = resolvedServiceIds;
+  appointment.staffBusySlots = [{ startMinute: nextStartTime, endMinute: nextEndTime }];
+
+  if (Object.prototype.hasOwnProperty.call(payload, "note")) {
+    appointment.note = note;
+  }
+
+  await appointment.save();
+  return appointment;
+};

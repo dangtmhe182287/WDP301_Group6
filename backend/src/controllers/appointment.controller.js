@@ -44,6 +44,23 @@ export const CancelAppointment = async (req, res) => {
   }
 };
 
+export const RescheduleAppointment = async (req, res) => {
+  try {
+    const appointmentId = req.params.id;
+    const userId = req.user?.id || req.user?.userId;
+    const role = req.user?.role;
+    const data = await appointmentService.rescheduleAppointment({
+      appointmentId,
+      userId,
+      role,
+      ...req.body,
+    });
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(400).json({ message: "Reschedule appointment error", error: error.message });
+  }
+};
+
 export const GetAllAppointments = async (req, res) => {
   try {
     const data = await Appointment.find()
