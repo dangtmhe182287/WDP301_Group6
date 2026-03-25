@@ -188,6 +188,10 @@ export default function MyBooking() {
 
   const handleCancel = async (bookingId) => {
     try {
+      const confirmed = window.confirm(
+        "Bạn có chắc muốn hủy lịch này không? Thao tác này không thể hoàn tác.",
+      );
+      if (!confirmed) return;
       await axiosInstance.post(`/appointments/${bookingId}/cancel`);
       await refreshBookings();
       toast.success("Appointment cancelled.");
