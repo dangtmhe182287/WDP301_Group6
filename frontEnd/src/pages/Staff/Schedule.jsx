@@ -1,292 +1,278 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { staffService } from "@/services/staff.service";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock3, Plus, Trash2, Save } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  CalendarDays,
+  Clock3,
+  CalendarRange,
+  Info,
+  Briefcase,
+} from "lucide-react";
 import { toast } from "sonner";
 
 /* ================= HELPERS ================= */
-const timeToMinutes = (time) => {
-  if (!/^\d{2}:\d{2}$/.test(time)) return null;
-  const [h, m] = time.split(":").map(Number);
-  if (
-    Number.isNaN(h) ||
-    Number.isNaN(m) ||
-    h < 0 ||
-    h > 23 ||
-    m < 0 ||
-    m > 59
-  ) {
-    return null;
-  }
-  return h * 60 + m;
-};
-
 const getDateKey = (date) => {
   if (!date) return "";
   return new Date(date).toISOString().split("T")[0];
 };
 
-/* ================= VALIDATE ================= */
-const validateSchedule = (schedule) => {
-  const errors = {};
+const formatDate = (date) => {
+  if (!date) return "--";
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "--";
 
-  schedule.forEach((item, index) => {
-    const rowErrors = {};
-
-    if (!item.workingDate) {
-      rowErrors.workingDate = "Working date is required";
-    }
-
-    if (!item.startTime) {
-      rowErrors.startTime = "Start time is required";
-    }
-
-    if (!item.endTime) {
-      rowErrors.endTime = "End time is required";
-    }
-
-    const start = timeToMinutes(item.startTime);
-    const end = timeToMinutes(item.endTime);
-
-    if (item.startTime && start === null) {
-      rowErrors.startTime = "Invalid time format";
-    }
-
-    if (item.endTime && end === null) {
-      rowErrors.endTime = "Invalid time format";
-    }
-
-    if (start !== null && end !== null && start >= end) {
-      rowErrors.endTime = "End time must be later than start time";
-    }
-
-    if (Object.keys(rowErrors).length > 0) {
-      errors[index] = rowErrors;
-    }
+  return d.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   });
+};
 
-  // overlap check
-  for (let i = 0; i < schedule.length; i++) {
-    for (let j = i + 1; j < schedule.length; j++) {
-      const a = schedule[i];
-      const b = schedule[j];
+const formatTimeRange = (start, end) => {
+  if (!start || !end) return "--";
+  return `${start} - ${end}`;
+};
 
-      const sameDay =
-        getDateKey(a.workingDate) &&
-        getDateKey(a.workingDate) === getDateKey(b.workingDate);
-
-      if (!sameDay) continue;
-
-      const aStart = timeToMinutes(a.startTime);
-      const aEnd = timeToMinutes(a.endTime);
-      const bStart = timeToMinutes(b.startTime);
-      const bEnd = timeToMinutes(b.endTime);
-
-      if (
-        aStart !== null &&
-        aEnd !== null &&
-        bStart !== null &&
-        bEnd !== null &&
-        aStart < bEnd &&
-        aEnd > bStart
-      ) {
-        errors[i] = {
-          ...(errors[i] || {}),
-          endTime: "Overlap with another slot",
-        };
-        errors[j] = {
-          ...(errors[j] || {}),
-          endTime: "Overlap with another slot",
-        };
-      }
-    }
-  }
-
-  return errors;
+const getDayName = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-US", { weekday: "long" });
 };
 
 /* ================= COMPONENT ================= */
 export default function Schedule() {
   const [schedule, setSchedule] = useState([]);
-  const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  /* ===== LOAD DATA ===== */
   useEffect(() => {
     const fetchSchedule = async () => {
       try {
+        setLoading(true);
         const res = await staffService.getSchedule();
-        setSchedule(res.data || []);
+        setSchedule(Array.isArray(res.data) ? res.data : []);
       } catch (error) {
         toast.error("Failed to load schedule");
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchSchedule();
   }, []);
 
-  /* ===== HANDLE CHANGE ===== */
-  const handleChange = (index, field, value) => {
-    const newData = [...schedule];
-    newData[index][field] = value;
-    setSchedule(newData);
+  const sortedSchedule = useMemo(() => {
+    return [...schedule].sort((a, b) => {
+      const dateA = new Date(a.workingDate).getTime();
+      const dateB = new Date(b.workingDate).getTime();
 
-    setErrors(validateSchedule(newData));
-  };
+      if (dateA !== dateB) return dateA - dateB;
+      return (a.startTime || "").localeCompare(b.startTime || "");
+    });
+  }, [schedule]);
 
-  /* ===== ADD ===== */
-  const addScheduleRow = () => {
-    const newData = [
-      ...schedule,
-      {
-        workingDate: new Date().toISOString().split("T")[0],
-        startTime: "08:00",
-        endTime: "17:00",
-      },
-    ];
+  const totalSlots = sortedSchedule.length;
 
-    setSchedule(newData);
-    setErrors(validateSchedule(newData));
+  const totalDays = useMemo(() => {
+    const uniqueDays = new Set(
+      sortedSchedule.map((item) => getDateKey(item.workingDate)).filter(Boolean)
+    );
+    return uniqueDays.size;
+  }, [sortedSchedule]);
 
-    toast("Added new slot");
-  };
+  const upcomingSlot = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return sortedSchedule.find((item) => {
+      const d = new Date(item.workingDate);
+      d.setHours(0, 0, 0, 0);
+      return d >= today;
+    });
+  }, [sortedSchedule]);
 
-  /* ===== REMOVE ===== */
-  const removeScheduleRow = (index) => {
-    const newData = schedule.filter((_, i) => i !== index);
-
-    setSchedule(newData);
-    setErrors(validateSchedule(newData));
-
-    toast.warning("Removed slot");
-  };
-
-  /* ===== SAVE ===== */
-  const save = async () => {
-    const newErrors = validateSchedule(schedule);
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length > 0) {
-      toast.error("Please fix validation errors");
-      return;
-    }
-
-    try {
-      await staffService.updateSchedule(schedule);
-      toast.success("Saved successfully ");
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Save failed");
-    }
-  };
-
-  /* ================= UI ================= */
   return (
-    <div className="space-y-6 p-6">
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Staff Schedule</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage your working time slots
-          </p>
-        </div>
+    <div className="min-h-screen bg-muted/30">
+      <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-6">
+        {/* HEADER */}
+        <div className="overflow-hidden rounded-3xl border bg-background shadow-sm">
+          <div className="relative p-6 md:p-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-transparent pointer-events-none" />
 
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={addScheduleRow}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add
-          </Button>
-
-          <Button onClick={save}>
-            <Save className="mr-2 h-4 w-4" />
-            Save
-          </Button>
-        </div>
-      </div>
-
-      {/* EMPTY */}
-      {schedule.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-10">
-            <CalendarDays className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-            <p>No schedule</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {schedule.map((s, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <CardTitle className="text-base flex justify-between">
-                  {getDateKey(s.workingDate)}
-                  <Badge>Slot {i + 1}</Badge>
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-3">
-                {/* DATE */}
-                <Input
-                  type="date"
-                  value={getDateKey(s.workingDate)}
-                  onChange={(e) =>
-                    handleChange(i, "workingDate", e.target.value)
-                  }
-                />
-                {errors[i]?.workingDate && (
-                  <p className="text-red-500 text-sm">
-                    {errors[i].workingDate}
-                  </p>
-                )}
-
-                {/* TIME */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Input
-                      type="time"
-                      value={s.startTime}
-                      onChange={(e) =>
-                        handleChange(i, "startTime", e.target.value)
-                      }
-                    />
-                    {errors[i]?.startTime && (
-                      <p className="text-red-500 text-sm">
-                        {errors[i].startTime}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <Input
-                      type="time"
-                      value={s.endTime}
-                      onChange={(e) =>
-                        handleChange(i, "endTime", e.target.value)
-                      }
-                    />
-                    {errors[i]?.endTime && (
-                      <p className="text-red-500 text-sm">
-                        {errors[i].endTime}
-                      </p>
-                    )}
-                  </div>
+            <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="rounded-full px-3 py-1">
+                    Read only
+                  </Badge>
+                  <Badge variant="outline" className="rounded-full px-3 py-1">
+                    Staff Schedule
+                  </Badge>
                 </div>
 
-                {/* REMOVE */}
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => removeScheduleRow(i)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Remove
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+                  Your Working Schedule
+                </h1>
+
+                <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
+                  This page is view-only. Staff can only see assigned working
+                  dates and time slots.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-2xl border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                <Info className="h-4 w-4" />
+                No edit permission
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+
+        {/* SUMMARY */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="rounded-2xl shadow-sm">
+            <CardContent className="flex items-center justify-between p-5">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Total slots</p>
+                <p className="text-2xl font-bold">{loading ? "--" : totalSlots}</p>
+              </div>
+              <div className="rounded-2xl bg-primary/10 p-3">
+                <Clock3 className="h-5 w-5" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl shadow-sm">
+            <CardContent className="flex items-center justify-between p-5">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Working days</p>
+                <p className="text-2xl font-bold">{loading ? "--" : totalDays}</p>
+              </div>
+              <div className="rounded-2xl bg-primary/10 p-3">
+                <CalendarRange className="h-5 w-5" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl shadow-sm">
+            <CardContent className="flex items-center justify-between p-5">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Next shift</p>
+                <p className="text-sm font-semibold">
+                  {loading
+                    ? "--"
+                    : upcomingSlot
+                    ? formatDate(upcomingSlot.workingDate)
+                    : "No upcoming shift"}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-primary/10 p-3">
+                <Briefcase className="h-5 w-5" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* CONTENT */}
+        {loading ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="rounded-2xl shadow-sm">
+                <CardHeader className="space-y-3">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-4 w-24" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Skeleton className="h-16 w-full rounded-xl" />
+                  <Skeleton className="h-16 w-full rounded-xl" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : sortedSchedule.length === 0 ? (
+          <Card className="rounded-3xl border-dashed shadow-sm">
+            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="mb-4 rounded-full bg-muted p-4">
+                <CalendarDays className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h2 className="text-lg font-semibold">No schedule available</h2>
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                Your working schedule has not been assigned yet. Please check
+                again later.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {sortedSchedule.map((s, i) => (
+              <Card
+                key={`${getDateKey(s.workingDate)}-${s.startTime}-${i}`}
+                className="rounded-2xl border shadow-sm transition hover:shadow-md"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <CardTitle className="text-base font-semibold">
+                        {formatDate(s.workingDate)}
+                      </CardTitle>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {getDayName(s.workingDate)}
+                      </p>
+                    </div>
+
+                    <Badge variant="secondary" className="rounded-full">
+                      Slot {i + 1}
+                    </Badge>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  <div className="rounded-2xl border bg-muted/30 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-xl bg-background p-2 shadow-sm">
+                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Working date
+                        </p>
+                        <p className="font-medium">
+                          {getDateKey(s.workingDate) || "--"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border bg-muted/30 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-xl bg-background p-2 shadow-sm">
+                        <Clock3 className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Time slot
+                        </p>
+                        <p className="font-medium">
+                          {formatTimeRange(s.startTime, s.endTime)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl border px-3 py-2 text-sm text-muted-foreground">
+                    <span>Status</span>
+                    <Badge variant="outline" className="rounded-full">
+                      View only
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
