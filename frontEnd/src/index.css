@@ -1127,3 +1127,77 @@ body {
   cursor: pointer;
 }
 
+.booking-reschedule {
+  border: 1px solid rgba(34, 211, 197, 0.4);
+  background: rgba(34, 211, 197, 0.12);
+  color: #0f172a;
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.booking-edit {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px dashed rgba(148, 163, 184, 0.6);
+  border-radius: 14px;
+  background: #f8fafc;
+  display: grid;
+  gap: 14px;
+  width: 100%;
+}
+
+.booking-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.booking-edit label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.booking-edit input,
+.booking-edit select {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #cbd5f5;
+  font-size: 13px;
+}
+
+.booking-edit-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.booking-service-list {
+  display: grid;
+  gap: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.booking-service-option {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.booking-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
