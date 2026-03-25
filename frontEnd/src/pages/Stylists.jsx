@@ -162,11 +162,6 @@ export default function Stylists() {
     <main className="stylists-page">
       <div className="page-header">
         <h1>Staff</h1>
-        <div>
-          <button className="add-btn" onClick={handleCreate}>
-            Add staff
-          </button>
-        </div>
       </div>
 
       {loading ? (

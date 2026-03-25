@@ -104,9 +104,6 @@ export default function Admin() {
           <Link to="/admin/feedback" className="admin-nav-item">
             Feedback
           </Link>
-          <Link to="/admin/gallery" className="admin-nav-item">
-            Gallery
-          </Link>
           <Link to="/admin/analytics" className="admin-nav-item">
             Analytics
           </Link>
@@ -117,11 +114,7 @@ export default function Admin() {
       </aside>
 
       <main className="admin-main">
-        <header className="admin-header">
-          <div className="admin-search">
-            <input type="text" placeholder="Search..." />
-            <button>🔍</button>
-          </div>
+        <header className="admin-header" style={{ justifyContent: "flex-end" }}>
           <div className="admin-actions">
             <button
               className="btn-primary"
@@ -145,7 +138,6 @@ export default function Admin() {
           <Route path="appointments" element={<AdminAppointments />} />
           <Route path="members" element={<Members />} />
           <Route path="feedback" element={<AdminFeedback />} />
-          <Route path="gallery" element={<Placeholder title="Gallery" />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="*" element={<Navigate to="." replace />} />
@@ -156,167 +148,194 @@ export default function Admin() {
         .admin {
           display: flex;
           min-height: 100vh;
-          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-            Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+          font-family: "Inter", system-ui, -apple-system, sans-serif;
+          background: #f8fafc;
         }
 
         .admin-sidebar {
-          width: 220px;
-          background: #0dbacaff;
+          width: 260px;
+          background: #0f172a;
           color: #fff;
           display: flex;
           flex-direction: column;
-          padding: 24px 16px;
+          padding: 24px 20px;
           overflow-y: auto;
+          box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);
+          z-index: 10;
         }
 
         .admin-logo {
-          font-size: 18px;
-          font-weight: 700;
-          margin-bottom: 24px;
+          font-size: 24px;
+          font-weight: 800;
+          margin-bottom: 32px;
+          color: #22d3c5;
+          letter-spacing: -0.5px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .admin-logo::before {
+          content: "✂️";
+          font-size: 20px;
         }
 
         .admin-nav {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 8px;
         }
 
         .admin-nav-item {
-          padding: 10px 14px;
-          border-radius: 10px;
-          color: rgba(255, 255, 255, 0.9);
+          padding: 12px 16px;
+          border-radius: 12px;
+          color: #94a3b8;
           text-decoration: none;
           font-weight: 500;
+          font-size: 15px;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 12px;
         }
 
         .admin-nav-item:hover {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(34, 211, 197, 0.1);
+          color: #22d3c5;
+          transform: translateX(4px);
         }
 
         .admin-main {
           flex: 1;
-          background: #f4f6f7;
-          padding: 24px;
+          background: #f8fafc;
+          padding: 32px 40px;
           display: flex;
           flex-direction: column;
+          overflow-y: auto;
         }
 
         .admin-header {
           display: flex;
-          justify-content: space-between;
+          justify-content: flex-end;
           align-items: center;
-          gap: 16px;
-          margin-bottom: 24px;
-        }
-
-        .admin-search {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex: 1;
-          max-width: 520px;
-        }
-
-        .admin-search input {
-          flex: 1;
-          padding: 10px 14px;
-          border-radius: 12px;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          outline: none;
-        }
-
-        .admin-search button {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          border: none;
-          background: #22d3c5;
-          color: #fff;
-          cursor: pointer;
+          margin-bottom: 32px;
+          padding-bottom: 20px;
+          border-bottom: 1px solid #e2e8f0;
         }
 
         .admin-actions {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 16px;
         }
 
         .btn-primary {
-          padding: 10px 18px;
+          padding: 10px 20px;
           border-radius: 12px;
           border: none;
           background: #22d3c5;
-          color: #fff;
+          color: #0f172a;
+          font-weight: 600;
           cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 12px rgba(34, 211, 197, 0.2);
+        }
+
+        .btn-primary:hover {
+          background: #1ebdb0;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(34, 211, 197, 0.3);
         }
 
         .admin-user {
-          padding: 10px 14px;
+          padding: 10px 16px;
           border-radius: 12px;
-          background: rgba(0, 0, 0, 0.08);
+          background: #ffffff;
+          font-weight: 600;
+          color: #0f172a;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
         }
 
         .dashboard-title {
-          margin: 0 0 16px;
-          font-size: 22px;
+          margin: 0 0 24px;
+          font-size: 28px;
+          font-weight: 700;
+          color: #0f172a;
+          letter-spacing: -0.5px;
         }
 
         .stats {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 16px;
-          margin-bottom: 24px;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 24px;
+          margin-bottom: 40px;
         }
 
         .stat-card {
           display: flex;
           align-items: center;
-          gap: 14px;
-          padding: 18px;
-          border-radius: 16px;
-          background: #fff;
-          box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+          gap: 20px;
+          padding: 24px;
+          border-radius: 20px;
+          background: #ffffff;
+          box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+          border: 1px solid #f1f5f9;
+          transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+          border-color: #22d3c5;
         }
 
         .stat-icon {
-          width: 54px;
-          height: 54px;
-          border-radius: 16px;
-          background: #22d3c5;
+          width: 64px;
+          height: 64px;
+          border-radius: 18px;
+          background: linear-gradient(135deg, rgba(34, 211, 197, 0.2), rgba(34, 211, 197, 0.05));
           display: grid;
           place-items: center;
-          color: #fff;
-          font-size: 22px;
+          color: #22d3c5;
+          font-size: 28px;
         }
 
         .stat-value {
-          font-size: 26px;
-          font-weight: 700;
+          font-size: 32px;
+          font-weight: 800;
           margin-bottom: 4px;
+          color: #0f172a;
+          letter-spacing: -1px;
         }
 
         .stat-label {
-          color: rgba(0, 0, 0, 0.65);
+          color: #64748b;
+          font-size: 14px;
+          font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .table-card {
-          background: #fff;
-          border-radius: 16px;
-          padding: 18px;
-          box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+          background: #ffffff;
+          border-radius: 20px;
+          padding: 32px;
+          box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+          border: 1px solid #f1f5f9;
         }
 
         .table-card-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 14px;
+          margin-bottom: 20px;
         }
 
         .table-card-title {
-          font-size: 18px;
+          font-size: 20px;
           font-weight: 700;
+          color: #0f172a;
         }
 
         .table-card-actions button {
@@ -324,11 +343,19 @@ export default function Admin() {
         }
 
         .btn-secondary {
-          padding: 8px 12px;
+          padding: 10px 16px;
           border-radius: 12px;
-          border: 1px solid rgba(0, 0, 0, 0.12);
+          border: 1px solid #e2e8f0;
           background: white;
+          color: #0f172a;
+          font-weight: 500;
           cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+          background: #f8fafc;
+          border-color: #cbd5e1;
         }
 
         .table {
@@ -339,24 +366,34 @@ export default function Admin() {
 
         .table th,
         .table td {
-          padding: 12px 10px;
+          padding: 16px 12px;
           text-align: left;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          border-bottom: 1px solid #f1f5f9;
         }
 
         .table th {
           font-weight: 600;
-          color: rgba(0, 0, 0, 0.7);
+          color: #64748b;
+          text-transform: uppercase;
+          font-size: 12px;
+          letter-spacing: 0.5px;
         }
 
         .btn-icon {
-          width: 34px;
-          height: 34px;
+          width: 36px;
+          height: 36px;
           border-radius: 10px;
           border: none;
-          background: rgba(0, 0, 0, 0.05);
+          background: #f1f5f9;
+          color: #64748b;
           cursor: pointer;
-          margin-right: 6px;
+          margin-right: 8px;
+          transition: all 0.2s ease;
+        }
+
+        .btn-icon:hover {
+          background: #e2e8f0;
+          color: #0f172a;
         }
 
         .btn-icon:last-child {
@@ -366,31 +403,41 @@ export default function Admin() {
         .admin-settings {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 24px;
         }
 
         .admin-settings-card {
           background: #fff;
-          border-radius: 16px;
-          padding: 18px;
-          box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
-          max-width: 420px;
+          border-radius: 20px;
+          padding: 24px;
+          box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+          border: 1px solid #f1f5f9;
+          max-width: 480px;
           display: grid;
-          gap: 12px;
+          gap: 16px;
         }
 
         .admin-settings-card label {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
           font-size: 14px;
-          color: rgba(0, 0, 0, 0.7);
+          font-weight: 500;
+          color: #475569;
         }
 
         .admin-settings-card input {
-          padding: 10px 12px;
-          border-radius: 10px;
-          border: 1px solid rgba(0, 0, 0, 0.12);
+          padding: 12px 16px;
+          border-radius: 12px;
+          border: 1px solid #e2e8f0;
+          font-size: 15px;
+          transition: border-color 0.2s;
+        }
+
+        .admin-settings-card input:focus {
+          outline: none;
+          border-color: #22d3c5;
+          box-shadow: 0 0 0 3px rgba(34, 211, 197, 0.1);
         }
 
         @media (max-width: 900px) {
@@ -402,17 +449,27 @@ export default function Admin() {
             width: 100%;
             flex-direction: row;
             align-items: center;
-            padding: 14px;
+            padding: 16px 20px;
             overflow-x: auto;
+            border-bottom: 1px solid #1e293b;
+          }
+          
+          .admin-logo {
+            margin-bottom: 0;
+            margin-right: 32px;
           }
 
           .admin-nav {
             flex-direction: row;
-            gap: 10px;
+            gap: 12px;
           }
 
           .admin-main {
-            padding: 16px;
+            padding: 24px 20px;
+          }
+          
+          .stats {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
