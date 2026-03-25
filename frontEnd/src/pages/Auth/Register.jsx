@@ -66,7 +66,7 @@ export default function RegisterForm() {
 
     try {
       const payload = {
-        name: formData.name,
+        fullName: formData.name,
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
