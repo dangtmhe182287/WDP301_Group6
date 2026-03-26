@@ -1,4 +1,5 @@
-﻿import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import axiosInstance from "../utils/axiosInstance"
 import { toast } from "sonner"
@@ -52,6 +53,7 @@ const toMinuteLabel = (minute) => {
 
 function AppointmentPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [services, setServices] = useState([])
   const [loadingServices, setLoadingServices] = useState(true)
   const [staffs, setStaffs] = useState([])
@@ -348,6 +350,7 @@ function AppointmentPage() {
       const refreshedData = await refresh.json()
       setSlots(refreshedData.slots || [])
       setSelectedStart(null)
+      navigate("/my-bookings")
     } catch (error) {
       toast.error(error.message)
     }
@@ -410,9 +413,9 @@ function AppointmentPage() {
           </div>
           <div className="appointment-steps" aria-label="Booking steps">
             <span className={`step-item ${step === 1 ? "active" : ""}`}>Services</span>
-            <span className="step-sep">›</span>
+            <span className="step-sep"></span>
             <span className={`step-item ${step === 2 ? "active" : ""}`}>Barber & time</span>
-            <span className="step-sep">›</span>
+            <span className="step-sep"></span>
             <span className={`step-item ${step === 3 ? "active" : ""}`}>Confirm</span>
           </div>
 
@@ -477,7 +480,7 @@ function AppointmentPage() {
                     role="listitem"
                   >
                     <div className="staff-avatar">
-                      <span className="staff-initials">★</span>
+                      <span className="staff-initials">⭐</span>
                     </div>
                     <div className="staff-info">
                       <div className="staff-name">Any staff</div>
