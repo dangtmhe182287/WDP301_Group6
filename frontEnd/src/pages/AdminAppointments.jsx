@@ -30,9 +30,10 @@ export default function AdminAppointments() {
     fetchAppointments();
   }, []);
 
-  const formatTime = (minutes) => {
-    const hrs = Math.floor(minutes / 60);
-    const mins = minutes % 60;
+  const formatTime = (value) => {
+    if (typeof value === "string") return value;
+    const hrs = Math.floor(value / 60);
+    const mins = value % 60;
     return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
   };
 

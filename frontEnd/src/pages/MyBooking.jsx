@@ -30,9 +30,24 @@ export default function MyBooking() {
   const [editSnapshot, setEditSnapshot] = useState(null);
 
   const formatTime = (minute) => {
+    if (typeof minute === "string") return minute;
     const h = String(Math.floor(minute / 60)).padStart(2, "0");
     const m = String(minute % 60).padStart(2, "0");
     return `${h}:${m}`;
+  };
+
+  const parseTimeToMinutes = (value) => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+      if (/^\d+$/.test(value)) return Number(value);
+      const match = value.match(/^(\d{1,2}):(\d{2})$/);
+      if (match) {
+        const hours = Number(match[1]);
+        const minutes = Number(match[2]);
+        return hours * 60 + minutes;
+      }
+    }
+    return 0;
   };
 
   const formatDate = (value) => {
@@ -157,14 +172,16 @@ export default function MyBooking() {
   const getAppointmentStart = (booking) => {
     const date = new Date(booking.appointmentDate);
     date.setHours(0, 0, 0, 0);
-    date.setMinutes(date.getMinutes() + booking.startTime);
+    const startMinutes = parseTimeToMinutes(booking.startTime);
+    date.setMinutes(date.getMinutes() + startMinutes);
     return date;
   };
 
   const getAppointmentEnd = (booking) => {
     const date = new Date(booking.appointmentDate);
     date.setHours(0, 0, 0, 0);
-    date.setMinutes(date.getMinutes() + booking.endTime);
+    const endMinutes = parseTimeToMinutes(booking.endTime);
+    date.setMinutes(date.getMinutes() + endMinutes);
     return date;
   };
 
@@ -218,12 +235,12 @@ export default function MyBooking() {
     setEditStaffId(staffId);
     setEditServiceIds(serviceIds);
     setEditDate(dateValue);
-    setEditStart(booking?.startTime ?? null);
+    setEditStart(parseTimeToMinutes(booking?.startTime));
     setEditNote(booking?.note || "");
     setEditSnapshot({
       staffId,
       date: dateValue,
-      start: booking?.startTime ?? null,
+      start: parseTimeToMinutes(booking?.startTime),
       serviceIds,
     });
   };
@@ -284,7 +301,7 @@ export default function MyBooking() {
         staffId: editStaffId,
         serviceIds: editServiceIds,
         appointmentDate: editDate,
-        startTime: editStart,
+        startTime: formatTime(editStart),
         note: editNote,
       });
       toast.success("Appointment updated.");

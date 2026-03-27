@@ -11,6 +11,8 @@ const MAX_SERVICE_PER_APPOINTMENT = 5;
 const MAX_TOTAL_DURATION = 270;
 const MAX_DAYS_AHEAD = 15;
 const MIN_BOOKING_LEAD_MINUTES = 60;
+const TZ_OFFSET_MINUTES = 7 * 60;
+const TZ_OFFSET_MS = TZ_OFFSET_MINUTES * 60 * 1000;
 
 const getBusinessHours = async () => {
   let doc = await BusinessHours.findOne();
@@ -23,39 +25,100 @@ const getBusinessHours = async () => {
   return doc;
 };
 
-// Convert date input to day start and end
-const normalizeDay = (dateInput) => {
+// Convert date input to day start and end in UTC+7 (Asia/Bangkok).
+const parseDateParts = (dateInput) => {
+  if (typeof dateInput === "string") {
+    const match = dateInput.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) {
+      return {
+        year: Number(match[1]),
+        month: Number(match[2]),
+        day: Number(match[3]),
+      };
+    }
+  }
+
   const date = new Date(dateInput);
   if (Number.isNaN(date.getTime())) {
     throw new Error("Invalid appointment date");
   }
 
-  const dayStart = new Date(date);
-  dayStart.setHours(0, 0, 0, 0);
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+  };
+};
 
-  const dayEnd = new Date(dayStart);
-  dayEnd.setDate(dayEnd.getDate() + 1);
+const makeTzDayStart = ({ year, month, day }) => {
+  // Store appointmentDate as UTC midnight for the selected local (UTC+7) date
+  const utcMidnight = Date.UTC(year, month - 1, day, 0, 0, 0, 0);
+  return new Date(utcMidnight);
+};
 
+const normalizeDay = (dateInput) => {
+  const parts = parseDateParts(dateInput);
+  const dayStart = makeTzDayStart(parts);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
   return { dayStart, dayEnd };
 };
 
 const getTodayStart = () => {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  return todayStart;
+  const now = new Date();
+  const tzNow = new Date(now.getTime() + TZ_OFFSET_MS);
+  const parts = {
+    year: tzNow.getUTCFullYear(),
+    month: tzNow.getUTCMonth() + 1,
+    day: tzNow.getUTCDate(),
+  };
+  return makeTzDayStart(parts);
 };
 
-const isSameDay = (a, b) =>
-  a.getFullYear() === b.getFullYear() &&
-  a.getMonth() === b.getMonth() &&
-  a.getDate() === b.getDate();
+const isSameDay = (a, b) => {
+  const aTz = new Date(a.getTime() + TZ_OFFSET_MS);
+  const bTz = new Date(b.getTime() + TZ_OFFSET_MS);
+  return (
+    aTz.getUTCFullYear() === bTz.getUTCFullYear() &&
+    aTz.getUTCMonth() === bTz.getUTCMonth() &&
+    aTz.getUTCDate() === bTz.getUTCDate()
+  );
+};
 
 const getCurrentMinuteOfDay = () => {
-  const now = new Date();
-  return now.getHours() * 60 + now.getMinutes();
+  const tzNow = new Date(Date.now() + TZ_OFFSET_MS);
+  return tzNow.getUTCHours() * 60 + tzNow.getUTCMinutes();
 };
 
 const isOverlap = (startA, endA, startB, endB) => Math.max(startA, startB) < Math.min(endA, endB);//Overlap if end of one is after start of the other.
+
+const parseTimeToMinutes = (value, fieldName = "time") => {
+  if (value === undefined || value === null) {
+    throw new Error(`${fieldName} is required`);
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    if (/^\d+$/.test(value)) {
+      return Number(value);
+    }
+    const match = value.match(/^(\d{1,2}):(\d{2})$/);
+    if (match) {
+      const hours = Number(match[1]);
+      const minutes = Number(match[2]);
+      if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+        return hours * 60 + minutes;
+      }
+    }
+  }
+  throw new Error(`Invalid ${fieldName} format`);
+};
+
+const formatMinutesToTime = (minutes) => {
+  const hrs = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+};
 
 // Get service Id from payload
 const toServiceIdList = (payload) => {
@@ -133,8 +196,9 @@ export const createAppointment = async (payload) => {
       throw new Error("Bạn đang có 2 lịch chưa thanh toán hoặc đã lên lịch.");
     }
   }
+  const startMinutes = parseTimeToMinutes(startTime, "startTime");
   //backEnd validation to ensure start time is aligned to 15-minute slots.
-  if (startTime % SLOT_STEP !== 0) {
+  if (startMinutes % SLOT_STEP !== 0) {
     throw new Error("Start time must be aligned to 15-minute slots");
   }
 
@@ -148,9 +212,9 @@ export const createAppointment = async (payload) => {
     throw new Error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes`);
   }
   const { openMinute, closeMinute } = await getBusinessHours();
-  const endTime = startTime + totalDuration;
+  const endMinutes = startMinutes + totalDuration;
   //Not in working hours
-  if (startTime < openMinute || endTime > closeMinute) {
+  if (startMinutes < openMinute || endMinutes > closeMinute) {
     throw new Error("Selected time is outside working hours");
   }
   //get appointment day(more than day start and less than day end)
@@ -163,7 +227,7 @@ export const createAppointment = async (payload) => {
   }
   if (isSameDay(dayStart, todayStart)) {
     const minStart = getCurrentMinuteOfDay() + MIN_BOOKING_LEAD_MINUTES;
-    if (startTime < minStart) {
+    if (startMinutes < minStart) {
       throw new Error(`Appointments must be booked at least ${MIN_BOOKING_LEAD_MINUTES} minutes in advance`);
     }
   }
@@ -174,9 +238,11 @@ export const createAppointment = async (payload) => {
     status: { $nin: ["Cancelled"] },
   });
   // Check if the new appointment overlaps with any existing appointments for the staff.
-  const overlapped = staffAppointments.some((appointment) => 
-    isOverlap(startTime, endTime, appointment.startTime, appointment.endTime)
-  );
+  const overlapped = staffAppointments.some((appointment) => {
+    const apptStart = parseTimeToMinutes(appointment.startTime, "startTime");
+    const apptEnd = parseTimeToMinutes(appointment.endTime, "endTime");
+    return isOverlap(startMinutes, endMinutes, apptStart, apptEnd);
+  });
 
   if (overlapped) {
     throw new Error("Selected slot conflicts with existing appointments");
@@ -188,9 +254,11 @@ export const createAppointment = async (payload) => {
       appointmentDate: { $gte: dayStart, $lt: dayEnd },
       status: { $nin: ["Cancelled"] },
     });
-    const customerOverlap = customerAppointments.some((appointment) =>
-      isOverlap(startTime, endTime, appointment.startTime, appointment.endTime)
-    );
+    const customerOverlap = customerAppointments.some((appointment) => {
+      const apptStart = parseTimeToMinutes(appointment.startTime, "startTime");
+      const apptEnd = parseTimeToMinutes(appointment.endTime, "endTime");
+      return isOverlap(startMinutes, endMinutes, apptStart, apptEnd);
+    });
     if (customerOverlap) {
       throw new Error("You already have an appointment at this time");
     }
@@ -204,11 +272,11 @@ export const createAppointment = async (payload) => {
     bookingChannel,
     createdByRole,
     appointmentDate: dayStart,
-    startTime,
-    endTime,
+    startTime: formatMinutesToTime(startMinutes),
+    endTime: formatMinutesToTime(endMinutes),
     paymentStatus: "Unpaid",
     note,
-    staffBusySlots: [{ startMinute: startTime, endMinute: endTime }],
+    staffBusySlots: [{ startMinute: startMinutes, endMinute: endMinutes }],
   });
 };
 
@@ -247,9 +315,11 @@ export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId, s
     const available =
       endMinute <= closeMinute && //not exceed working hours
       withinLead &&
-      !staffAppointments.some((appointment) =>//not overlap
-        isOverlap(minute, endMinute, appointment.startTime, appointment.endTime)
-      );
+      !staffAppointments.some((appointment) => {
+        const apptStart = parseTimeToMinutes(appointment.startTime, "startTime");
+        const apptEnd = parseTimeToMinutes(appointment.endTime, "endTime");
+        return isOverlap(minute, endMinute, apptStart, apptEnd);
+      });
 
     slots.push({//
       startMinute: minute,
@@ -296,9 +366,10 @@ export const cancelAppointment = async ({ appointmentId, customerId, role }) => 
     throw new Error("Not allowed to cancel this appointment");
   }
 
-  const startDateTime = new Date(appointment.appointmentDate);
-  startDateTime.setHours(0, 0, 0, 0);
-  startDateTime.setMinutes(startDateTime.getMinutes() + appointment.startTime);
+  const startMinutes = parseTimeToMinutes(appointment.startTime, "startTime");
+  const startDateTime = new Date(
+    new Date(appointment.appointmentDate).getTime() + startMinutes * 60000,
+  );
 
   const now = new Date();
   if (now >= startDateTime) {
@@ -351,9 +422,10 @@ export const rescheduleAppointment = async (payload) => {
     }
   }
 
-  const originalStart = new Date(appointment.appointmentDate);
-  originalStart.setHours(0, 0, 0, 0);
-  originalStart.setMinutes(originalStart.getMinutes() + appointment.startTime);
+  const originalStartMinutes = parseTimeToMinutes(appointment.startTime, "startTime");
+  const originalStart = new Date(
+    new Date(appointment.appointmentDate).getTime() + originalStartMinutes * 60000,
+  );
   if (new Date() >= originalStart) {
     throw new Error("Cannot reschedule after the appointment start time");
   }
@@ -376,10 +448,13 @@ export const rescheduleAppointment = async (payload) => {
   }
 
   const nextStaffId = staffId || appointment.staffId;
-  const nextStartTime = startTime !== undefined ? startTime : appointment.startTime;
+  const nextStartMinutes =
+    startTime !== undefined
+      ? parseTimeToMinutes(startTime, "startTime")
+      : parseTimeToMinutes(appointment.startTime, "startTime");
   const nextDateInput = appointmentDate || appointment.appointmentDate;
 
-  if (nextStartTime % SLOT_STEP !== 0) {
+  if (nextStartMinutes % SLOT_STEP !== 0) {
     throw new Error("Start time must be aligned to 15-minute slots");
   }
 
@@ -392,14 +467,14 @@ export const rescheduleAppointment = async (payload) => {
   }
   if (isSameDay(dayStart, todayStart)) {
     const minStart = getCurrentMinuteOfDay() + MIN_BOOKING_LEAD_MINUTES;
-    if (nextStartTime < minStart) {
+    if (nextStartMinutes < minStart) {
       throw new Error(`Appointments must be booked at least ${MIN_BOOKING_LEAD_MINUTES} minutes in advance`);
     }
   }
 
   const { openMinute, closeMinute } = await getBusinessHours();
-  const nextEndTime = nextStartTime + totalDuration;
-  if (nextStartTime < openMinute || nextEndTime > closeMinute) {
+  const nextEndMinutes = nextStartMinutes + totalDuration;
+  if (nextStartMinutes < openMinute || nextEndMinutes > closeMinute) {
     throw new Error("Selected time is outside working hours");
   }
 
@@ -410,7 +485,12 @@ export const rescheduleAppointment = async (payload) => {
     _id: { $ne: appointment._id },
   });
   const staffOverlap = staffAppointments.some((item) =>
-    isOverlap(nextStartTime, nextEndTime, item.startTime, item.endTime)
+    isOverlap(
+      nextStartMinutes,
+      nextEndMinutes,
+      parseTimeToMinutes(item.startTime, "startTime"),
+      parseTimeToMinutes(item.endTime, "endTime"),
+    )
   );
   if (staffOverlap) {
     throw new Error("Selected slot conflicts with existing appointments");
@@ -424,7 +504,12 @@ export const rescheduleAppointment = async (payload) => {
       _id: { $ne: appointment._id },
     });
     const customerOverlap = customerAppointments.some((item) =>
-      isOverlap(nextStartTime, nextEndTime, item.startTime, item.endTime)
+      isOverlap(
+        nextStartMinutes,
+        nextEndMinutes,
+        parseTimeToMinutes(item.startTime, "startTime"),
+        parseTimeToMinutes(item.endTime, "endTime"),
+      )
     );
     if (customerOverlap) {
       throw new Error("You already have an appointment at this time");
@@ -433,10 +518,10 @@ export const rescheduleAppointment = async (payload) => {
 
   appointment.staffId = nextStaffId;
   appointment.appointmentDate = dayStart;
-  appointment.startTime = nextStartTime;
-  appointment.endTime = nextEndTime;
+  appointment.startTime = formatMinutesToTime(nextStartMinutes);
+  appointment.endTime = formatMinutesToTime(nextEndMinutes);
   appointment.serviceIds = resolvedServiceIds;
-  appointment.staffBusySlots = [{ startMinute: nextStartTime, endMinute: nextEndTime }];
+  appointment.staffBusySlots = [{ startMinute: nextStartMinutes, endMinute: nextEndMinutes }];
 
   if (Object.prototype.hasOwnProperty.call(payload, "note")) {
     appointment.note = note;

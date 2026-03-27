@@ -46,6 +46,7 @@ const getWeekStart = (date) => {
 const getToday = () => formatDate(startOfDay(new Date()))
 
 const toMinuteLabel = (minute) => {
+  if (typeof minute === "string") return minute
   const h = String(Math.floor(minute / 60)).padStart(2, "0")
   const m = String(minute % 60).padStart(2, "0")
   return `${h}:${m}`
@@ -322,7 +323,7 @@ function AppointmentPage() {
           bookingChannel: "online",
           createdByRole: "customer",
           appointmentDate: selectedDate,
-          startTime: selectedStart,
+          startTime: toMinuteLabel(selectedStart),
         }),
       })
 
