@@ -53,6 +53,20 @@ const toMinuteLabel = (minute) => {
   return `${h}:${m}`
 }
 
+const parseTimeToMinutes = (value) => {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string") {
+    if (/^\d+$/.test(value)) return Number(value)
+    const match = value.match(/^(\d{1,2}):(\d{2})$/)
+    if (match) {
+      const hours = Number(match[1])
+      const minutes = Number(match[2])
+      return hours * 60 + minutes
+    }
+  }
+  return 0
+}
+
 function AppointmentPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -620,6 +634,32 @@ function AppointmentPage() {
     }
   }
 
+  const checkCustomerTimeConflict = async () => {
+    if (!user || selectedStart === null || selectedServiceIds.length === 0) return false
+    try {
+      const response = await axiosInstance.get("/appointments/my")
+      const list = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.appointments)
+          ? response.data.appointments
+          : []
+      const selectedDateKey = formatDate(toLocalDate(selectedDate))
+      const selectedStartMinutes = selectedStart
+      const selectedEndMinutes = selectedStart + totalDuration
+      return list.some((booking) => {
+        if (!booking) return false
+        if (booking.status === "Cancelled" || booking.status === "NoShow") return false
+        const bookingDateKey = formatDate(new Date(booking.appointmentDate))
+        if (bookingDateKey !== selectedDateKey) return false
+        const bookingStart = parseTimeToMinutes(booking.startTime)
+        const bookingEnd = parseTimeToMinutes(booking.endTime)
+        return Math.max(selectedStartMinutes, bookingStart) < Math.min(selectedEndMinutes, bookingEnd)
+      })
+    } catch (error) {
+      return false
+    }
+  }
+
   const handleGoStep2 = async () => {
     if (totalDuration > MAX_TOTAL_DURATION) {
       toast.error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes.`)
@@ -1087,7 +1127,14 @@ function AppointmentPage() {
             <button
               type="button"
               className="primary-btn ghost"
-              onClick={() => setStep(3)}
+              onClick={async () => {
+                const conflict = await checkCustomerTimeConflict()
+                if (conflict) {
+                  toast.error("You already have an appointment at this time.")
+                  return
+                }
+                setStep(3)
+              }}
               disabled={
                 selectedServiceIds.length === 0 ||
                 (!isMultiStaff && !selectedStaffId) ||
