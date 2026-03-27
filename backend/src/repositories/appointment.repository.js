@@ -1,7 +1,13 @@
 import Appointment from "../models/Appointment.model.js";
 
 export const findByStaff = (staffId, filter = {}) => {
-  return Appointment.find({ staffId, ...filter })
+  return Appointment.find({
+    ...filter,
+    $or: [
+      { staffId },
+      { "serviceStaffAssignments.staffId": staffId },
+    ],
+  })
     .populate("customerId", "fullName email phone")
     .populate("serviceIds", "name price duration")
     .sort({ appointmentDate: -1 });
@@ -23,7 +29,14 @@ export const updateStatus = (id, status) => {
 
 export const countByStatus = (staffId) => {
   return Appointment.aggregate([
-    { $match: { staffId } },
+    {
+      $match: {
+        $or: [
+          { staffId },
+          { "serviceStaffAssignments.staffId": staffId },
+        ],
+      },
+    },
     {
       $group: {
         _id: "$status",

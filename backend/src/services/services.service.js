@@ -42,7 +42,7 @@ export const getServiceById = async (serviceId) => {
     return service;
 }
 
-export const createService = async ({name, price, duration, description, categoryId, phases =[]}) =>{
+export const createService = async ({name, price, duration, description, categoryId, isFeatured, phases =[]}) =>{
     if(!name || price == undefined || duration == undefined || !description){
         throw new Error("Missising required fields");
     }
@@ -52,6 +52,7 @@ export const createService = async ({name, price, duration, description, categor
         duration,
         description,
         categoryId: categoryId || null,
+        isFeatured: Boolean(isFeatured),
         phases,
     });
 };

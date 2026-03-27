@@ -63,6 +63,7 @@ function AppointmentPage() {
   const [selectedServiceIds, setSelectedServiceIds] = useState([])
   const [selectedStaffId, setSelectedStaffId] = useState("")
   const [anyStaffId, setAnyStaffId] = useState("")
+  const [serviceStaffSelections, setServiceStaffSelections] = useState({})
   const [slotStaffMap, setSlotStaffMap] = useState({})
   const [selectedDate, setSelectedDate] = useState(getToday())
   const [slots, setSlots] = useState([])
@@ -79,6 +80,33 @@ function AppointmentPage() {
     () => services.filter((service) => selectedServiceIds.includes(String(service._id))),
     [services, selectedServiceIds],
   )
+  const orderedSelectedServices = useMemo(
+    () =>
+      selectedServiceIds
+        .map((id) => services.find((service) => String(service._id) === String(id)))
+        .filter(Boolean),
+    [services, selectedServiceIds],
+  )
+
+  const getServiceCategoryName = (service) =>
+    service?.categoryId?.name || service?.category?.name || service?.category || "Other"
+
+  const featuredServices = useMemo(
+    () => services.filter((service) => service?.isFeatured),
+    [services],
+  )
+
+  const servicesByCategory = useMemo(() => {
+    const map = new Map()
+    services.forEach((service) => {
+      const categoryName = getServiceCategoryName(service)
+      if (!map.has(categoryName)) {
+        map.set(categoryName, [])
+      }
+      map.get(categoryName).push(service)
+    })
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+  }, [services])
 
   const totalDuration = useMemo(
     () => selectedServices.reduce((total, service) => total + (service.duration || 0), 0),
@@ -115,20 +143,6 @@ function AppointmentPage() {
     return getCurrentMinuteOfDay() + minLeadMinutes
   }, [selectedDateObject, minLeadMinutes])
 
-  const selectedStaffName = useMemo(() => {
-    if (!selectedStaffId) return "Not selected"
-    if (selectedStaffId === "ANY") {
-      if (anyStaffId) {
-        return (
-          staffs.find((staff) => staff._id === anyStaffId)?.fullName ||
-          "Any staff"
-        )
-      }
-      return "Any staff"
-    }
-    return staffs.find((staff) => staff._id === selectedStaffId)?.fullName || selectedStaffId
-  }, [selectedStaffId, anyStaffId, staffs])
-
   const getStaffInfo = (staff) => staff?.staff || staff || {}
 
   const getStaffDisplay = (staff) => staff?.fullName || staff?.email || "Staff"
@@ -142,6 +156,100 @@ function AppointmentPage() {
   const getStaffAvatar = (staff, staffInfo) =>
     staffInfo?.avatar || staff?.avatar || staff?.image || ""
 
+  const getStaffServiceIds = (staff) => {
+    const staffInfo = staff?.staff || staff || {}
+    return Array.isArray(staffInfo.serviceIds)
+      ? staffInfo.serviceIds.map((svc) => String(svc?._id || svc)).filter(Boolean)
+      : []
+  }
+
+  const eligibleStaffs = useMemo(() => {
+    if (selectedServiceIds.length === 0) return staffs
+    return staffs.filter((staff) => {
+      const staffServiceIds = getStaffServiceIds(staff)
+      return selectedServiceIds.every((id) => staffServiceIds.includes(String(id)))
+    })
+  }, [staffs, selectedServiceIds])
+
+  const serviceStaffOptions = useMemo(() => {
+    const map = new Map()
+    if (selectedServiceIds.length === 0) return map
+    selectedServiceIds.forEach((serviceId) => {
+      const options = staffs.filter((staff) =>
+        getStaffServiceIds(staff).includes(String(serviceId))
+      )
+      map.set(String(serviceId), options)
+    })
+    return map
+  }, [selectedServiceIds, staffs])
+
+  const commonStaffIds = useMemo(() => {
+    if (selectedServiceIds.length === 0) return []
+    const sets = selectedServiceIds.map((serviceId) => {
+      const options = serviceStaffOptions.get(String(serviceId)) || []
+      return new Set(options.map((staff) => String(staff._id)))
+    })
+    if (sets.some((set) => set.size === 0)) return []
+    const [first, ...rest] = sets
+    return Array.from(first).filter((id) => rest.every((set) => set.has(id)))
+  }, [selectedServiceIds, serviceStaffOptions])
+
+  const isMultiStaff = selectedServiceIds.length > 0 && commonStaffIds.length === 0
+  const autoStaffId = commonStaffIds.length === 1 ? commonStaffIds[0] : ""
+
+  const allServiceStaffSelected = useMemo(() => {
+    if (!isMultiStaff) return true
+    return selectedServiceIds.every((id) => serviceStaffSelections[String(id)])
+  }, [isMultiStaff, selectedServiceIds, serviceStaffSelections])
+
+  const selectedStaffName = useMemo(() => {
+    if (isMultiStaff) return "Multiple staff"
+    if (!selectedStaffId) return "Not selected"
+    if (selectedStaffId === "ANY") {
+      if (anyStaffId) {
+        return (
+          staffs.find((staff) => staff._id === anyStaffId)?.fullName ||
+          "Any staff"
+        )
+      }
+      return "Any staff"
+    }
+    return staffs.find((staff) => staff._id === selectedStaffId)?.fullName || selectedStaffId
+  }, [selectedStaffId, anyStaffId, staffs, isMultiStaff])
+
+  useEffect(() => {
+    if (selectedServiceIds.length === 0) return
+    if (isMultiStaff) return
+    if (selectedStaffId && selectedStaffId !== "ANY") {
+      const stillEligible = eligibleStaffs.some((staff) => staff._id === selectedStaffId)
+      if (!stillEligible) {
+        setSelectedStaffId("")
+        setAnyStaffId("")
+      }
+    }
+    if (selectedStaffId === "ANY" && eligibleStaffs.length === 0) {
+      setSelectedStaffId("")
+      setAnyStaffId("")
+    }
+  }, [eligibleStaffs, selectedServiceIds, selectedStaffId, isMultiStaff])
+
+  useEffect(() => {
+    if (isMultiStaff) {
+      if (selectedStaffId !== "MULTI") {
+        setSelectedStaffId("MULTI")
+      }
+      setAnyStaffId("")
+      return
+    }
+    if (selectedStaffId === "MULTI") {
+      setSelectedStaffId("")
+    }
+    if (autoStaffId) {
+      setSelectedStaffId(autoStaffId)
+      setAnyStaffId("")
+    }
+  }, [isMultiStaff, autoStaffId, selectedStaffId])
+
   const toggleService = (serviceId) => {
     setSelectedServiceIds((prev) =>
       prev.includes(serviceId)
@@ -151,6 +259,18 @@ function AppointmentPage() {
           : [...prev, serviceId],
     )
   }
+
+  useEffect(() => {
+    setServiceStaffSelections((prev) => {
+      const next = {}
+      selectedServiceIds.forEach((id) => {
+        if (prev[String(id)]) {
+          next[String(id)] = prev[String(id)]
+        }
+      })
+      return next
+    })
+  }, [selectedServiceIds])
 
   useEffect(() => {
     const loadServices = async () => {
@@ -218,7 +338,7 @@ function AppointmentPage() {
 
   useEffect(() => {
     const loadAvailability = async () => {
-      if (step !== 2 || !selectedStaffId || selectedServiceIds.length === 0 || !selectedDate) {
+      if (step !== 2 || selectedServiceIds.length === 0 || !selectedDate) {
         setSlots([])
         return
       }
@@ -227,8 +347,34 @@ function AppointmentPage() {
       setSelectedStart(null)
       setAnyStaffId("")
       try {
-        if (selectedStaffId === "ANY") {
-          const staffIds = staffs.map((s) => s._id).filter(Boolean)
+        if (isMultiStaff) {
+          if (!allServiceStaffSelected) {
+            setSlots([])
+            setSlotStaffMap({})
+            return
+          }
+          const staffAssignments = selectedServiceIds.map((serviceId) => ({
+            serviceId,
+            staffId: serviceStaffSelections[String(serviceId)],
+          }))
+          const params = new URLSearchParams({
+            appointmentDate: selectedDate,
+            serviceIds: selectedServiceIds.join(","),
+            staffAssignments: JSON.stringify(staffAssignments),
+          })
+          const response = await fetch(`${API_BASE}/appointments/availability?${params.toString()}`)
+          const data = await response.json()
+          if (!response.ok) {
+            throw new Error(data?.error || data?.message || "Unable to load available slots")
+          }
+          setSlots(data.slots || [])
+          setSlotStaffMap({})
+        } else if (!selectedStaffId) {
+          setSlots([])
+          setSlotStaffMap({})
+          return
+        } else if (selectedStaffId === "ANY") {
+          const staffIds = eligibleStaffs.map((s) => s._id).filter(Boolean)
           if (staffIds.length === 0) {
             setSlots([])
             setSlotStaffMap({})
@@ -305,19 +451,33 @@ function AppointmentPage() {
     }
 
     loadAvailability()
-  }, [selectedDate, selectedServiceIds, selectedStaffId, step, staffs])
+  }, [
+    selectedDate,
+    selectedServiceIds,
+    selectedStaffId,
+    step,
+    staffs,
+    eligibleStaffs,
+    isMultiStaff,
+    allServiceStaffSelected,
+    serviceStaffSelections,
+  ])
 
   const handleBook = async () => {
     if (!user) {
       toast.error("Please log in to book an appointment.")
       return
     }
-    if (selectedServiceIds.length === 0 || !selectedStaffId || selectedStart === null) {
+    if (selectedServiceIds.length === 0 || selectedStart === null || (!isMultiStaff && !selectedStaffId)) {
       toast.error("Please select services, staff, and a start time.")
       return
     }
-    if (selectedStaffId === "ANY" && !anyStaffId) {
+    if (!isMultiStaff && selectedStaffId === "ANY" && !anyStaffId) {
       toast.error("Please pick a time slot to assign a staff member.")
+      return
+    }
+    if (isMultiStaff && !allServiceStaffSelected) {
+      toast.error("Please select staff for every service.")
       return
     }
     if (selectedServiceIds.length > MAX_SERVICE_PER_APPOINTMENT) {
@@ -338,13 +498,24 @@ function AppointmentPage() {
     }
 
     try {
+      const staffAssignments = isMultiStaff
+        ? selectedServiceIds.map((serviceId) => ({
+            serviceId,
+            staffId: serviceStaffSelections[String(serviceId)],
+          }))
+        : null
       const response = await fetch(`${API_BASE}/appointments/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerId: user._id || user.id,
           name: user.fullName || user.email || "Customer",
-          staffId: selectedStaffId === "ANY" ? anyStaffId : selectedStaffId,
+          staffId: isMultiStaff
+            ? undefined
+            : selectedStaffId === "ANY"
+              ? anyStaffId
+              : selectedStaffId,
+          staffAssignments: staffAssignments || undefined,
           serviceIds: selectedServiceIds,
           note,
           bookingChannel: "online",
@@ -365,19 +536,21 @@ function AppointmentPage() {
         )} (${totalDuration} minutes).`,
       )
 
-      const params = new URLSearchParams({
-        staffId: selectedStaffId,
-        appointmentDate: selectedDate,
-      })
-      if (selectedServiceIds.length === 1) {
-        params.set("serviceId", selectedServiceIds[0])
-      } else {
-        params.set("serviceIds", selectedServiceIds.join(","))
+      if (!isMultiStaff) {
+        const params = new URLSearchParams({
+          staffId: selectedStaffId,
+          appointmentDate: selectedDate,
+        })
+        if (selectedServiceIds.length === 1) {
+          params.set("serviceId", selectedServiceIds[0])
+        } else {
+          params.set("serviceIds", selectedServiceIds.join(","))
+        }
+        const refresh = await fetch(`${API_BASE}/appointments/availability?${params.toString()}`)
+        const refreshedData = await refresh.json()
+        setSlots(refreshedData.slots || [])
+        setSelectedStart(null)
       }
-      const refresh = await fetch(`${API_BASE}/appointments/availability?${params.toString()}`)
-      const refreshedData = await refresh.json()
-      setSlots(refreshedData.slots || [])
-      setSelectedStart(null)
       navigate("/my-bookings")
     } catch (error) {
       toast.error(error.message)
@@ -451,34 +624,74 @@ function AppointmentPage() {
             <div className="appointment-block">
               <h2>1. Select services</h2>
               {loadingServices ? <p className="muted">Loading services...</p> : null}
-              <div className="service-grid">
-                {services.map((service) => {
-                  const id = String(service._id)
-                  const isSelected = selectedServiceIds.includes(id)
-                  return (
-                    <button
-                      key={service._id}
-                      type="button"
-                      className={`service-card ${isSelected ? "selected" : ""}`}
-                      onClick={() => toggleService(id)}
-                    >
-                      <div className="service-title">
-                        <span>{service.name}</span>
-                        <span className="service-check">{isSelected ? "Selected" : "Select"}</span>
-                      </div>
-                      <div className="service-meta">{service.duration} min</div>
-                      {service.description ? (
-                        <div className="service-description line-clamp-2">
-                          {service.description}
-                        </div>
-                      ) : null}
-                      <div className="service-price">
-                        {(service.price || 0).toLocaleString("en-US")} VND
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+
+              {featuredServices.length > 0 ? (
+                <div className="mb-4">
+                  <h3 className="h-[30px] text-lg font-semibold text-slate-700">Featured</h3>
+                  <div className="service-grid">
+                    {featuredServices.map((service) => {
+                      const id = String(service._id)
+                      const isSelected = selectedServiceIds.includes(id)
+                      return (
+                        <button
+                          key={`featured-${service._id}`}
+                          type="button"
+                          className={`service-card ${isSelected ? "selected" : ""}`}
+                          onClick={() => toggleService(id)}
+                        >
+                          <div className="service-title">
+                            <span>{service.name}</span>
+                            <span className="service-check">{isSelected ? "Selected" : "Select"}</span>
+                          </div>
+                          <div className="service-meta">{service.duration} min</div>
+                          {service.description ? (
+                            <div className="service-description line-clamp-2">
+                              {service.description}
+                            </div>
+                          ) : null}
+                          <div className="service-price">
+                            {(service.price || 0).toLocaleString("en-US")} VND
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              {servicesByCategory.map(([categoryName, categoryServices]) => (
+                <div key={categoryName} className="mb-4">
+                  <h3 className="h-[30px] text-lg font-semibold text-slate-700">{categoryName}</h3>
+                  <div className="service-grid">
+                    {categoryServices.map((service) => {
+                      const id = String(service._id)
+                      const isSelected = selectedServiceIds.includes(id)
+                      return (
+                        <button
+                          key={service._id}
+                          type="button"
+                          className={`service-card ${isSelected ? "selected" : ""}`}
+                          onClick={() => toggleService(id)}
+                        >
+                          <div className="service-title">
+                            <span>{service.name}</span>
+                            <span className="service-check">{isSelected ? "Selected" : "Select"}</span>
+                          </div>
+                          <div className="service-meta">{service.duration} min</div>
+                          {service.description ? (
+                            <div className="service-description line-clamp-2">
+                              {service.description}
+                            </div>
+                          ) : null}
+                          <div className="service-price">
+                            {(service.price || 0).toLocaleString("en-US")} VND
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : null}
 
@@ -496,93 +709,137 @@ function AppointmentPage() {
               <div className="staff-column">
                 <div className="staff-section horizontal">
                   {loadingStaffs ? <p className="muted">Loading barbers...</p> : null}
-                  {!loadingStaffs && staffs.length === 0 ? (
-                    <p className="muted">No matching barbers yet.</p>
-                  ) : null}
-
-                <div className="staff-grid horizontal" role="list">
-                  <button
-                    type="button"
-                    className={`staff-card ${selectedStaffId === "ANY" ? "selected" : ""}`}
-                    onClick={() => setSelectedStaffId("ANY")}
-                    role="listitem"
-                  >
-                    <div className="staff-avatar">
-                      <span className="staff-initials">⭐</span>
-                    </div>
-                    <div className="staff-info">
-                      <div className="staff-name">Any staff</div>
-                      <div className="staff-speciality muted">We will assign the first available</div>
-                      <div className="staff-meta">
-                        <span>Auto selection</span>
+                  {!loadingStaffs && isMultiStaff ? (
+                    <div className="service-staff-assignments">
+                      <div className="staff-section-header">
+                        <h3>Assign staff for each service</h3>
+                        <span className="muted">Required</span>
                       </div>
-                    </div>
-                    <div className="staff-action">
-                      <span className="staff-select">
-                        {selectedStaffId === "ANY" ? "Selected" : "Select"}
-                      </span>
-                    </div>
-                  </button>
-                    {staffs.map((staff) => {
-                      const staffInfo = getStaffInfo(staff)
-                      const staffName = getStaffDisplay(staff)
-                      const staffSpeciality = getStaffSpeciality(staffInfo)
-                      const staffExperience =
-                        staffInfo?.experienceYears ?? staffInfo?.staffExperienceYears ?? null
-                      const staffRating = staffInfo?.rating ?? staff?.rating ?? null
-                      const isSelected = selectedStaffId === staff._id
-                      const avatarUrl = getStaffAvatar(staff, staffInfo)
-                      const initials = staffName
-                        .split(" ")
-                        .filter(Boolean)
-                        .slice(0, 2)
-                        .map((word) => word[0]?.toUpperCase())
-                        .join("")
-
-                      return (
-                        <button
-                          key={staff._id}
-                          type="button"
-                          className={`staff-card ${isSelected ? "selected" : ""}`}
-                          onClick={() => setSelectedStaffId(staff._id)}
-                          role="listitem"
-                        >
-                          <div className="staff-avatar">
-                            {avatarUrl ? (
-                              <img src={avatarUrl} alt={staffName} />
-                            ) : (
-                              <span className="staff-initials">{initials || "S"}</span>
-                            )}
-                          </div>
-
-                          <div className="staff-info">
-                            <div className="staff-name">{staffName}</div>
-                            {staffSpeciality ? (
-                              <div className="staff-speciality">{staffSpeciality}</div>
-                            ) : (
+                      {orderedSelectedServices.map((service) => {
+                        const id = String(service._id)
+                        const options = serviceStaffOptions.get(id) || []
+                        return (
+                          <div key={id} className="service-staff-row">
+                            <div className="service-staff-info">
+                              <div className="staff-name">{service.name}</div>
                               <div className="staff-speciality muted">
-                                Specialty not updated
+                                {service.duration} min
                               </div>
-                            )}
-                            <div className="staff-meta">
+                            </div>
+                            <select
+                              className="service-staff-select"
+                              value={serviceStaffSelections[id] || ""}
+                              onChange={(event) =>
+                                setServiceStaffSelections((prev) => ({
+                                  ...prev,
+                                  [id]: event.target.value,
+                                }))
+                              }
+                            >
+                              <option value="">Select staff</option>
+                              {options.map((staff) => (
+                                <option key={staff._id} value={staff._id}>
+                                  {getStaffDisplay(staff)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <>
+                      {!loadingStaffs && eligibleStaffs.length === 0 ? (
+                        <p className="muted">No matching barbers yet.</p>
+                      ) : null}
 
-                              <span>
-                                {staffRating !== null
-                                  ? `Rating ${staffRating}⭐`
-                                  : "No ratings yet"}
+                      <div className="staff-grid horizontal" role="list">
+                        {eligibleStaffs.length > 1 ? (
+                          <button
+                            type="button"
+                            className={`staff-card ${selectedStaffId === "ANY" ? "selected" : ""}`}
+                            onClick={() => setSelectedStaffId("ANY")}
+                            role="listitem"
+                          >
+                            <div className="staff-avatar">
+                              <span className="staff-initials">*</span>
+                            </div>
+                            <div className="staff-info">
+                              <div className="staff-name">Any staff</div>
+                              <div className="staff-speciality muted">We will assign the first available</div>
+                              <div className="staff-meta">
+                                <span>Auto selection</span>
+                              </div>
+                            </div>
+                            <div className="staff-action">
+                              <span className="staff-select">
+                                {selectedStaffId === "ANY" ? "Selected" : "Select"}
                               </span>
                             </div>
-                          </div>
+                          </button>
+                        ) : null}
+                        {eligibleStaffs.map((staff) => {
+                          const staffInfo = getStaffInfo(staff)
+                          const staffName = getStaffDisplay(staff)
+                          const staffSpeciality = getStaffSpeciality(staffInfo)
+                          const staffExperience =
+                            staffInfo?.experienceYears ?? staffInfo?.staffExperienceYears ?? null
+                          const staffRating = staffInfo?.rating ?? staff?.rating ?? null
+                          const isSelected = selectedStaffId === staff._id
+                          const avatarUrl = getStaffAvatar(staff, staffInfo)
+                          const initials = staffName
+                            .split(" ")
+                            .filter(Boolean)
+                            .slice(0, 2)
+                            .map((word) => word[0]?.toUpperCase())
+                            .join("")
 
-                          <div className="staff-action">
-                            <span className="staff-select">
-                              {isSelected ? "Selected" : "Select"}
-                            </span>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
+                          return (
+                            <button
+                              key={staff._id}
+                              type="button"
+                              className={`staff-card ${isSelected ? "selected" : ""}`}
+                              onClick={() => setSelectedStaffId(staff._id)}
+                              role="listitem"
+                            >
+                              <div className="staff-avatar">
+                                {avatarUrl ? (
+                                  <img src={avatarUrl} alt={staffName} />
+                                ) : (
+                                  <span className="staff-initials">{initials || "S"}</span>
+                                )}
+                              </div>
+
+                              <div className="staff-info">
+                                <div className="staff-name">{staffName}</div>
+                                {staffSpeciality ? (
+                                  <div className="staff-speciality">{staffSpeciality}</div>
+                                ) : (
+                                  <div className="staff-speciality muted">
+                                    Specialty not updated
+                                  </div>
+                                )}
+                                <div className="staff-meta">
+
+                                  <span>
+                                    {staffRating !== null
+                                      ? `Rating ${staffRating}⭐`
+                                      : "No ratings yet"}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="staff-action">
+                                <span className="staff-select">
+                                  {isSelected ? "Selected" : "Select"}
+                                </span>
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="appointment-date-picker">
@@ -635,8 +892,11 @@ function AppointmentPage() {
               <div className="time-staff-grid">
                 <div className="time-column">
                   {loadingSlots ? <p className="muted">Loading slots...</p> : null}
-                  {!selectedStaffId ? (
+                  {!isMultiStaff && !selectedStaffId ? (
                     <p className="muted">Select a barber to see available times.</p>
+                  ) : null}
+                  {isMultiStaff && !allServiceStaffSelected ? (
+                    <p className="muted">Select staff for each service to see available times.</p>
                   ) : null}
                   {slots.length === 0 ? null : (
                     (() => {
@@ -764,7 +1024,12 @@ function AppointmentPage() {
               type="button"
               className="primary-btn ghost"
               onClick={handleBook}
-              disabled={selectedServiceIds.length === 0 || !selectedStaffId || selectedStart === null}
+              disabled={
+                selectedServiceIds.length === 0 ||
+                (!isMultiStaff && !selectedStaffId) ||
+                selectedStart === null ||
+                !allServiceStaffSelected
+              }
             >
               Confirm booking
             </button>
@@ -773,7 +1038,12 @@ function AppointmentPage() {
               type="button"
               className="primary-btn ghost"
               onClick={() => setStep(3)}
-              disabled={selectedServiceIds.length === 0 || !selectedStaffId || selectedStart === null}
+              disabled={
+                selectedServiceIds.length === 0 ||
+                (!isMultiStaff && !selectedStaffId) ||
+                selectedStart === null ||
+                !allServiceStaffSelected
+              }
             >
               Continue
             </button>
@@ -794,3 +1064,4 @@ function AppointmentPage() {
 }
 
 export default AppointmentPage
+

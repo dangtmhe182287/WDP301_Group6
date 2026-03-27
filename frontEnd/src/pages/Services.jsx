@@ -210,7 +210,11 @@ export default function Services() {
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
     const processedValue =
-      type === "number" ? (value === "" ? 0 : Number(value)) : value;
+      type === "checkbox"
+        ? e.target.checked
+        : type === "number"
+        ? value === "" ? 0 : Number(value)
+        : value;
 
     setFormData((prev) => ({ ...prev, [name]: processedValue }));
   };
@@ -271,6 +275,129 @@ export default function Services() {
     });
   };
 
+  const featuredServices = services.filter((service) => service?.isFeatured);
+
+  const servicesByCategory = services.reduce((acc, service) => {
+    const categoryName = service?.categoryId?.name || "Uncategorized";
+    if (!acc[categoryName]) acc[categoryName] = [];
+    acc[categoryName].push(service);
+    return acc;
+  }, {});
+
+  const renderServiceTable = (title, description, list) => (
+    <Card className="overflow-hidden rounded-2xl border-slate-200 shadow-sm">
+      <CardHeader className="border-b bg-slate-50/80 px-5 py-4">
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-sm">
+            <thead className="bg-slate-50">
+              <tr className="border-b text-slate-500">
+                <th className="px-5 py-3 text-left font-semibold">Service</th>
+                <th className="px-5 py-3 text-left font-semibold">Price</th>
+                <th className="px-5 py-3 text-left font-semibold">Duration</th>
+                <th className="px-5 py-3 text-left font-semibold">Category</th>
+                <th className="px-5 py-3 text-left font-semibold">Featured</th>
+                <th className="px-5 py-3 text-left font-semibold">Description</th>
+                <th className="px-5 py-3 text-right font-semibold">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {list.map((service) => (
+                <tr
+                  key={service._id}
+                  className="border-b last:border-0 transition hover:bg-slate-50/70"
+                >
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+                        <Scissors className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-900">{service.name}</p>
+                        <p className="text-xs text-slate-500">Service item</p>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <Badge className="rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                      <Wallet className="mr-1 h-3.5 w-3.5" />
+                      {service.price?.toLocaleString("en-US")} VND
+                    </Badge>
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <Badge
+                      variant="outline"
+                      className="rounded-full border-slate-200 text-slate-700"
+                    >
+                      <Clock3 className="mr-1 h-3.5 w-3.5" />
+                      {service.duration} min
+                    </Badge>
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full bg-slate-100 text-slate-700 hover:bg-slate-100"
+                    >
+                      {service.categoryId?.name || "Uncategorized"}
+                    </Badge>
+                  </td>
+
+                  <td className="px-5 py-4">
+                    {service.isFeatured ? (
+                      <Badge className="rounded-full bg-amber-100 text-amber-700 hover:bg-amber-100">
+                        Featured
+                      </Badge>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <p className="max-w-[320px] text-slate-600 line-clamp-2">
+                      {service.description}
+                    </p>
+                  </td>
+
+                  <td className="px-5 py-4">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg"
+                        onClick={() => handleEdit(service)}
+                      >
+                        <Pencil className="mr-1 h-3.5 w-3.5" />
+                        Edit
+                      </Button>
+
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="rounded-lg"
+                        onClick={() => handleDelete(service._id)}
+                      >
+                        <Trash2 className="mr-1 h-3.5 w-3.5" />
+                        Delete
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-5 max-w-6xl">
       <div className="flex items-start justify-between gap-4">
@@ -317,112 +444,12 @@ export default function Services() {
           </CardContent>
         </Card>
       ) : (
-        <Card className="overflow-hidden rounded-2xl border-slate-200 shadow-sm">
-          <CardHeader className="border-b bg-slate-50/80 px-5 py-4">
-            <CardTitle>All Services</CardTitle>
-            <CardDescription>
-              Overview of services currently in the system
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-sm">
-                <thead className="bg-slate-50">
-                  <tr className="border-b text-slate-500">
-                    <th className="px-5 py-3 text-left font-semibold">Service</th>
-                    <th className="px-5 py-3 text-left font-semibold">Price</th>
-                    <th className="px-5 py-3 text-left font-semibold">Duration</th>
-                    <th className="px-5 py-3 text-left font-semibold">Category</th>
-                    <th className="px-5 py-3 text-left font-semibold">Description</th>
-                    <th className="px-5 py-3 text-right font-semibold">Actions</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {services.map((service) => (
-                    <tr
-                      key={service._id}
-                      className="border-b last:border-0 transition hover:bg-slate-50/70"
-                    >
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
-                            <Scissors className="h-4 w-4" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-slate-900">
-                              {service.name}
-                            </p>
-                            <p className="text-xs text-slate-500">
-                              Service item
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <Badge className="rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-                          <Wallet className="mr-1 h-3.5 w-3.5" />
-                          {service.price?.toLocaleString("en-US")} VND
-                        </Badge>
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <Badge
-                          variant="outline"
-                          className="rounded-full border-slate-200 text-slate-700"
-                        >
-                          <Clock3 className="mr-1 h-3.5 w-3.5" />
-                          {service.duration} min
-                        </Badge>
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <Badge
-                          variant="secondary"
-                          className="rounded-full bg-slate-100 text-slate-700 hover:bg-slate-100"
-                        >
-                          {service.categoryId?.name || "Uncategorized"}
-                        </Badge>
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <p className="max-w-[320px] text-slate-600 line-clamp-2">
-                          {service.description}
-                        </p>
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-lg"
-                            onClick={() => handleEdit(service)}
-                          >
-                            <Pencil className="mr-1 h-3.5 w-3.5" />
-                            Edit
-                          </Button>
-
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="rounded-lg"
-                            onClick={() => handleDelete(service._id)}
-                          >
-                            <Trash2 className="mr-1 h-3.5 w-3.5" />
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          
+          {Object.entries(servicesByCategory).map(([categoryName, list]) =>
+            renderServiceTable(categoryName, ``, list),
+          )}
+        </div>
       )}
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
@@ -503,6 +530,16 @@ export default function Services() {
                   <p className="text-xs text-slate-500">Loading categories...</p>
                 ) : null}
               </div>
+
+              <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  name="isFeatured"
+                  checked={Boolean(formData.isFeatured)}
+                  onChange={handleInputChange}
+                />
+                Featured service
+              </label>
 
               <div className="grid gap-2">
                 <label className="text-sm font-medium text-slate-700">

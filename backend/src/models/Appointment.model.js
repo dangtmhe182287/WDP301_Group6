@@ -8,6 +8,26 @@ const timeRangeSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const serviceAssignmentSchema = new mongoose.Schema(
+  {
+    serviceId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Service",
+      required: true,
+    },
+    staffId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    startMinute: { type: Number, required: true, min: 0 },
+    endMinute: { type: Number, required: true, min: 1 },
+    startTime: { type: String, required: true },
+    endTime: { type: String, required: true },
+  },
+  { _id: false }
+);
+
 const appointmentSchema = new mongoose.Schema(
   {
     customerId: {
@@ -66,6 +86,7 @@ const appointmentSchema = new mongoose.Schema(
     note: { type: String, trim: true },
     staffBusySlots: [timeRangeSchema],
     staffFreeSlots: [timeRangeSchema],
+    serviceStaffAssignments: [serviceAssignmentSchema],
   },
   { timestamps: true }
 );

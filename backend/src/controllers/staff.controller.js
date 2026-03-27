@@ -152,7 +152,7 @@ export const createStaff = async (req, res) => {
     if (existingUser) return res.status(400).json({ message: "Email đã tồn tại!" });
 
     // Create user role staff with default password
-    const hashedPassword = await bcrypt.hash("123456", 10);
+    const hashedPassword = await bcrypt.hash("123456789", 10);
     const newUser = await User.create({
       fullName,
       email,

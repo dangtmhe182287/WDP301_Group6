@@ -21,6 +21,18 @@ export default function ServicesPage() {
 
   const formatPrice = (price) => price?.toLocaleString("en-US") + " VND";
 
+  const getCategoryName = (service) =>
+    service?.categoryId?.name || service?.category?.name || service?.category || "Other";
+
+  const featuredServices = services.filter((service) => service?.isFeatured);
+
+  const servicesByCategory = services.reduce((acc, service) => {
+    const categoryName = getCategoryName(service);
+    if (!acc[categoryName]) acc[categoryName] = [];
+    acc[categoryName].push(service);
+    return acc;
+  }, {});
+
   return (
     <main className="services-page">
       <section className="services-hero">
@@ -38,18 +50,47 @@ export default function ServicesPage() {
         ) : services.length === 0 ? (
           <p className="services-state">No services available.</p>
         ) : (
-          <div className="services-grid">
-            {services.map((service) => (
-              <div key={service._id} className="service-card">
-                <div className="service-card-body">
-                  <h3>{service.name}</h3>
-                  <p>{service.description}</p>
+          <div className="services-stack">
+            {featuredServices.length > 0 ? (
+              <div className="services-section">
+                <h2 className="services-section-title">Featured</h2>
+                <div className="services-grid">
+                  {featuredServices.map((service) => (
+                    <div key={`featured-${service._id}`} className="service-card">
+                      <div className="service-card-body">
+                        <h3>{service.name}</h3>
+                        <p>{service.description}</p>
+                      </div>
+                      <div className="service-card-footer">
+                        <div className="service-meta">
+                          <span className="service-price">{formatPrice(service.price)}</span>
+                          <span className="service-duration">⏱ {service.duration} min</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="service-card-footer">
-                  <div className="service-meta">
-                    <span className="service-price">{formatPrice(service.price)}</span>
-                    <span className="service-duration">⏱ {service.duration} min</span>
-                  </div>
+              </div>
+            ) : null}
+
+            {Object.entries(servicesByCategory).map(([categoryName, list]) => (
+              <div key={categoryName} className="services-section">
+                <h2 className="services-section-title">{categoryName}</h2>
+                <div className="services-grid">
+                  {list.map((service) => (
+                    <div key={service._id} className="service-card">
+                      <div className="service-card-body">
+                        <h3>{service.name}</h3>
+                        <p>{service.description}</p>
+                      </div>
+                      <div className="service-card-footer">
+                        <div className="service-meta">
+                          <span className="service-price">{formatPrice(service.price)}</span>
+                          <span className="service-duration">⏱ {service.duration} min</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
@@ -83,6 +124,18 @@ export default function ServicesPage() {
 
         .services-content {
           padding: 64px 24px;
+        }
+
+        .services-stack {
+          display: grid;
+          gap: 32px;
+        }
+
+        .services-section-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: #0b2e5c;
+          margin: 0 0 16px;
         }
 
         .services-grid {
