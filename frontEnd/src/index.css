@@ -884,6 +884,66 @@ body {
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
 }
 
+/* Admin settings */
+.admin-settings {
+  padding: 24px;
+}
+
+.admin-settings h2 {
+  margin: 0 0 16px;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.admin-settings-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.admin-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.admin-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.admin-settings-field input {
+  height: 42px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid #cbd5f5;
+  font-size: 14px;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.admin-settings-field input[type="time"] {
+  min-width: 140px;
+}
+
+.admin-settings-help {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.admin-settings-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .settings-avatar {
   width: 120px;
   height: 120px;

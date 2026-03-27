@@ -7,8 +7,9 @@ import { toast } from "sonner"
 const API_BASE = "http://localhost:3000"
 const MAX_SERVICE_PER_APPOINTMENT = 5
 const MAX_TOTAL_DURATION = 270
-const MAX_DAYS_AHEAD = 15
+const DEFAULT_MAX_DAYS_AHEAD = 15
 const DEFAULT_CLOSE_MINUTE = 19 * 60
+const DEFAULT_MIN_LEAD_MINUTES = 60
 
 const formatDate = (date) => {
   const year = date.getFullYear()
@@ -70,6 +71,9 @@ function AppointmentPage() {
   const [step, setStep] = useState(1)
   const [note, setNote] = useState("")
   const [checkingLimit, setCheckingLimit] = useState(false)
+  const [maxDaysAhead, setMaxDaysAhead] = useState(DEFAULT_MAX_DAYS_AHEAD)
+  const [minLeadMinutes, setMinLeadMinutes] = useState(DEFAULT_MIN_LEAD_MINUTES)
+  const [closeMinute, setCloseMinute] = useState(DEFAULT_CLOSE_MINUTE)
 
   const selectedServices = useMemo(
     () => services.filter((service) => selectedServiceIds.includes(String(service._id))),
@@ -108,8 +112,8 @@ function AppointmentPage() {
   const minLeadStart = useMemo(() => {
     if (!selectedDateObject) return null
     if (!isSameDay(selectedDateObject, new Date())) return null
-    return getCurrentMinuteOfDay() + 60
-  }, [selectedDateObject])
+    return getCurrentMinuteOfDay() + minLeadMinutes
+  }, [selectedDateObject, minLeadMinutes])
 
   const selectedStaffName = useMemo(() => {
     if (!selectedStaffId) return "Not selected"
@@ -167,6 +171,29 @@ function AppointmentPage() {
     }
 
     loadServices()
+  }, [])
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/settings/business-hours`)
+        if (!response.ok) return
+        const data = await response.json()
+        if (data?.maxDaysAhead !== undefined) {
+          setMaxDaysAhead(data.maxDaysAhead)
+        }
+        if (data?.minLeadMinutes !== undefined) {
+          setMinLeadMinutes(data.minLeadMinutes)
+        }
+        if (data?.closeMinute !== undefined) {
+          setCloseMinute(data.closeMinute)
+        }
+      } catch (error) {
+        // keep defaults if settings cannot be loaded
+      }
+    }
+
+    loadSettings()
   }, [])
 
   useEffect(() => {
@@ -304,9 +331,9 @@ function AppointmentPage() {
     if (checkingLimit) return
     const limitOk = await checkBookingLimit()
     if (!limitOk) return
-    const latestAllowed = addDays(startOfDay(new Date()), MAX_DAYS_AHEAD)
+    const latestAllowed = addDays(startOfDay(new Date()), maxDaysAhead)
     if (toLocalDate(selectedDate) > latestAllowed) {
-      toast.error(`You can only book within ${MAX_DAYS_AHEAD} days from today.`)
+      toast.error(`You can only book within ${maxDaysAhead} days from today.`)
       return
     }
 
@@ -588,7 +615,7 @@ function AppointmentPage() {
                     const isPast = date < todayDate
                     const isToday = isSameDay(date, new Date())
                     const isOutOfHours =
-                      isToday && getCurrentMinuteOfDay() + 60 >= DEFAULT_CLOSE_MINUTE
+                      isToday && getCurrentMinuteOfDay() + minLeadMinutes >= closeMinute
                     return (
                       <button
                         key={value}

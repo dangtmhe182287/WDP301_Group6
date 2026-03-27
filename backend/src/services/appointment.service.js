@@ -9,8 +9,8 @@ const DEFAULT_OPEN_MINUTE = 8 * 60;
 const DEFAULT_CLOSE_MINUTE = 19 * 60;
 const MAX_SERVICE_PER_APPOINTMENT = 5;
 const MAX_TOTAL_DURATION = 270;
-const MAX_DAYS_AHEAD = 15;
-const MIN_BOOKING_LEAD_MINUTES = 60;
+const DEFAULT_MAX_DAYS_AHEAD = 15;
+const DEFAULT_MIN_BOOKING_LEAD_MINUTES = 60;
 const TZ_OFFSET_MINUTES = 7 * 60;
 const TZ_OFFSET_MS = TZ_OFFSET_MINUTES * 60 * 1000;
 
@@ -20,6 +20,8 @@ const getBusinessHours = async () => {
     doc = await BusinessHours.create({
       openMinute: DEFAULT_OPEN_MINUTE,
       closeMinute: DEFAULT_CLOSE_MINUTE,
+      minLeadMinutes: DEFAULT_MIN_BOOKING_LEAD_MINUTES,
+      maxDaysAhead: DEFAULT_MAX_DAYS_AHEAD,
     });
   }
   return doc;
@@ -211,7 +213,12 @@ export const createAppointment = async (payload) => {
   if (totalDuration > MAX_TOTAL_DURATION) {
     throw new Error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes`);
   }
-  const { openMinute, closeMinute } = await getBusinessHours();
+  const {
+    openMinute,
+    closeMinute,
+    minLeadMinutes = DEFAULT_MIN_BOOKING_LEAD_MINUTES,
+    maxDaysAhead = DEFAULT_MAX_DAYS_AHEAD,
+  } = await getBusinessHours();
   const endMinutes = startMinutes + totalDuration;
   //Not in working hours
   if (startMinutes < openMinute || endMinutes > closeMinute) {
@@ -221,14 +228,14 @@ export const createAppointment = async (payload) => {
   const { dayStart, dayEnd } = normalizeDay(appointmentDate);
   const todayStart = getTodayStart();
   const latestAllowed = new Date(todayStart);
-  latestAllowed.setDate(latestAllowed.getDate() + MAX_DAYS_AHEAD);
+  latestAllowed.setDate(latestAllowed.getDate() + maxDaysAhead);
   if (dayStart > latestAllowed) {
-    throw new Error(`Appointment date must be within ${MAX_DAYS_AHEAD} days`);
+    throw new Error(`Appointment date must be within ${maxDaysAhead} days`);
   }
   if (isSameDay(dayStart, todayStart)) {
-    const minStart = getCurrentMinuteOfDay() + MIN_BOOKING_LEAD_MINUTES;
+    const minStart = getCurrentMinuteOfDay() + minLeadMinutes;
     if (startMinutes < minStart) {
-      throw new Error(`Appointments must be booked at least ${MIN_BOOKING_LEAD_MINUTES} minutes in advance`);
+      throw new Error(`Appointments must be booked at least ${minLeadMinutes} minutes in advance`);
     }
   }
   // Check for overlapping appointments for the staff on the same day.
@@ -295,8 +302,13 @@ export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId, s
   const totalDuration = await getTotalDuration(resolvedServiceIds);
   const { dayStart, dayEnd } = normalizeDay(appointmentDate);
   const todayStart = getTodayStart();
+  const {
+    openMinute,
+    closeMinute,
+    minLeadMinutes = DEFAULT_MIN_BOOKING_LEAD_MINUTES,
+  } = await getBusinessHours();
   const minLeadStart =
-    isSameDay(dayStart, todayStart) ? getCurrentMinuteOfDay() + MIN_BOOKING_LEAD_MINUTES : null;
+    isSameDay(dayStart, todayStart) ? getCurrentMinuteOfDay() + minLeadMinutes : null;
 
   const staffAppointments = await Appointment.find({
     staffId,
@@ -304,7 +316,6 @@ export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId, s
     status: { $nin: ["Cancelled"] },
   }).select("startTime endTime");
 
-  const { openMinute, closeMinute } = await getBusinessHours();
   const slots = [];
 
   // Each slot is available only if full duration fits and does not overlap.
@@ -458,21 +469,26 @@ export const rescheduleAppointment = async (payload) => {
     throw new Error("Start time must be aligned to 15-minute slots");
   }
 
+  const {
+    openMinute,
+    closeMinute,
+    minLeadMinutes = DEFAULT_MIN_BOOKING_LEAD_MINUTES,
+    maxDaysAhead = DEFAULT_MAX_DAYS_AHEAD,
+  } = await getBusinessHours();
   const { dayStart, dayEnd } = normalizeDay(nextDateInput);
   const todayStart = getTodayStart();
   const latestAllowed = new Date(todayStart);
-  latestAllowed.setDate(latestAllowed.getDate() + MAX_DAYS_AHEAD);
+  latestAllowed.setDate(latestAllowed.getDate() + maxDaysAhead);
   if (dayStart > latestAllowed) {
-    throw new Error(`Appointment date must be within ${MAX_DAYS_AHEAD} days`);
+    throw new Error(`Appointment date must be within ${maxDaysAhead} days`);
   }
   if (isSameDay(dayStart, todayStart)) {
-    const minStart = getCurrentMinuteOfDay() + MIN_BOOKING_LEAD_MINUTES;
+    const minStart = getCurrentMinuteOfDay() + minLeadMinutes;
     if (nextStartMinutes < minStart) {
-      throw new Error(`Appointments must be booked at least ${MIN_BOOKING_LEAD_MINUTES} minutes in advance`);
+      throw new Error(`Appointments must be booked at least ${minLeadMinutes} minutes in advance`);
     }
   }
 
-  const { openMinute, closeMinute } = await getBusinessHours();
   const nextEndMinutes = nextStartMinutes + totalDuration;
   if (nextStartMinutes < openMinute || nextEndMinutes > closeMinute) {
     throw new Error("Selected time is outside working hours");
