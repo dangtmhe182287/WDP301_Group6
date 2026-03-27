@@ -12,7 +12,7 @@ export const getAppointments = async (userId) => {
 
 /* ================= Update Status ================= */
 export const updateAppointmentStatus = async (id, status) => {
-  const valid = ["Pending", "Scheduled", "Completed", "Cancelled"];
+  const valid = ["Pending", "Scheduled", "Completed", "Cancelled", "NoShow"];
   if (!valid.includes(status)) throw new Error("Invalid status");
 
   return appointmentRepo.updateStatus(id, status);

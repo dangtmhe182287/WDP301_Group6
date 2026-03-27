@@ -51,8 +51,8 @@ export default function Members() {
                 <th>Full name</th>
                 <th>Contact</th>
                 <th>Total bookings</th>
-                <th>No show</th>
-                <th>No show rate</th>
+                <th>No Show</th>
+                <th>No Show rate</th>
               </tr>
             </thead>
             <tbody>
@@ -81,7 +81,7 @@ export default function Members() {
                     </td>
                     <td>
                       <span className={noShow > 0 ? "stat-pill cancel-pill" : "stat-pill zero-pill"}>
-                        {noShow} no show
+                        {noShow} No Show
                       </span>
                     </td>
                     <td>

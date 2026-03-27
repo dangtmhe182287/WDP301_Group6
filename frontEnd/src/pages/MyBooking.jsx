@@ -79,6 +79,7 @@ export default function MyBooking() {
       Pending: "Pending",
       Completed: "Completed",
       Cancelled: "Cancelled",
+      NoShow: "No Show",
     }),
     [],
   );
@@ -356,6 +357,7 @@ export default function MyBooking() {
 
   const isHistoryBooking = (booking) =>
     booking?.status === "Cancelled" ||
+    booking?.status === "NoShow" ||
     (booking?.status === "Completed" && booking?.paymentStatus === "Paid");
 
   const isActiveBooking = (booking) =>

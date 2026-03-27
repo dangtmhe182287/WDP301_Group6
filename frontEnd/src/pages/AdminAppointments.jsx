@@ -146,7 +146,7 @@ export default function AdminAppointments() {
                     </td>
                     <td>
                       <span className={`status-pill status-${app.status?.toLowerCase() || "pending"}`}>
-                        {app.status}
+                        {app.status === "NoShow" ? "No Show" : app.status}
                       </span>
                     </td>
                   </tr>
@@ -286,6 +286,7 @@ export default function AdminAppointments() {
         .status-scheduled { background: #e0f2fe; color: #0284c7; }
         .status-completed { background: #dcfce3; color: #166534; }
         .status-cancelled { background: #fee2e2; color: #dc2626; }
+        .status-noshow { background: #fef3c7; color: #b45309; }
 
         .loading, .error, .empty {
           padding: 40px;
