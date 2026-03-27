@@ -388,6 +388,18 @@ export default function MyBooking() {
     return getSortedBookings(filtered, showHistory ? "desc" : "asc");
   }, [bookings, showHistory, historyFilter]);
 
+  const getStaffNameById = (staffId) => {
+    const staff = staffs.find((item) => String(item._id) === String(staffId));
+    return staff?.fullName || staff?.email || "Staff";
+  };
+
+  const getServiceNameById = (booking, serviceId) => {
+    const service = Array.isArray(booking?.serviceIds)
+      ? booking.serviceIds.find((item) => String(item?._id || item) === String(serviceId))
+      : null;
+    return service?.name || "Service";
+  };
+
   if (!user) {
     return (
       <main className="settings-page">
@@ -450,7 +462,18 @@ export default function MyBooking() {
         ) : null}
         <div className="booking-list">
           {visibleBookings.map((booking) => {
-            const staffName = booking?.staffId?.fullName || booking?.staffId?.email || "No staff info";
+            const assignments = Array.isArray(booking?.serviceStaffAssignments)
+              ? booking.serviceStaffAssignments
+              : [];
+            const assignmentStaffNames = Array.from(
+              new Set(assignments.map((item) => getStaffNameById(item.staffId)))
+            );
+            const staffName =
+              assignments.length > 0
+                ? assignmentStaffNames.length === 1
+                  ? assignmentStaffNames[0]
+                  : `Multiple staff: ${assignmentStaffNames.join(", ")}`
+                : booking?.staffId?.fullName || booking?.staffId?.email || "No staff info";
             const servicesName = Array.isArray(booking.serviceIds)
               ? booking.serviceIds.map((service) => service?.name).filter(Boolean)
               : [];
@@ -469,6 +492,26 @@ export default function MyBooking() {
                       {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
                     </span>
                   </div>
+                  {assignments.length > 0 ? (
+                    <div className="booking-schedule">
+                      {assignments
+                        .slice()
+                        .sort((a, b) => (a.startMinute || 0) - (b.startMinute || 0))
+                        .map((item, index) => (
+                          <div key={`${item.serviceId}-${index}`} className="booking-schedule-item">
+                            <span className="booking-schedule-service">
+                              {getServiceNameById(booking, item.serviceId)}
+                            </span>
+                            <span className="booking-schedule-staff">
+                              {getStaffNameById(item.staffId)}
+                            </span>
+                            <span className="booking-schedule-time">
+                              {formatTime(item.startTime)} - {formatTime(item.endTime)}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  ) : null}
                   {services.length ? (
                     <div className="booking-services">{servicesName.join(", ")}</div>
                   ) : null}

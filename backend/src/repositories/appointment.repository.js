@@ -10,6 +10,7 @@ export const findByStaff = (staffId, filter = {}) => {
   })
     .populate("customerId", "fullName email phone")
     .populate("serviceIds", "name price duration")
+    .populate("serviceStaffAssignments.staffId", "fullName email phone")
     .sort({ appointmentDate: -1 });
 };
 

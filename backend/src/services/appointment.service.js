@@ -499,6 +499,7 @@ export const getAppointmentsByCustomer = async (customerId) => {
   return Appointment.find({ customerId })
     .populate("staffId", "fullName email phone")
     .populate("serviceIds", "name duration price")
+    .populate("serviceStaffAssignments.staffId", "fullName email phone")
     .sort({ appointmentDate: -1, startTime: -1 });
 };
 

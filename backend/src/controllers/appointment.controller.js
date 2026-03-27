@@ -67,6 +67,7 @@ export const GetAllAppointments = async (req, res) => {
       .populate("customerId", "fullName email phone")
       .populate("staffId", "fullName email phone")
       .populate("serviceIds", "name duration price")
+      .populate("serviceStaffAssignments.staffId", "fullName email phone")
       .sort({ appointmentDate: -1, startTime: -1 });
     res.status(200).json(data);
   } catch (error) {

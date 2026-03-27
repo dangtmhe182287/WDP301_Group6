@@ -260,6 +260,19 @@ function AppointmentPage() {
     )
   }
 
+  const moveService = (serviceId, direction) => {
+    setSelectedServiceIds((prev) => {
+      const index = prev.indexOf(serviceId)
+      if (index === -1) return prev
+      const nextIndex = direction === "up" ? index - 1 : index + 1
+      if (nextIndex < 0 || nextIndex >= prev.length) return prev
+      const next = [...prev]
+      const [item] = next.splice(index, 1)
+      next.splice(nextIndex, 0, item)
+      return next
+    })
+  }
+
   useEffect(() => {
     setServiceStaffSelections((prev) => {
       const next = {}
@@ -271,6 +284,22 @@ function AppointmentPage() {
       return next
     })
   }, [selectedServiceIds])
+
+  useEffect(() => {
+    if (!isMultiStaff) return
+    setServiceStaffSelections((prev) => {
+      const next = { ...prev }
+      selectedServiceIds.forEach((serviceId) => {
+        const key = String(serviceId)
+        if (next[key]) return
+        const options = serviceStaffOptions.get(key) || []
+        if (options.length > 0) {
+          next[key] = String(options[0]._id)
+        }
+      })
+      return next
+    })
+  }, [isMultiStaff, selectedServiceIds, serviceStaffOptions])
 
   useEffect(() => {
     const loadServices = async () => {
@@ -718,6 +747,9 @@ function AppointmentPage() {
                       {orderedSelectedServices.map((service) => {
                         const id = String(service._id)
                         const options = serviceStaffOptions.get(id) || []
+                        const index = selectedServiceIds.indexOf(id)
+                        const isFirst = index === 0
+                        const isLast = index === selectedServiceIds.length - 1
                         return (
                           <div key={id} className="service-staff-row">
                             <div className="service-staff-info">
@@ -725,6 +757,24 @@ function AppointmentPage() {
                               <div className="staff-speciality muted">
                                 {service.duration} min
                               </div>
+                            </div>
+                            <div className="service-staff-order">
+                              <button
+                                type="button"
+                                className="ghost-btn order-btn"
+                                disabled={isFirst}
+                                onClick={() => moveService(id, "up")}
+                              >
+                                Up
+                              </button>
+                              <button
+                                type="button"
+                                className="ghost-btn order-btn"
+                                disabled={isLast}
+                                onClick={() => moveService(id, "down")}
+                              >
+                                Down
+                              </button>
                             </div>
                             <select
                               className="service-staff-select"

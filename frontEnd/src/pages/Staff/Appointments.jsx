@@ -52,6 +52,27 @@ const formatTimeRange = (startTime, endTime) => {
   if (startTime && endTime) return `${startTime} - ${endTime}`;
   return startTime || endTime || "-";
 };
+
+const getServiceName = (appointment, serviceId) => {
+  const service = Array.isArray(appointment?.serviceIds)
+    ? appointment.serviceIds.find((item) => String(item?._id || item) === String(serviceId))
+    : null;
+  return service?.name || "Service";
+};
+
+const getAssignmentSegments = (appointment) => {
+  const assignments = Array.isArray(appointment?.serviceStaffAssignments)
+    ? appointment.serviceStaffAssignments
+    : [];
+  return assignments
+    .slice()
+    .sort((a, b) => (a.startMinute || 0) - (b.startMinute || 0))
+    .map((item) => ({
+      serviceName: getServiceName(appointment, item.serviceId),
+      startTime: item.startTime,
+      endTime: item.endTime,
+    }));
+};
 export default function Appointments() {
   const [appointments, setAppointments] = useState([]);
   const [filter, setFilter] = useState("All");
@@ -303,7 +324,9 @@ export default function Appointments() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filtered.map((a) => (
+                    filtered.map((a) => {
+                      const segments = getAssignmentSegments(a);
+                      return (
                       <TableRow key={a._id} className="hover:bg-muted/20">
                         <TableCell>
                           <div
@@ -324,12 +347,21 @@ export default function Appointments() {
                         </TableCell>
 
                         <TableCell className="font-medium">
-  <div className="flex flex-col">
-    <span>{formatDate(a.appointmentDate)}</span>
-    <span className="text-xs text-muted-foreground">
-      {formatTimeRange(a.startTime, a.endTime)}
-    </span>
-  </div>
+                          <div className="flex flex-col">
+                            <span>{formatDate(a.appointmentDate)}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatTimeRange(a.startTime, a.endTime)}
+                            </span>
+                            {segments.length > 0 ? (
+                              <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                                {segments.map((segment, index) => (
+                                  <div key={`${segment.serviceName}-${index}`}>
+                                    {segment.serviceName}: {formatTimeRange(segment.startTime, segment.endTime)}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
 </TableCell>
 
                         <TableCell>
@@ -388,7 +420,8 @@ export default function Appointments() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
