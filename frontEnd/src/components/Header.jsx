@@ -1,221 +1,231 @@
-﻿import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+﻿import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
 import anonymousAvatar from "../assets/anomyous.jpg";
 
+import { Button } from "@/components/ui/button";
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuList,
+} from "@/components/ui/navigation-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Menu, User, CalendarDays, LogOut } from "lucide-react";
+
 export default function Header() {
   const navigate = useNavigate();
-  const { user, logout} = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-const handleLogout = async () => {
-  await logout();
-  navigate("/login"); // hoặc "/"
-};
-
+  const location = useLocation();
+  const { user, logout } = useAuth();
 
   const API_BASE = import.meta.env.VITE_SERVER_API || "http://localhost:3000";
+
   const avatarSrc = user?.imgUrl
-    ? (user.imgUrl.startsWith("http") ? user.imgUrl : `${API_BASE}${user.imgUrl}`)
+    ? user.imgUrl.startsWith("http")
+      ? user.imgUrl
+      : `${API_BASE}${user.imgUrl}`
     : anonymousAvatar;
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
+  const navItems = [
+    { label: "Home", path: "/" },
+    { label: "Services", path: "/services" },
+    { label: "About Us", path: "/about" },
+  ];
+
+  const isActive = (path) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
+  };
+
   return (
-    <>
-      <header className="header">
-        <div className="container header-inner">
-
-          <div className="logo" onClick={() => navigate("/")}>
-            <img src={logo} alt="logo" className="logo-icon" />
-            <span>Elysina.</span>
+    <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 md:px-6">
+        {/* Logo */}
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-3 transition-opacity hover:opacity-90"
+        >
+            <img
+              src={logo}
+              alt="logo"
+              className="h-8 w-8 object-contain"
+            />
+          <div className="text-left">
+            <p className="text-lg font-bold tracking-tight text-slate-900">
+              Elysina.
+            </p>
+            <p className="text-xs text-slate-500">Beauty & Booking</p>
           </div>
+        </button>
 
-          <nav className="nav">
-            <a onClick={() => navigate("/")}>Home</a>
-            <a onClick={() => navigate("/services")}>Services</a>
-            
-            <a onClick={() => navigate("/about")}>About Us</a>
-          </nav>
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-8">
+          <NavigationMenu>
+            <NavigationMenuList className="gap-2">
+              {navItems.map((item) => (
+                <NavigationMenuItem key={item.path}>
+                  <button
+                    onClick={() => navigate(item.path)}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                      isActive(item.path)
+                        ? "bg-teal-50 text-teal-600"
+                        : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                </NavigationMenuItem>
+              ))}
+            </NavigationMenuList>
+          </NavigationMenu>
 
-          <div className="auth-buttons">
-            {!user ? (
-              <>
-                <button
-                  className="btn-login"
-                  onClick={() => navigate("/login")}
-                >
-                  Log in
-                </button>
+          {!user ? (
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                className="rounded-full px-5"
+                onClick={() => navigate("/login")}
+              >
+                Log in
+              </Button>
+              <Button
+                className="rounded-full px-5 bg-teal-500 hover:bg-teal-600"
+                onClick={() => navigate("/register")}
+              >
+                Sign up
+              </Button>
+            </div>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1.5 shadow-sm transition hover:shadow-md">
+                  <Avatar className="h-10 w-10 border">
+                    <AvatarImage src={avatarSrc} alt="avatar" />
+                    <AvatarFallback>
+                      {user?.fullName?.[0] || user?.name?.[0] || "U"}
+                    </AvatarFallback>
+                  </Avatar>
 
-                <button
-                  className="btn-signup"
-                  onClick={() => navigate("/register")}
-                >
-                  Sign up
-                </button>
-              </>
-            ) : (
-              <div className="avatar-menu" ref={menuRef}>
-                <button
-                  className="avatar-button"
-                  onClick={() => setMenuOpen((prev) => !prev)}
-                >
-                  <img src={avatarSrc} alt="avatar" />
-                </button>
-                {menuOpen ? (
-                  <div className="avatar-dropdown">
-                    <button onClick={() => navigate("/my-bookings")}>My Bookings</button>
-                    <button onClick={() => navigate("/settings")}>Profile</button>
-                    <button onClick={handleLogout}>Log out</button>
+                  <div className="hidden lg:block text-left pr-2">
+                    <p className="text-sm font-semibold text-slate-900 leading-none">
+                      {user?.fullName || user?.name || "User"}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Welcome back
+                    </p>
                   </div>
-                ) : null}
-              </div>
-            )}
-          </div>
+                </button>
+              </DropdownMenuTrigger>
 
+              <DropdownMenuContent
+                align="end"
+                className="w-56 rounded-xl p-2"
+              >
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg"
+                  onClick={() => navigate("/my-bookings")}
+                >
+                  <CalendarDays className="mr-2 h-4 w-4" />
+                  My Bookings
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg"
+                  onClick={() => navigate("/settings")}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-lg text-red-500 focus:text-red-500"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
-      </header>
 
-      <style>{`
-        .header{
-          width:100%;
-          background:#f4f6f7;
-          padding:16px 0;
-        }
+        {/* Mobile menu */}
+        <div className="md:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="rounded-full">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
 
+            <DropdownMenuContent align="end" className="w-56 rounded-xl p-2">
+              {navItems.map((item) => (
+                <DropdownMenuItem
+                  key={item.path}
+                  className="cursor-pointer rounded-lg"
+                  onClick={() => navigate(item.path)}
+                >
+                  {item.label}
+                </DropdownMenuItem>
+              ))}
 
+              <DropdownMenuSeparator />
 
-        .header-inner{
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          flex-wrap: wrap;
-        }
-
-        .logo{
-          display:flex;
-          align-items:center;
-          font-weight:700;
-          font-size:18px;
-          padding-left:20px;
-        }
-
-        .logo-icon{
-          color:white;
-          border-radius:50%;
-          width:35px;
-          height:35px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          margin-right:8px;
-        }
-
-        .nav a{
-          margin:0 18px;
-          text-decoration:none;
-          color:#333;
-          font-weight:500;
-          cursor:pointer;
-        }
-
-        .nav a:hover{
-          color:#22d3c5;
-        }
-
-        .btn-login, .btn-signup{
-          
-          margin-right:20px;
-          padding:8px 16px;
-          border-radius:20px;
-          border:none;
-          cursor:pointer;
-          width: 90px;
-          white-space: nowrap;
-          justify-content: center;
-          display: inline-flex;
-        }
-
-        .avatar-button{
-          width:40px;
-          height:40px;
-          border-radius:50%;
-          border:2px solid #22d3c5;
-          padding:0;
-          overflow:hidden;
-          background:white;
-          cursor:pointer;
-        }
-
-        .avatar-button img{
-          width:100%;
-          height:100%;
-          object-fit:cover;
-        }
-
-        .btn-login{
-          background:white;
-          border:1px solid #ccc;
-        }
-
-        .btn-signup{
-          background:#22d3c5;
-          color:white;
-        }
-
-        .avatar-menu{
-          position:relative;
-          display:flex;
-          align-items:center;
-          margin-right:20px;
-        }
-
-        
-
-        .avatar-dropdown{
-          position:absolute;
-          right:0;
-          top:48px;
-          background:white;
-          border:1px solid #e2e8f0;
-          border-radius:12px;
-          box-shadow:0 10px 22px rgba(15, 23, 42, 0.12);
-          min-width:160px;
-          padding:8px;
-          display:flex;
-          flex-direction:column;
-          gap:6px;
-          z-index:10;
-        }
-
-        .avatar-dropdown button{
-          background:transparent;
-          border:none;
-          padding:8px 10px;
-          text-align:left;
-          cursor:pointer;
-          border-radius:8px;
-          font-weight:500;
-        }
-
-        .avatar-dropdown button:hover{
-          background:#f1f5f9;
-          color:#0f172a;
-        }
-      `}</style>
-    </>
+              {!user ? (
+                <>
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg"
+                    onClick={() => navigate("/login")}
+                  >
+                    Log in
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg"
+                    onClick={() => navigate("/register")}
+                  >
+                    Sign up
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg"
+                    onClick={() => navigate("/my-bookings")}
+                  >
+                    My Bookings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg"
+                    onClick={() => navigate("/settings")}
+                  >
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer rounded-lg text-red-500 focus:text-red-500"
+                    onClick={handleLogout}
+                  >
+                    Log out
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </header>
   );
 }
-
-

@@ -34,7 +34,24 @@ import {
   CalendarDays,
   Users,
 } from "lucide-react";
+const formatDate = (value) => {
+  if (!value) return "-";
 
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+const formatTimeRange = (startTime, endTime) => {
+  if (!startTime && !endTime) return "-";
+  if (startTime && endTime) return `${startTime} - ${endTime}`;
+  return startTime || endTime || "-";
+};
 export default function Appointments() {
   const [appointments, setAppointments] = useState([]);
   const [filter, setFilter] = useState("All");
@@ -261,7 +278,7 @@ export default function Appointments() {
                 <TableHeader>
                   <TableRow className="bg-muted/20 hover:bg-muted/20">
                     <TableHead className="min-w-[220px]">Customer</TableHead>
-                    <TableHead className="min-w-[140px]">Date</TableHead>
+                    <TableHead className="min-w-[140px]">Date & Time</TableHead>
                     <TableHead className="min-w-[120px]">Status</TableHead>
                     <TableHead className="min-w-[120px]">Payment</TableHead>
                     <TableHead className="min-w-[280px]">Action</TableHead>
@@ -307,8 +324,13 @@ export default function Appointments() {
                         </TableCell>
 
                         <TableCell className="font-medium">
-                          {new Date(a.appointmentDate).toLocaleDateString("vi-VN")}
-                        </TableCell>
+  <div className="flex flex-col">
+    <span>{formatDate(a.appointmentDate)}</span>
+    <span className="text-xs text-muted-foreground">
+      {formatTimeRange(a.startTime, a.endTime)}
+    </span>
+  </div>
+</TableCell>
 
                         <TableCell>
                           <Badge
