@@ -1,4 +1,24 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Scissors, Mail, Phone, Award, Pencil, Trash2, Sparkles } from "lucide-react";
 
 const API_BASE = "http://localhost:3000";
 
@@ -8,7 +28,8 @@ export default function Stylists() {
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
-  const [formData, setFormData] = useState({
+
+  const emptyForm = {
     fullName: "",
     email: "",
     phone: "",
@@ -20,7 +41,9 @@ export default function Stylists() {
     certificate: { name: "", organization: "", certificateId: "", image: "" },
     portfolio: [],
     schedule: [],
-  });
+  };
+
+  const [formData, setFormData] = useState(emptyForm);
 
   const loadStaffs = async () => {
     setLoading(true);
@@ -33,7 +56,12 @@ export default function Stylists() {
         throw new Error(data?.message || "Unable to load staff");
       }
 
-      const list = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.data)
+        ? data.data
+        : [];
+
       setStaffs(list);
     } catch (err) {
       setError(err.message || "Failed to load data");
@@ -48,19 +76,7 @@ export default function Stylists() {
 
   const handleCreate = () => {
     setEditingStaff(null);
-    setFormData({
-      fullName: "",
-      email: "",
-      phone: "",
-      staffSpecialty: "",
-      staffExperienceYears: 0,
-      rating: 0,
-      speciality: [],
-      experienceYears: 0,
-      certificate: { name: "", organization: "", certificateId: "", image: "" },
-      portfolio: [],
-      schedule: [],
-    });
+    setFormData(emptyForm);
     setShowModal(true);
   };
 
@@ -77,7 +93,13 @@ export default function Stylists() {
       rating: staffInfo.rating || 0,
       speciality: Array.isArray(staffInfo.speciality) ? staffInfo.speciality : [],
       experienceYears: staffInfo.experienceYears || staffInfo.staffExperienceYears || 0,
-      certificate: staffInfo.certificate || { name: "", organization: "", certificateId: "", image: "" },
+      certificate:
+        staffInfo.certificate || {
+          name: "",
+          organization: "",
+          certificateId: "",
+          image: "",
+        },
       portfolio: Array.isArray(staffInfo.portfolio) ? staffInfo.portfolio : [],
       schedule: Array.isArray(staffInfo.schedule) ? staffInfo.schedule : [],
     });
@@ -85,35 +107,47 @@ export default function Stylists() {
   };
 
   const handleDelete = async (staffId) => {
-    if (!confirm("Are you sure you want to delete this staff?")) return;
+    const doDelete = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/staffs/${staffId}`, {
+          method: "DELETE",
+        });
 
-    try {
-      const response = await fetch(`${API_BASE}/staffs/${staffId}`, {
-        method: "DELETE",
-      });
+        const data = await response.json().catch(() => ({}));
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data?.message || "Failed to delete staff");
+        if (!response.ok) {
+          throw new Error(data?.message || "Failed to delete staff");
+        }
+
+        toast.success("Deleted staff successfully");
+        await loadStaffs();
+      } catch (err) {
+        toast.error(err.message || "Delete failed");
+        setError(err.message || "Delete failed");
       }
+    };
 
-      await loadStaffs();
-    } catch (err) {
-      setError(err.message);
-    }
+    toast("Delete this staff?", {
+      description: "This action cannot be undone.",
+      action: {
+        label: "Delete",
+        onClick: doDelete,
+      },
+      cancel: {
+        label: "Cancel",
+        onClick: () => {},
+      },
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("Submitting form with data:", formData);
-    console.log("Editing staff:", editingStaff);
-
     try {
       const method = editingStaff ? "PUT" : "POST";
-      const url = editingStaff ? `${API_BASE}/staffs/${editingStaff.staff?._id || editingStaff._id}` : `${API_BASE}/staffs`;
-
-      console.log("Making request:", method, url);
+      const url = editingStaff
+        ? `${API_BASE}/staffs/${editingStaff.staff?._id || editingStaff._id}`
+        : `${API_BASE}/staffs`;
 
       const response = await fetch(url, {
         method,
@@ -123,21 +157,18 @@ export default function Stylists() {
         body: JSON.stringify(formData),
       });
 
-      console.log("Response status:", response.status);
       const data = await response.json();
-      console.log("Response data:", data);
 
       if (!response.ok) {
-        throw new Error(data?.message || `HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(data?.message || `HTTP ${response.status}`);
       }
 
-      alert(editingStaff ? "Updated successfully!" : "Staff created successfully!");
+      toast.success(editingStaff ? "Updated successfully" : "Created successfully");
       setShowModal(false);
       await loadStaffs();
     } catch (err) {
-      console.error("Submit error:", err);
-      alert("Error: " + err.message);
       setError(err.message);
+      toast.error(err.message || "Save failed");
     }
   };
 
@@ -145,7 +176,13 @@ export default function Stylists() {
     const { name, value, type } = e.target;
 
     if (name === "speciality") {
-      setFormData((prev) => ({ ...prev, speciality: value.split(",").map((s) => s.trim()) }));
+      setFormData((prev) => ({
+        ...prev,
+        speciality: value
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      }));
     } else if (name.startsWith("certificate.")) {
       const certField = name.split(".")[1];
       setFormData((prev) => ({
@@ -153,349 +190,337 @@ export default function Stylists() {
         certificate: { ...prev.certificate, [certField]: value },
       }));
     } else {
-      const processedValue = type === "number" ? (value === "" ? 0 : Number(value)) : value;
+      const processedValue =
+        type === "number" ? (value === "" ? 0 : Number(value)) : value;
       setFormData((prev) => ({ ...prev, [name]: processedValue }));
     }
   };
 
+  const getDisplaySpeciality = (user, staffInfo) => {
+    return (
+      (Array.isArray(staffInfo.speciality) &&
+        staffInfo.speciality.length > 0 &&
+        staffInfo.speciality.join(", ")) ||
+      staffInfo.staffSpecialty ||
+      user.speciality ||
+      "-"
+    );
+  };
+
+  const getDisplayExperience = (staffInfo) => {
+    return staffInfo.experienceYears ?? staffInfo.staffExperienceYears ?? "-";
+  };
+
   return (
-    <main className="stylists-page">
-      <div className="page-header">
-        <h1>Staff</h1>
+    <div className="space-y-5 max-w-6xl">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-slate-900">Staff</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Manage stylists, specialties and experience
+          </p>
+        </div>
+
+        <Button
+          onClick={handleCreate}
+          className="rounded-xl bg-teal-400 text-slate-950 hover:bg-teal-500"
+        >
+          Add Staff
+        </Button>
       </div>
 
       {loading ? (
-        <p>Loading...</p>
-      ) : error ? (
-        <p className="error">{error}</p>
-      ) : staffs.length === 0 ? (
-        <p>No staff available.</p>
-      ) : (
-        <div className="staff-table-wrapper">
-          <table className="staff-table">
-            <thead>
-              <tr>
-                <th>Photo</th>
-                <th>Full name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Specialty</th>
-                <th>Experience</th>
-                <th>Rating</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {staffs.map((staff) => {
-                // Backend now returns { fullName, email, phone, role, staff: { ...staffFields } }
-                const user = staff.userId
-                  ? staff.userId
-                  : {
-                      fullName: staff.fullName,
-                      email: staff.email,
-                      phone: staff.phone,
-                      role: staff.role,
-                      imgUrl: staff.imgUrl,
-                    };
-
-                const staffInfo = staff.staff || staff;
-
-                const speciality =
-                  (Array.isArray(staffInfo.speciality) &&
-                    staffInfo.speciality.length &&
-                    staffInfo.speciality.join(", ")) ||
-                  staffInfo.staffSpecialty ||
-                  user.speciality ||
-                  "-";
-
-                const experience = staffInfo.experienceYears ?? staffInfo.staffExperienceYears ?? "-";
-
-                return (
-                  <tr key={staff._id}>
-                    <td>
-                      <img
-                        src={
-                          user.imgUrl ||
-                          `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                            user.fullName || "Staff",
-                          )}&background=random`
-                        }
-                        alt="avatar"
-                        style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }}
-                      />
-                    </td>
-                    <td>{user.fullName || "No name"}</td>
-                    <td>{user.email || "-"}</td>
-                    <td>{user.phone || "-"}</td>
-                    <td>{speciality}</td>
-                    <td>{experience === "-" ? "-" : `${experience} years`}</td>
-                    <td>{staffInfo.rating ?? "-"}</td>
-                    <td>
-                      <button className="edit-btn" onClick={() => handleEdit(staff)}>
-                        Edit
-                      </button>
-                      <button className="delete-btn" onClick={() => handleDelete(staff.staff?._id || staff._id)}>
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="grid gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+          ))}
         </div>
+      ) : error ? (
+        <Card className="rounded-2xl border-red-200">
+          <CardContent className="p-6 text-red-500">{error}</CardContent>
+        </Card>
+      ) : staffs.length === 0 ? (
+        <Card className="rounded-2xl">
+          <CardContent className="p-10 text-center text-slate-500">
+            No staff available.
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="rounded-2xl border-slate-200 shadow-sm overflow-hidden">
+          <CardHeader className="border-b bg-slate-50/80 px-5 py-4">
+            <CardTitle>All Stylists</CardTitle>
+            <CardDescription>Overview of staff in the system</CardDescription>
+          </CardHeader>
+
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-sm">
+                <thead className="bg-slate-50">
+                  <tr className="border-b text-slate-500">
+                    <th className="px-5 py-3 text-left font-semibold">Staff</th>
+                    <th className="px-5 py-3 text-left font-semibold">Contact</th>
+                    <th className="px-5 py-3 text-left font-semibold">Speciality</th>
+                    <th className="px-5 py-3 text-left font-semibold">Experience</th>
+                    <th className="px-5 py-3 text-left font-semibold">Rating</th>
+                    <th className="px-5 py-3 text-right font-semibold">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {staffs.map((staff) => {
+                    const user = staff.userId
+                      ? staff.userId
+                      : {
+                          fullName: staff.fullName,
+                          email: staff.email,
+                          phone: staff.phone,
+                          role: staff.role,
+                          imgUrl: staff.imgUrl,
+                        };
+
+                    const staffInfo = staff.staff || staff;
+                    const speciality = getDisplaySpeciality(user, staffInfo);
+                    const experience = getDisplayExperience(staffInfo);
+
+                    return (
+                      <tr
+                        key={staff._id}
+                        className="border-b last:border-0 transition hover:bg-slate-50/70"
+                      >
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 border border-slate-200">
+                              <AvatarImage
+                                src={
+                                  user.imgUrl ||
+                                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                    user.fullName || "Staff"
+                                  )}&background=random`
+                                }
+                                alt={user.fullName || "Staff"}
+                              />
+                              <AvatarFallback>
+                                {user.fullName?.charAt(0) || "S"}
+                              </AvatarFallback>
+                            </Avatar>
+
+                            <div>
+                              <p className="font-semibold text-slate-900">
+                                {user.fullName || "No name"}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {user.role || "Staff"}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-slate-700">
+                              <Mail className="h-3.5 w-3.5 text-slate-400" />
+                              <span className="truncate max-w-[180px]">
+                                {user.email || "-"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-slate-500 text-xs">
+                              <Phone className="h-3.5 w-3.5 text-slate-400" />
+                              <span>{user.phone || "-"}</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="max-w-[220px]">
+                            {speciality !== "-" ? (
+                              <div className="flex flex-wrap gap-2">
+                                {speciality.split(", ").map((item, idx) => (
+                                  <Badge
+                                    key={idx}
+                                    variant="secondary"
+                                    className="rounded-full bg-teal-50 text-teal-700 hover:bg-teal-50"
+                                  >
+                                    <Scissors className="mr-1 h-3 w-3" />
+                                    {item}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          {experience === "-" ? (
+                            <span className="text-slate-400">-</span>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="rounded-full border-slate-200 text-slate-700"
+                            >
+                              <Sparkles className="mr-1 h-3 w-3" />
+                              {experience} years
+                            </Badge>
+                          )}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <Badge className="rounded-full bg-amber-100 text-amber-700 hover:bg-amber-100">
+                            <Award className="mr-1 h-3.5 w-3.5" />
+                            {staffInfo.rating ?? "-"}
+                          </Badge>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-lg"
+                              onClick={() => handleEdit(staff)}
+                            >
+                              <Pencil className="mr-1 h-3.5 w-3.5" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="rounded-lg"
+                              onClick={() =>
+                                handleDelete(staff.staff?._id || staff._id)
+                              }
+                            >
+                              <Trash2 className="mr-1 h-3.5 w-3.5" />
+                              Delete
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h2>{editingStaff ? "Edit staff" : "Add staff"}</h2>
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Full name:</label>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Email:</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Phone:</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Specialty:</label>
-                <input
-                  type="text"
-                  name="staffSpecialty"
-                  value={formData.staffSpecialty}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="form-group">
-                <label>Experience (years):</label>
-                <input
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="w-[96vw] max-w-2xl rounded-2xl p-0 overflow-hidden max-h-[90vh]">
+          <DialogHeader className="border-b bg-slate-50 px-6 py-4">
+            <DialogTitle>{editingStaff ? "Edit staff" : "Add staff"}</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="max-h-[calc(90vh-72px)] overflow-y-auto px-6 py-5">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-slate-700">Full name</label>
+              <Input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-slate-700">Email</label>
+              <Input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-slate-700">Phone</label>
+              <Input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-slate-700">Specialty</label>
+              <Input
+                type="text"
+                name="staffSpecialty"
+                value={formData.staffSpecialty}
+                onChange={handleInputChange}
+                placeholder="Haircut, Coloring..."
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-slate-700">Speciality list</label>
+              <Input
+                type="text"
+                name="speciality"
+                value={formData.speciality.join(", ")}
+                onChange={handleInputChange}
+                placeholder="Fade, Perm, Styling"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-slate-700">
+                  Staff exp
+                </label>
+                <Input
                   type="number"
                   name="staffExperienceYears"
                   value={formData.staffExperienceYears}
                   onChange={handleInputChange}
                 />
               </div>
-              <div className="form-group">
-                <label>Rating:</label>
-                <input type="number" step="0.1" name="rating" value={formData.rating} readOnly disabled />
+
+              <div className="grid gap-2">
+                <label className="text-sm font-medium text-slate-700">
+                  Extra exp
+                </label>
+                <Input
+                  type="number"
+                  name="experienceYears"
+                  value={formData.experienceYears}
+                  onChange={handleInputChange}
+                />
               </div>
-              <div className="modal-actions">
-                <button type="submit" className="save-btn">
-                  Save
-                </button>
-                <button type="button" onClick={() => setShowModal(false)}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </div>
 
-      <style>{`
-        .stylists-page {
-          padding: 24px;
-          width: 100%;
-          max-width: none;
-          min-height: 100vh;
-        }
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-slate-700">Rating</label>
+              <Input
+                type="number"
+                step="0.1"
+                name="rating"
+                value={formData.rating}
+                readOnly
+                disabled
+              />
+            </div>
 
-        .page-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          margin-bottom: 18px;
-        }
-
-        .add-btn {
-          background: #0b2e5c;
-          color: white;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 6px;
-          cursor: pointer;
-          margin-right: 16px;
-        }
-
-        .add-btn:hover {
-          background: #0a254a;
-        }
-
-        .staff-table-wrapper {
-          width: 100%;
-          overflow-x: auto;
-          border-radius: 18px;
-          background: #fff;
-          box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
-        }
-
-        .staff-table {
-          width: 100%;
-          border-collapse: collapse;
-          text-align: left;
-        }
-
-        .staff-table th,
-        .staff-table td {
-          padding: 14px 16px;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-        }
-
-        .staff-table th {
-          background: rgba(11, 46, 92, 0.08);
-          font-weight: 700;
-        }
-
-        .staff-table tr:hover {
-          background: rgba(11, 46, 92, 0.06);
-        }
-
-        .edit-btn {
-          background: #f59e0b;
-          color: white;
-          border: none;
-          padding: 4px 8px;
-          border-radius: 4px;
-          cursor: pointer;
-          margin-right: 8px;
-        }
-
-        .edit-btn:hover {
-          background: #d97706;
-        }
-
-        .delete-btn {
-          background: #ef4444;
-          color: white;
-          border: none;
-          padding: 4px 8px;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-
-        .delete-btn:hover {
-          background: #dc2626;
-        }
-
-        .secondary-link {
-          text-decoration: none;
-          color: #4b5563;
-          font-size: 14px;
-        }
-
-        .secondary-link:hover {
-          color: #0b2e5c;
-          text-decoration: underline;
-        }
-
-        .error {
-          color: #d32f2f;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal {
-          background: white;
-          padding: 24px;
-          border-radius: 12px;
-          width: 90%;
-          max-width: 500px;
-          max-height: 80vh;
-          overflow-y: auto;
-        }
-
-        .modal h2 {
-          margin-top: 0;
-          margin-bottom: 20px;
-        }
-
-        .form-group {
-          margin-bottom: 16px;
-        }
-
-        .form-group label {
-          display: block;
-          margin-bottom: 4px;
-          font-weight: 500;
-        }
-
-        .form-group input {
-          width: 100%;
-          padding: 8px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          font-size: 14px;
-        }
-
-        .modal-actions {
-          display: flex;
-          gap: 12px;
-          justify-content: flex-end;
-          margin-top: 24px;
-        }
-
-        .save-btn {
-          background: #0b2e5c;
-          color: white;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 6px;
-          cursor: pointer;
-        }
-
-        .save-btn:hover {
-          background: #0a254a;
-        }
-
-        .modal-actions button[type="button"] {
-          background: #6b7280;
-          color: white;
-          border: none;
-          padding: 8px 16px;
-          border-radius: 6px;
-          cursor: pointer;
-        }
-
-        .modal-actions button[type="button"]:hover {
-          background: #4b5563;
-        }
-      `}</style>
-    </main>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button className="bg-teal-400 text-slate-950 hover:bg-teal-500">
+                Save
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

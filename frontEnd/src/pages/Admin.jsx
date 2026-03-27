@@ -1,14 +1,35 @@
 import React from "react";
-import { Link, Routes, Route, Navigate } from "react-router-dom";
+import { Link, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Stylists from "./Stylists";
 import Services from "./Services";
 import StaffRequests from "./StaffRequests";
 import Analytics from "./Analytics";
 import Members from "./Members";
 import AdminAppointments from "./AdminAppointments";
-import Placeholder from "./Placeholder";
 import AdminSettings from "./AdminSettings";
 import AdminFeedback from "./AdminFeedback";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import {
+  Users,
+  Scissors,
+  Clock3,
+  Wallet,
+  LayoutDashboard,
+  UserCog,
+  BriefcaseBusiness,
+  CalendarDays,
+  UserRound,
+  MessageSquareText,
+  BarChart3,
+  Settings,
+  LogOut,
+} from "lucide-react";
 
 function DashboardView() {
   const [stats, setStats] = React.useState({
@@ -28,451 +49,228 @@ function DashboardView() {
       .catch(console.error);
   }, []);
 
-  return (
-    <section className="dashboard">
-      <h2 className="dashboard-title">Dashboard</h2>
-      <div className="stats">
-        <div className="stat-card">
-          <div className="stat-icon">👥</div>
-          <div>
-            <div className="stat-value">{stats.totalCustomers}</div>
-            <div className="stat-label">Customers</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">✂️</div>
-          <div>
-            <div className="stat-value">{stats.totalStaff}</div>
-            <div className="stat-label">Staff</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">⏳</div>
-          <div>
-            <div className="stat-value">{stats.pendingAppointments}</div>
-            <div className="stat-label">Pending appointments</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">💰</div>
-          <div>
-            <div className="stat-value">
-              {stats.totalRevenue ? stats.totalRevenue.toLocaleString("en-US") : "0"} VND
-            </div>
-            <div className="stat-label">Estimated revenue</div>
-          </div>
-        </div>
-      </div>
+  const statItems = [
+    {
+      title: "Customers",
+      value: stats.totalCustomers,
+      icon: Users,
+      description: "Total registered customers",
+    },
+    {
+      title: "Staff",
+      value: stats.totalStaff,
+      icon: Scissors,
+      description: "Total active stylists",
+    },
+    {
+      title: "Pending appointments",
+      value: stats.pendingAppointments,
+      icon: Clock3,
+      description: "Appointments waiting confirmation",
+    },
+    {
+      title: "Estimated revenue",
+      value: `${stats.totalRevenue ? stats.totalRevenue.toLocaleString("en-US") : "0"} VND`,
+      icon: Wallet,
+      description: "Current revenue overview",
+    },
+  ];
 
-      <div className="table-card">
-        <div className="table-card-header">
-          <div className="table-card-title">Detailed Management</div>
-        </div>
-        <p style={{ color: "#64748b", marginTop: "10px" }}>
-          Please switch to the <strong>Appointments</strong> or <strong>Analytics</strong>{" "}
-          tab in the left menu to view and manage details.
+  return (
+    <section className="space-y-6">
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Overview of salon operations and key numbers.
         </p>
       </div>
+
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        {statItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Card
+              key={item.title}
+              className="rounded-2xl border-slate-200 shadow-sm transition-all hover:-translate-y-1 hover:border-teal-400/60 hover:shadow-lg"
+            >
+              <CardContent className="flex items-center gap-4 p-6">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-400/10 text-teal-500">
+                  <Icon className="h-7 w-7" />
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-500">{item.title}</p>
+                  <p className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">
+                    {item.value}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">{item.description}</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <Card className="rounded-2xl border-slate-200 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-slate-900">Detailed Management</CardTitle>
+          <CardDescription>
+            Switch to the Appointments, Analytics, or other sections in the sidebar to manage
+            detailed data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
+            Use the left menu to navigate between staff, services, appointments, members, feedback,
+            analytics, and website settings.
+          </div>
+        </CardContent>
+      </Card>
     </section>
   );
 }
 
-export default function Admin() {
+function AdminNavItem({ to, icon: Icon, children }) {
+  const location = useLocation();
+  const isActive =
+    to === "/admin" ? location.pathname === "/admin" : location.pathname.startsWith(to);
+
   return (
-    <div className="admin">
-      <aside className="admin-sidebar">
-        <div className="admin-logo">Admin</div>
-        <nav className="admin-nav">
-          <Link to="/admin" className="admin-nav-item">
-            Dashboard
-          </Link>
-          <Link to="/admin/staff" className="admin-nav-item">
-            Staff
-          </Link>
-          <Link to="/admin/services" className="admin-nav-item">
-            Services
-          </Link>
-          <Link to="/admin/staff-requests" className="admin-nav-item">
-            Staff Requests
-          </Link>
-          <Link to="/admin/appointments" className="admin-nav-item">
-            Appointments
-          </Link>
-          <Link to="/admin/members" className="admin-nav-item">
-            Members
-          </Link>
-          <Link to="/admin/feedback" className="admin-nav-item">
-            Feedback
-          </Link>
-          <Link to="/admin/analytics" className="admin-nav-item">
-            Analytics
-          </Link>
-          <Link to="/admin/settings" className="admin-nav-item">
-            Website Settings
-          </Link>
-        </nav>
+    <Link
+      to={to}
+      className={cn(
+        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+        isActive
+          ? "bg-teal-400 text-slate-950 shadow-sm"
+          : "text-slate-300 hover:bg-white/10 hover:text-teal-300"
+      )}
+    >
+      <Icon className="h-4 w-4" />
+      <span>{children}</span>
+    </Link>
+  );
+}
+
+export default function Admin() {
+  const navItems = [
+    { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    { to: "/admin/staff", label: "Staff", icon: UserCog },
+    { to: "/admin/services", label: "Services", icon: BriefcaseBusiness },
+    { to: "/admin/staff-requests", label: "Staff Requests", icon: Clock3 },
+    { to: "/admin/appointments", label: "Appointments", icon: CalendarDays },
+    { to: "/admin/members", label: "Members", icon: UserRound },
+    { to: "/admin/feedback", label: "Feedback", icon: MessageSquareText },
+    { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+    { to: "/admin/settings", label: "Website Settings", icon: Settings },
+  ];
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/login";
+  };
+
+  return (
+    <div className="flex min-h-screen bg-slate-50">
+      {/* Sidebar */}
+      <aside className="hidden w-72 shrink-0 border-r border-slate-800 bg-slate-950 lg:flex lg:flex-col">
+        <div className="px-6 py-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-400 text-slate-950 shadow-md">
+              <Scissors className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-extrabold tracking-tight text-white">Admin</h1>
+              <p className="text-xs text-slate-400">Salon management panel</p>
+            </div>
+          </div>
+        </div>
+
+        <Separator className="bg-white/10" />
+
+        <ScrollArea className="flex-1 px-4 py-4">
+          <nav className="space-y-2">
+            {navItems.map((item) => (
+              <AdminNavItem key={item.to} to={item.to} icon={item.icon}>
+                {item.label}
+              </AdminNavItem>
+            ))}
+          </nav>
+        </ScrollArea>
+
+        <div className="border-t border-white/10 p-4">
+          <div className="flex items-center gap-3 rounded-2xl bg-white/5 p-3">
+            <Avatar className="h-10 w-10 border border-white/10">
+              <AvatarFallback className="bg-teal-400 text-slate-950 font-bold">
+                AD
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">admin</p>
+              <p className="text-xs text-slate-400">Administrator</p>
+            </div>
+          </div>
+        </div>
       </aside>
 
-      <main className="admin-main">
-        <header className="admin-header" style={{ justifyContent: "flex-end" }}>
-          <div className="admin-actions">
-            <button
-              className="btn-primary"
-              onClick={() => {
-                localStorage.removeItem("token");
-                localStorage.removeItem("user");
-                window.location.href = "/login";
-              }}
-            >
-              Log out
-            </button>
-            <div className="admin-user">admin</div>
+      {/* Main */}
+      <main className="flex min-h-screen flex-1 flex-col">
+        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur">
+          <div className="flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Admin Panel</h2>
+              <p className="text-sm text-slate-500">Manage your salon system efficiently</p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm sm:block">
+                admin
+              </div>
+              <Button
+                onClick={handleLogout}
+                className="rounded-xl bg-teal-400 text-slate-950 hover:bg-teal-500"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Log out
+              </Button>
+            </div>
           </div>
         </header>
 
-        <Routes>
-          <Route index element={<DashboardView />} />
-          <Route path="staff" element={<Stylists />} />
-          <Route path="services" element={<Services />} />
-          <Route path="staff-requests" element={<StaffRequests />} />
-          <Route path="appointments" element={<AdminAppointments />} />
-          <Route path="members" element={<Members />} />
-          <Route path="feedback" element={<AdminFeedback />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="settings" element={<AdminSettings />} />
-          <Route path="*" element={<Navigate to="." replace />} />
-        </Routes>
+        {/* Mobile nav */}
+        <div className="border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm"
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+          <Routes>
+            <Route index element={<DashboardView />} />
+            <Route path="staff" element={<Stylists />} />
+            <Route path="services" element={<Services />} />
+            <Route path="staff-requests" element={<StaffRequests />} />
+            <Route path="appointments" element={<AdminAppointments />} />
+            <Route path="members" element={<Members />} />
+            <Route path="feedback" element={<AdminFeedback />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="*" element={<Navigate to="." replace />} />
+          </Routes>
+        </div>
       </main>
-
-      <style>{`
-        .admin {
-          display: flex;
-          min-height: 100vh;
-          font-family: "Inter", system-ui, -apple-system, sans-serif;
-          background: #f8fafc;
-        }
-
-        .admin-sidebar {
-          width: 260px;
-          background: #0f172a;
-          color: #fff;
-          display: flex;
-          flex-direction: column;
-          padding: 24px 20px;
-          overflow-y: auto;
-          box-shadow: 4px 0 24px rgba(0, 0, 0, 0.05);
-          z-index: 10;
-        }
-
-        .admin-logo {
-          font-size: 24px;
-          font-weight: 800;
-          margin-bottom: 32px;
-          color: #22d3c5;
-          letter-spacing: -0.5px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        
-        .admin-logo::before {
-          content: "✂️";
-          font-size: 20px;
-        }
-
-        .admin-nav {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .admin-nav-item {
-          padding: 12px 16px;
-          border-radius: 12px;
-          color: #94a3b8;
-          text-decoration: none;
-          font-weight: 500;
-          font-size: 15px;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .admin-nav-item:hover {
-          background: rgba(34, 211, 197, 0.1);
-          color: #22d3c5;
-          transform: translateX(4px);
-        }
-
-        .admin-main {
-          flex: 1;
-          background: #f8fafc;
-          padding: 32px 40px;
-          display: flex;
-          flex-direction: column;
-          overflow-y: auto;
-        }
-
-        .admin-header {
-          display: flex;
-          justify-content: flex-end;
-          align-items: center;
-          margin-bottom: 32px;
-          padding-bottom: 20px;
-          border-bottom: 1px solid #e2e8f0;
-        }
-
-        .admin-actions {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-
-        .btn-primary {
-          padding: 10px 20px;
-          border-radius: 12px;
-          border: none;
-          background: #22d3c5;
-          color: #0f172a;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          box-shadow: 0 4px 12px rgba(34, 211, 197, 0.2);
-        }
-
-        .btn-primary:hover {
-          background: #1ebdb0;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(34, 211, 197, 0.3);
-        }
-
-        .admin-user {
-          padding: 10px 16px;
-          border-radius: 12px;
-          background: #ffffff;
-          font-weight: 600;
-          color: #0f172a;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-        }
-
-        .dashboard-title {
-          margin: 0 0 24px;
-          font-size: 28px;
-          font-weight: 700;
-          color: #0f172a;
-          letter-spacing: -0.5px;
-        }
-
-        .stats {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 24px;
-          margin-bottom: 40px;
-        }
-
-        .stat-card {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          padding: 24px;
-          border-radius: 20px;
-          background: #ffffff;
-          box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
-          border: 1px solid #f1f5f9;
-          transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
-          border-color: #22d3c5;
-        }
-
-        .stat-icon {
-          width: 64px;
-          height: 64px;
-          border-radius: 18px;
-          background: linear-gradient(135deg, rgba(34, 211, 197, 0.2), rgba(34, 211, 197, 0.05));
-          display: grid;
-          place-items: center;
-          color: #22d3c5;
-          font-size: 28px;
-        }
-
-        .stat-value {
-          font-size: 32px;
-          font-weight: 800;
-          margin-bottom: 4px;
-          color: #0f172a;
-          letter-spacing: -1px;
-        }
-
-        .stat-label {
-          color: #64748b;
-          font-size: 14px;
-          font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .table-card {
-          background: #ffffff;
-          border-radius: 20px;
-          padding: 32px;
-          box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
-          border: 1px solid #f1f5f9;
-        }
-
-        .table-card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-        }
-
-        .table-card-title {
-          font-size: 20px;
-          font-weight: 700;
-          color: #0f172a;
-        }
-
-        .table-card-actions button {
-          margin-left: 10px;
-        }
-
-        .btn-secondary {
-          padding: 10px 16px;
-          border-radius: 12px;
-          border: 1px solid #e2e8f0;
-          background: white;
-          color: #0f172a;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .btn-secondary:hover {
-          background: #f8fafc;
-          border-color: #cbd5e1;
-        }
-
-        .table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 14px;
-        }
-
-        .table th,
-        .table td {
-          padding: 16px 12px;
-          text-align: left;
-          border-bottom: 1px solid #f1f5f9;
-        }
-
-        .table th {
-          font-weight: 600;
-          color: #64748b;
-          text-transform: uppercase;
-          font-size: 12px;
-          letter-spacing: 0.5px;
-        }
-
-        .btn-icon {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          border: none;
-          background: #f1f5f9;
-          color: #64748b;
-          cursor: pointer;
-          margin-right: 8px;
-          transition: all 0.2s ease;
-        }
-
-        .btn-icon:hover {
-          background: #e2e8f0;
-          color: #0f172a;
-        }
-
-        .btn-icon:last-child {
-          margin-right: 0;
-        }
-
-        .admin-settings {
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        }
-
-        .admin-settings-card {
-          background: #fff;
-          border-radius: 20px;
-          padding: 24px;
-          box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
-          border: 1px solid #f1f5f9;
-          max-width: 480px;
-          display: grid;
-          gap: 16px;
-        }
-
-        .admin-settings-card label {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          color: #475569;
-        }
-
-        .admin-settings-card input {
-          padding: 12px 16px;
-          border-radius: 12px;
-          border: 1px solid #e2e8f0;
-          font-size: 15px;
-          transition: border-color 0.2s;
-        }
-
-        .admin-settings-card input:focus {
-          outline: none;
-          border-color: #22d3c5;
-          box-shadow: 0 0 0 3px rgba(34, 211, 197, 0.1);
-        }
-
-        @media (max-width: 900px) {
-          .admin {
-            flex-direction: column;
-          }
-
-          .admin-sidebar {
-            width: 100%;
-            flex-direction: row;
-            align-items: center;
-            padding: 16px 20px;
-            overflow-x: auto;
-            border-bottom: 1px solid #1e293b;
-          }
-          
-          .admin-logo {
-            margin-bottom: 0;
-            margin-right: 32px;
-          }
-
-          .admin-nav {
-            flex-direction: row;
-            gap: 12px;
-          }
-
-          .admin-main {
-            padding: 24px 20px;
-          }
-          
-          .stats {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
     </div>
   );
 }
