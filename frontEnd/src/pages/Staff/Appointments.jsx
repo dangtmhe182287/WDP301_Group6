@@ -54,6 +54,10 @@ const formatTimeRange = (startTime, endTime) => {
 };
 
 const getServiceName = (appointment, serviceId) => {
+  const snapshot = Array.isArray(appointment?.serviceSnapshots)
+    ? appointment.serviceSnapshots.find((item) => String(item?.serviceId || item?._id) === String(serviceId))
+    : null;
+  if (snapshot?.name) return snapshot.name;
   const service = Array.isArray(appointment?.serviceIds)
     ? appointment.serviceIds.find((item) => String(item?._id || item) === String(serviceId))
     : null;

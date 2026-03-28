@@ -400,6 +400,10 @@ export default function MyBooking() {
   };
 
   const getServiceNameById = (booking, serviceId) => {
+    const snapshot = Array.isArray(booking?.serviceSnapshots)
+      ? booking.serviceSnapshots.find((item) => String(item?.serviceId || item?._id) === String(serviceId))
+      : null;
+    if (snapshot?.name) return snapshot.name;
     const service = Array.isArray(booking?.serviceIds)
       ? booking.serviceIds.find((item) => String(item?._id || item) === String(serviceId))
       : null;
@@ -480,13 +484,17 @@ export default function MyBooking() {
                   ? assignmentStaffNames[0]
                   : `Multiple staff: ${assignmentStaffNames.join(", ")}`
                 : booking?.staffId?.fullName || booking?.staffId?.email || "No staff info";
-            const servicesName = Array.isArray(booking.serviceIds)
-              ? booking.serviceIds.map((service) => service?.name).filter(Boolean)
-              : [];
+            const servicesName = Array.isArray(booking.serviceSnapshots) && booking.serviceSnapshots.length > 0
+              ? booking.serviceSnapshots.map((service) => service?.name).filter(Boolean)
+              : Array.isArray(booking.serviceIds)
+                ? booking.serviceIds.map((service) => service?.name).filter(Boolean)
+                : [];
               
-            const totalPrice = Array.isArray(booking.serviceIds)
-              ? booking.serviceIds.reduce((total, service) => total + (service?.price || 0), 0)
-              : 0;
+            const totalPrice = Array.isArray(booking.serviceSnapshots) && booking.serviceSnapshots.length > 0
+              ? booking.serviceSnapshots.reduce((total, service) => total + (service?.price || 0), 0)
+              : Array.isArray(booking.serviceIds)
+                ? booking.serviceIds.reduce((total, service) => total + (service?.price || 0), 0)
+                : 0;
             const rated = rateByAppointment[booking._id];
             return (
               <div key={booking._id} className="booking-item">

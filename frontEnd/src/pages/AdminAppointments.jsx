@@ -40,6 +40,10 @@ export default function AdminAppointments() {
   const getStaffName = (staff) => staff?.fullName || staff?.email || "Staff";
 
   const getServiceName = (appointment, serviceId) => {
+    const snapshot = Array.isArray(appointment?.serviceSnapshots)
+      ? appointment.serviceSnapshots.find((item) => String(item?.serviceId || item?._id) === String(serviceId))
+      : null;
+    if (snapshot?.name) return snapshot.name;
     const service = Array.isArray(appointment?.serviceIds)
       ? appointment.serviceIds.find((item) => String(item?._id || item) === String(serviceId))
       : null;
@@ -106,8 +110,11 @@ export default function AdminAppointments() {
                       : staffNames.join(", ")
                     : getStaffName(app.staffId || { fullName: "Unknown" });
                 const services = Array.isArray(app.serviceIds) ? app.serviceIds : [];
+                const snapshotServices = Array.isArray(app.serviceSnapshots) ? app.serviceSnapshots : [];
 
-                let sName = services.map((s) => s.name).join(", ");
+                let sName = snapshotServices.length > 0
+                  ? snapshotServices.map((s) => s.name).join(", ")
+                  : services.map((s) => s.name).join(", ");
                 if (!sName) sName = "N/A";
 
                 const dateStr = new Date(app.appointmentDate).toLocaleDateString("en-GB");

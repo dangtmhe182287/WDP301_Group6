@@ -284,6 +284,18 @@ export const createAppointment = async (payload) => {
   const assignmentsMap = buildAssignmentMap(serviceIds, staffAssignments);
   const services = await getServicesByIds(serviceIds);
   const servicesById = new Map(services.map((service) => [toIdString(service._id), service.duration]));
+  const serviceSnapshots = serviceIds.map((serviceId) => {
+    const service = services.find((item) => toIdString(item._id) === toIdString(serviceId));
+    if (!service) {
+      throw new Error("Service snapshot not found");
+    }
+    return {
+      serviceId: service._id,
+      name: service.name,
+      price: service.price || 0,
+      duration: service.duration || 0,
+    };
+  });
   const totalDuration = services.reduce((total, service) => total + service.duration, 0);
   if (totalDuration > MAX_TOTAL_DURATION) {
     throw new Error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes`);
@@ -368,6 +380,7 @@ export const createAppointment = async (payload) => {
     customerName,
     staffId: resolvedStaffId,
     serviceIds,
+    serviceSnapshots,
     bookingChannel,
     createdByRole,
     appointmentDate: dayStart,
@@ -704,6 +717,7 @@ export const rescheduleAppointment = async (payload) => {
   appointment.startTime = formatMinutesToTime(nextStartMinutes);
   appointment.endTime = formatMinutesToTime(nextEndMinutes);
   appointment.serviceIds = resolvedServiceIds;
+  appointment.serviceSnapshots = nextServiceSnapshots;
   appointment.staffBusySlots = [{ startMinute: nextStartMinutes, endMinute: nextEndMinutes }];
   appointment.serviceStaffAssignments = assignmentsMap ? segments : [];
 
