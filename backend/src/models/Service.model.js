@@ -25,6 +25,15 @@ const serviceSchema = new mongoose.Schema(
             required: true,
             trim: true,
         },
+        isFeatured: {
+            type: Boolean,
+            default: false,
+        },
+        categoryId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Category",
+            default: null,
+        },
     },
 
     {timestamps: true}

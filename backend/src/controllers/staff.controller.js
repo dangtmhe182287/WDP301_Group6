@@ -21,7 +21,13 @@ export const getStaffs = async (req, res) => {
     const users = await User.find({ role: "staff" }).lean();
     
     const staffs = await Promise.all(users.map(async (user) => {
-      const staffInfo = await Staff.findOne({ userId: user._id }).lean();
+      const staffInfo = await Staff.findOne({ userId: user._id })
+        .populate({
+          path: "serviceIds",
+          select: "name categoryId",
+          populate: { path: "categoryId", select: "name" },
+        })
+        .lean();
       return {
         ...user,
         staff: staffInfo || null
@@ -139,14 +145,14 @@ export const getDashboard = async (req, res) => {
 /* ===== CRUD Staff (Admin) ===== */
 export const createStaff = async (req, res) => {
   try {
-    const { fullName, email, phone, staffSpecialty, staffExperienceYears, speciality, experienceYears, certificate, portfolio, schedule } = req.body;
+    const { fullName, email, phone, staffSpecialty, staffExperienceYears, speciality, experienceYears, certificate, portfolio, schedule, serviceIds } = req.body;
     
     // Check if email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: "Email đã tồn tại!" });
 
     // Create user role staff with default password
-    const hashedPassword = await bcrypt.hash("123456", 10);
+    const hashedPassword = await bcrypt.hash("123456789", 10);
     const newUser = await User.create({
       fullName,
       email,
@@ -167,7 +173,8 @@ export const createStaff = async (req, res) => {
       experienceYears: finalExperience,
       certificate: certificate || {},
       portfolio: portfolio || [],
-      schedule: schedule || []
+      schedule: schedule || [],
+      serviceIds: Array.isArray(serviceIds) ? serviceIds : [],
     });
 
     res.status(201).json({ message: "Tạo thợ cắt thành công", user: newUser, staff: newStaff });
@@ -179,7 +186,7 @@ export const createStaff = async (req, res) => {
 export const updateStaff = async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullName, email, phone, staffSpecialty, staffExperienceYears, speciality, experienceYears, certificate, portfolio, schedule } = req.body;
+    const { fullName, email, phone, staffSpecialty, staffExperienceYears, speciality, experienceYears, certificate, portfolio, schedule, serviceIds } = req.body;
     
     const staff = await Staff.findById(id);
     if (!staff) return res.status(404).json({ message: "Không tìm thấy thợ cắt" });
@@ -205,6 +212,7 @@ export const updateStaff = async (req, res) => {
     if (certificate) staff.certificate = certificate;
     if (portfolio) staff.portfolio = portfolio;
     if (schedule) staff.schedule = schedule;
+    if (Array.isArray(serviceIds)) staff.serviceIds = serviceIds;
     
     await staff.save();
 

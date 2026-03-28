@@ -163,14 +163,85 @@ const parseServiceIds = (query) => {
   return [];
 };
 
-// Calculate total duration of all selected services to determine the required slot length.
-const getTotalDuration = async (serviceIds) => {
+const toIdString = (value) => String(value);
+
+const getServicesByIds = async (serviceIds) => {
   const services = await Service.find({ _id: { $in: serviceIds } });
   if (services.length !== serviceIds.length) {
     throw new Error("One or more services not found");
   }
+  return services;
+};
 
+// Calculate total duration of all selected services to determine the required slot length.
+const getTotalDuration = async (serviceIds) => {
+  const services = await getServicesByIds(serviceIds);
   return services.reduce((total, service) => total + service.duration, 0); //total from 0 + duration each service in the list
+};
+
+const buildAssignmentMap = (serviceIds, staffAssignments) => {
+  if (!Array.isArray(staffAssignments) || staffAssignments.length === 0) return null;
+  const map = new Map();
+  staffAssignments.forEach((item) => {
+    if (!item?.serviceId || !item?.staffId) {
+      throw new Error("Each staff assignment requires serviceId and staffId");
+    }
+    map.set(toIdString(item.serviceId), toIdString(item.staffId));
+  });
+  const missing = serviceIds.filter((id) => !map.has(toIdString(id)));
+  if (missing.length > 0) {
+    throw new Error("Please select staff for every service");
+  }
+  return map;
+};
+
+const buildSegments = ({ startMinutes, serviceIds, servicesById, assignmentMap, fallbackStaffId }) => {
+  let cursor = startMinutes;
+  const segments = [];
+  serviceIds.forEach((serviceId) => {
+    const duration = servicesById.get(toIdString(serviceId));
+    if (!duration) {
+      throw new Error("Service duration not found");
+    }
+    const staffId = assignmentMap ? assignmentMap.get(toIdString(serviceId)) : fallbackStaffId;
+    if (!staffId) {
+      throw new Error("staffId is required");
+    }
+    const endMinute = cursor + duration;
+    segments.push({
+      serviceId,
+      staffId,
+      startMinute: cursor,
+      endMinute,
+      startTime: formatMinutesToTime(cursor),
+      endTime: formatMinutesToTime(endMinute),
+    });
+    cursor = endMinute;
+  });
+  return { segments, endMinute: cursor };
+};
+
+const getStaffIdsFromSegments = (segments) => {
+  const ids = new Set();
+  segments.forEach((segment) => {
+    if (segment?.staffId) ids.add(toIdString(segment.staffId));
+  });
+  return Array.from(ids);
+};
+
+const getAppointmentSegmentsForStaff = (appointment, staffId) => {
+  if (Array.isArray(appointment.serviceStaffAssignments) && appointment.serviceStaffAssignments.length > 0) {
+    return appointment.serviceStaffAssignments
+      .filter((item) => toIdString(item.staffId) === toIdString(staffId))
+      .map((item) => ({ startMinute: item.startMinute, endMinute: item.endMinute }));
+  }
+  if (toIdString(appointment.staffId) !== toIdString(staffId)) return [];
+  return [
+    {
+      startMinute: parseTimeToMinutes(appointment.startTime, "startTime"),
+      endMinute: parseTimeToMinutes(appointment.endTime, "endTime"),
+    },
+  ];
 };
 
 export const createAppointment = async (payload) => {
@@ -178,6 +249,7 @@ export const createAppointment = async (payload) => {
     customerId,
     customerName,
     staffId,
+    staffAssignments,
     bookingChannel = "online",
     createdByRole = "customer",
     appointmentDate,
@@ -185,7 +257,7 @@ export const createAppointment = async (payload) => {
     note,
   } = payload;
   // Basic validation for required fields and time alignment.
-  if (!staffId || !appointmentDate || startTime === undefined) {
+  if (!appointmentDate || startTime === undefined) {
     throw new Error("Missing required booking fields");
   }
   if (customerId) {
@@ -209,9 +281,17 @@ export const createAppointment = async (payload) => {
   if (serviceIds.length > MAX_SERVICE_PER_APPOINTMENT) {
     throw new Error(`Maximum ${MAX_SERVICE_PER_APPOINTMENT} services per appointment`);
   }
-  const totalDuration = await getTotalDuration(serviceIds);
+  const assignmentsMap = buildAssignmentMap(serviceIds, staffAssignments);
+  const services = await getServicesByIds(serviceIds);
+  const servicesById = new Map(services.map((service) => [toIdString(service._id), service.duration]));
+  const totalDuration = services.reduce((total, service) => total + service.duration, 0);
   if (totalDuration > MAX_TOTAL_DURATION) {
     throw new Error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes`);
+  }
+  const primaryStaffId = assignmentsMap ? assignmentsMap.get(toIdString(serviceIds[0])) : staffId;
+  const resolvedStaffId = staffId || primaryStaffId;
+  if (!resolvedStaffId) {
+    throw new Error("staffId is required");
   }
   const {
     openMinute,
@@ -219,7 +299,13 @@ export const createAppointment = async (payload) => {
     minLeadMinutes = DEFAULT_MIN_BOOKING_LEAD_MINUTES,
     maxDaysAhead = DEFAULT_MAX_DAYS_AHEAD,
   } = await getBusinessHours();
-  const endMinutes = startMinutes + totalDuration;
+  const { segments, endMinute: endMinutes } = buildSegments({
+    startMinutes,
+    serviceIds,
+    servicesById,
+    assignmentMap: assignmentsMap,
+    fallbackStaffId: resolvedStaffId,
+  });
   //Not in working hours
   if (startMinutes < openMinute || endMinutes > closeMinute) {
     throw new Error("Selected time is outside working hours");
@@ -239,19 +325,25 @@ export const createAppointment = async (payload) => {
     }
   }
   // Check for overlapping appointments for the staff on the same day.
+  const staffIds = getStaffIdsFromSegments(segments);
   const staffAppointments = await Appointment.find({
-    staffId,
     appointmentDate: { $gte: dayStart, $lt: dayEnd },
     status: { $nin: ["Cancelled"] },
+    $or: [
+      { staffId: { $in: staffIds } },
+      { "serviceStaffAssignments.staffId": { $in: staffIds } },
+    ],
   });
-  // Check if the new appointment overlaps with any existing appointments for the staff.
-  const overlapped = staffAppointments.some((appointment) => {
-    const apptStart = parseTimeToMinutes(appointment.startTime, "startTime");
-    const apptEnd = parseTimeToMinutes(appointment.endTime, "endTime");
-    return isOverlap(startMinutes, endMinutes, apptStart, apptEnd);
-  });
+  const hasStaffOverlap = segments.some((segment) =>
+    staffAppointments.some((appointment) => {
+      const existingSegments = getAppointmentSegmentsForStaff(appointment, segment.staffId);
+      return existingSegments.some((item) =>
+        isOverlap(segment.startMinute, segment.endMinute, item.startMinute, item.endMinute)
+      );
+    })
+  );
 
-  if (overlapped) {
+  if (hasStaffOverlap) {
     throw new Error("Selected slot conflicts with existing appointments");
   }
 
@@ -274,7 +366,7 @@ export const createAppointment = async (payload) => {
   return Appointment.create({
     customerId,
     customerName,
-    staffId,
+    staffId: resolvedStaffId,
     serviceIds,
     bookingChannel,
     createdByRole,
@@ -284,13 +376,20 @@ export const createAppointment = async (payload) => {
     paymentStatus: "Unpaid",
     note,
     staffBusySlots: [{ startMinute: startMinutes, endMinute: endMinutes }],
+    serviceStaffAssignments: assignmentsMap ? segments : [],
   });
 };
 
 //Get slots to show available time for booking
-export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId, serviceIds }) => {
-  if (!staffId || !appointmentDate) {
-    throw new Error("staffId and appointmentDate are required");
+export const getAvailableSlots = async ({
+  staffId,
+  appointmentDate,
+  serviceId,
+  serviceIds,
+  staffAssignments,
+}) => {
+  if (!appointmentDate) {
+    throw new Error("appointmentDate is required");
   }
 
   //get service Id list
@@ -299,7 +398,26 @@ export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId, s
     throw new Error("At least one service is required");
   }
 
-  const totalDuration = await getTotalDuration(resolvedServiceIds);
+  const assignments = (() => {
+    if (!staffAssignments) return null;
+    if (Array.isArray(staffAssignments)) return staffAssignments;
+    if (typeof staffAssignments === "string") {
+      try {
+        return JSON.parse(staffAssignments);
+      } catch (error) {
+        throw new Error("Invalid staffAssignments format");
+      }
+    }
+    return null;
+  })();
+
+  if (!staffId && (!assignments || assignments.length === 0)) {
+    throw new Error("staffId is required");
+  }
+
+  const services = await getServicesByIds(resolvedServiceIds);
+  const servicesById = new Map(services.map((service) => [toIdString(service._id), service.duration]));
+  const totalDuration = services.reduce((total, service) => total + service.duration, 0);
   const { dayStart, dayEnd } = normalizeDay(appointmentDate);
   const todayStart = getTodayStart();
   const {
@@ -309,28 +427,53 @@ export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId, s
   } = await getBusinessHours();
   const minLeadStart =
     isSameDay(dayStart, todayStart) ? getCurrentMinuteOfDay() + minLeadMinutes : null;
+  const assignmentMap = buildAssignmentMap(resolvedServiceIds, assignments);
+  const fallbackStaffId = staffId || (assignmentMap ? assignmentMap.get(toIdString(resolvedServiceIds[0])) : null);
+  const baseSegments = buildSegments({
+    startMinutes: openMinute,
+    serviceIds: resolvedServiceIds,
+    servicesById,
+    assignmentMap,
+    fallbackStaffId,
+  }).segments;
+  const staffIds = getStaffIdsFromSegments(baseSegments);
 
   const staffAppointments = await Appointment.find({
-    staffId,
     appointmentDate: { $gte: dayStart, $lt: dayEnd },
     status: { $nin: ["Cancelled"] },
-  }).select("startTime endTime");
+    $or: [
+      { staffId: { $in: staffIds } },
+      { "serviceStaffAssignments.staffId": { $in: staffIds } },
+    ],
+  }).select("startTime endTime staffId serviceStaffAssignments");
 
   const slots = [];
 
   // Each slot is available only if full duration fits and does not overlap.
   for (let minute = openMinute; minute < closeMinute; minute += SLOT_STEP) {
-    const endMinute = minute + totalDuration;
+    const { segments, endMinute } = buildSegments({
+      startMinutes: minute,
+      serviceIds: resolvedServiceIds,
+      servicesById,
+      assignmentMap,
+      fallbackStaffId,
+    });
 
     const withinLead = minLeadStart === null || minute >= minLeadStart;
-    const available =
+    let available =
       endMinute <= closeMinute && //not exceed working hours
-      withinLead &&
-      !staffAppointments.some((appointment) => {
-        const apptStart = parseTimeToMinutes(appointment.startTime, "startTime");
-        const apptEnd = parseTimeToMinutes(appointment.endTime, "endTime");
-        return isOverlap(minute, endMinute, apptStart, apptEnd);
-      });
+      withinLead;
+
+    if (available) {
+      available = !segments.some((segment) =>
+        staffAppointments.some((appointment) => {
+          const existingSegments = getAppointmentSegmentsForStaff(appointment, segment.staffId);
+          return existingSegments.some((item) =>
+            isOverlap(segment.startMinute, segment.endMinute, item.startMinute, item.endMinute)
+          );
+        })
+      );
+    }
 
     slots.push({//
       startMinute: minute,
@@ -340,7 +483,7 @@ export const getAvailableSlots = async ({ staffId, appointmentDate, serviceId, s
   }
 
   return {
-    staffId,
+    staffId: staffId || null,
     appointmentDate: dayStart,
     serviceIds: resolvedServiceIds,
     serviceDuration: totalDuration,
@@ -356,6 +499,7 @@ export const getAppointmentsByCustomer = async (customerId) => {
   return Appointment.find({ customerId })
     .populate("staffId", "fullName email phone")
     .populate("serviceIds", "name duration price")
+    .populate("serviceStaffAssignments.staffId", "fullName email phone")
     .sort({ appointmentDate: -1, startTime: -1 });
 };
 
@@ -403,6 +547,7 @@ export const rescheduleAppointment = async (payload) => {
     userId,
     role,
     staffId,
+    staffAssignments,
     appointmentDate,
     startTime,
     note,
@@ -453,12 +598,24 @@ export const rescheduleAppointment = async (payload) => {
     throw new Error(`Maximum ${MAX_SERVICE_PER_APPOINTMENT} services per appointment`);
   }
 
-  const totalDuration = await getTotalDuration(resolvedServiceIds);
+  const services = await getServicesByIds(resolvedServiceIds);
+  const servicesById = new Map(services.map((service) => [toIdString(service._id), service.duration]));
+  const totalDuration = services.reduce((total, service) => total + service.duration, 0);
   if (totalDuration > MAX_TOTAL_DURATION) {
     throw new Error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes`);
   }
 
-  const nextStaffId = staffId || appointment.staffId;
+  const existingAssignments = Array.isArray(appointment.serviceStaffAssignments) && appointment.serviceStaffAssignments.length > 0
+    ? appointment.serviceStaffAssignments.map((item) => ({
+        serviceId: item.serviceId,
+        staffId: item.staffId,
+      }))
+    : null;
+  const assignmentsMap = buildAssignmentMap(resolvedServiceIds, staffAssignments || existingAssignments);
+  const primaryStaffId = assignmentsMap
+    ? assignmentsMap.get(toIdString(resolvedServiceIds[0]))
+    : (staffId || appointment.staffId);
+  const nextStaffId = staffId || appointment.staffId || primaryStaffId;
   const nextStartMinutes =
     startTime !== undefined
       ? parseTimeToMinutes(startTime, "startTime")
@@ -489,24 +646,34 @@ export const rescheduleAppointment = async (payload) => {
     }
   }
 
-  const nextEndMinutes = nextStartMinutes + totalDuration;
+  const { segments, endMinute: nextEndMinutes } = buildSegments({
+    startMinutes: nextStartMinutes,
+    serviceIds: resolvedServiceIds,
+    servicesById,
+    assignmentMap: assignmentsMap,
+    fallbackStaffId: nextStaffId,
+  });
   if (nextStartMinutes < openMinute || nextEndMinutes > closeMinute) {
     throw new Error("Selected time is outside working hours");
   }
 
+  const staffIds = getStaffIdsFromSegments(segments);
   const staffAppointments = await Appointment.find({
-    staffId: nextStaffId,
     appointmentDate: { $gte: dayStart, $lt: dayEnd },
     status: { $nin: ["Cancelled"] },
     _id: { $ne: appointment._id },
+    $or: [
+      { staffId: { $in: staffIds } },
+      { "serviceStaffAssignments.staffId": { $in: staffIds } },
+    ],
   });
-  const staffOverlap = staffAppointments.some((item) =>
-    isOverlap(
-      nextStartMinutes,
-      nextEndMinutes,
-      parseTimeToMinutes(item.startTime, "startTime"),
-      parseTimeToMinutes(item.endTime, "endTime"),
-    )
+  const staffOverlap = segments.some((segment) =>
+    staffAppointments.some((item) => {
+      const existingSegments = getAppointmentSegmentsForStaff(item, segment.staffId);
+      return existingSegments.some((range) =>
+        isOverlap(segment.startMinute, segment.endMinute, range.startMinute, range.endMinute)
+      );
+    })
   );
   if (staffOverlap) {
     throw new Error("Selected slot conflicts with existing appointments");
@@ -538,6 +705,7 @@ export const rescheduleAppointment = async (payload) => {
   appointment.endTime = formatMinutesToTime(nextEndMinutes);
   appointment.serviceIds = resolvedServiceIds;
   appointment.staffBusySlots = [{ startMinute: nextStartMinutes, endMinute: nextEndMinutes }];
+  appointment.serviceStaffAssignments = assignmentsMap ? segments : [];
 
   if (Object.prototype.hasOwnProperty.call(payload, "note")) {
     appointment.note = note;

@@ -16,6 +16,9 @@ const StaffSchema = new mongoose.Schema({
      }, 
      portfolio : [{type: String}],
      rating: {type: Number, default: 0},
+     serviceIds: [
+        { type: mongoose.Schema.Types.ObjectId, ref: "Service" }
+     ],
      schedule: [
         {
             workingDate: {type: Date},

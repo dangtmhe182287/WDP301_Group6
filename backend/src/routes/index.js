@@ -6,6 +6,7 @@ import staffRequestRouter from "./staffRequest.route.js"
 import settingsRouter from "./settings.route.js"
 import rateRouter from "./rate.route.js"
 import aiRouter from "./ai.route.js";
+import categoryRouter from "./category.route.js";
 
 import staffRouter from "./staff.route.js"
 import userRouter from "./user.route.js"
@@ -21,6 +22,7 @@ router.use("/staff-request", staffRequestRouter);
 router.use("/settings", settingsRouter);
 router.use("/rates", rateRouter);
 router.use("/ai", aiRouter);
+router.use("/categories", categoryRouter);
 
 
 // Handle 404 (if not matched any router)

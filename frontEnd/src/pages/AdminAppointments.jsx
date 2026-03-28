@@ -37,6 +37,30 @@ export default function AdminAppointments() {
     return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}`;
   };
 
+  const getStaffName = (staff) => staff?.fullName || staff?.email || "Staff";
+
+  const getServiceName = (appointment, serviceId) => {
+    const service = Array.isArray(appointment?.serviceIds)
+      ? appointment.serviceIds.find((item) => String(item?._id || item) === String(serviceId))
+      : null;
+    return service?.name || "Service";
+  };
+
+  const getScheduleSegments = (appointment) => {
+    const assignments = Array.isArray(appointment?.serviceStaffAssignments)
+      ? appointment.serviceStaffAssignments
+      : [];
+    return assignments
+      .slice()
+      .sort((a, b) => (a.startMinute || 0) - (b.startMinute || 0))
+      .map((item) => ({
+        serviceName: getServiceName(appointment, item.serviceId),
+        staffName: getStaffName(item.staffId),
+        startTime: item.startTime,
+        endTime: item.endTime,
+      }));
+  };
+
   return (
     <div className="admin-appointments">
       <div className="page-header">
@@ -68,7 +92,19 @@ export default function AdminAppointments() {
                   fullName: app.customerName || "Walk-in",
                   phone: "",
                 };
-                const staff = app.staffId || { fullName: "Unknown" };
+                const assignments = Array.isArray(app?.serviceStaffAssignments)
+                  ? app.serviceStaffAssignments
+                  : [];
+                const scheduleSegments = getScheduleSegments(app);
+                const staffNames = Array.from(
+                  new Set(assignments.map((item) => getStaffName(item.staffId)))
+                );
+                const staffLabel =
+                  assignments.length > 0
+                    ? staffNames.length === 1
+                      ? staffNames[0]
+                      : staffNames.join(", ")
+                    : getStaffName(app.staffId || { fullName: "Unknown" });
                 const services = Array.isArray(app.serviceIds) ? app.serviceIds : [];
 
                 let sName = services.map((s) => s.name).join(", ");
@@ -84,7 +120,7 @@ export default function AdminAppointments() {
                       <div className="sub-text">{customer.phone}</div>
                     </td>
                     <td>
-                      <span className="staff-name">{staff.fullName}</span>
+                      <span className="staff-name">{staffLabel}</span>
                     </td>
                     <td>
                       <div className="service-list">{sName}</div>
@@ -93,11 +129,24 @@ export default function AdminAppointments() {
                       <div className="time-block">
                         <span className="date-badge">📅 {dateStr}</span>
                         <span className="time-badge">⏰ {timeStr}</span>
+                        {scheduleSegments.length > 0 ? (
+                          <div className="schedule-list">
+                            {scheduleSegments.map((segment, index) => (
+                              <div key={`${segment.serviceName}-${index}`} className="schedule-item">
+                                <span className="schedule-service">{segment.serviceName}</span>
+                                <span className="schedule-staff">{segment.staffName}</span>
+                                <span className="schedule-time">
+                                  {formatTime(segment.startTime)} - {formatTime(segment.endTime)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
                     </td>
                     <td>
                       <span className={`status-pill status-${app.status?.toLowerCase() || "pending"}`}>
-                        {app.status}
+                        {app.status === "NoShow" ? "No Show" : app.status}
                       </span>
                     </td>
                   </tr>
@@ -195,6 +244,35 @@ export default function AdminAppointments() {
           font-weight: 500;
         }
 
+        .schedule-list {
+          margin-top: 8px;
+          display: grid;
+          gap: 6px;
+          font-size: 12px;
+          color: #475569;
+        }
+
+        .schedule-item {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: nowrap;
+        }
+
+        .schedule-service {
+          font-weight: 600;
+          color: #0f172a;
+        }
+
+        .schedule-staff {
+          color: #0f172a;
+        }
+
+        .schedule-time {
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+        }
+
         .status-pill {
           display: inline-flex;
           align-items: center;
@@ -208,6 +286,7 @@ export default function AdminAppointments() {
         .status-scheduled { background: #e0f2fe; color: #0284c7; }
         .status-completed { background: #dcfce3; color: #166534; }
         .status-cancelled { background: #fee2e2; color: #dc2626; }
+        .status-noshow { background: #fef3c7; color: #b45309; }
 
         .loading, .error, .empty {
           padding: 40px;
@@ -228,3 +307,5 @@ export default function AdminAppointments() {
     </div>
   );
 }
+
+

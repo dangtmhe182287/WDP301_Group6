@@ -29,18 +29,20 @@ const calculateDiscountPrice = async (serviceId, userMembership) => {
 };
 
 export const getAllServices = async() =>{
-    return Service.find().sort({createdAt: -1});
+    return Service.find()
+      .populate("categoryId", "name")
+      .sort({createdAt: -1});
 };
 
 export const getServiceById = async (serviceId) => {
-    const service = await Service.findById(serviceId);
+    const service = await Service.findById(serviceId).populate("categoryId", "name");
     if(!service){
         throw new Error("Service not found");
     }
     return service;
 }
 
-export const createService = async ({name, price, duration, description, phases =[]}) =>{
+export const createService = async ({name, price, duration, description, categoryId, isFeatured, phases =[]}) =>{
     if(!name || price == undefined || duration == undefined || !description){
         throw new Error("Missising required fields");
     }
@@ -49,6 +51,8 @@ export const createService = async ({name, price, duration, description, phases 
         price,
         duration,
         description,
+        categoryId: categoryId || null,
+        isFeatured: Boolean(isFeatured),
         phases,
     });
 };

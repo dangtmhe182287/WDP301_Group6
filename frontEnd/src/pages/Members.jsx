@@ -51,18 +51,18 @@ export default function Members() {
                 <th>Full name</th>
                 <th>Contact</th>
                 <th>Total bookings</th>
-                <th>Cancelled</th>
-                <th>Cancel rate</th>
+                <th>No Show</th>
+                <th>No Show rate</th>
               </tr>
             </thead>
             <tbody>
               {customers.map((customer) => {
                 const total = customer.totalBookings || 0;
-                const cancelled = customer.cancelledBookings || 0;
-                let cancelRate = 0;
+                const noShow = customer.noShowBookings || 0;
+                let noShowRate = 0;
 
                 if (total > 0) {
-                  cancelRate = Math.round((cancelled / total) * 100);
+                  noShowRate = Math.round((noShow / total) * 100);
                 }
 
                 return (
@@ -80,18 +80,18 @@ export default function Members() {
                       <span className="stat-pill booking-pill">{total} bookings</span>
                     </td>
                     <td>
-                      <span className={cancelled > 0 ? "stat-pill cancel-pill" : "stat-pill zero-pill"}>
-                        {cancelled} cancelled
+                      <span className={noShow > 0 ? "stat-pill cancel-pill" : "stat-pill zero-pill"}>
+                        {noShow} No Show
                       </span>
                     </td>
                     <td>
                       <div className="rate-text">
                         <span
                           className={`rate-percent ${
-                            cancelRate > 30 ? "high-rate" : cancelRate > 0 ? "medium-rate" : "good-rate"
+                            noShowRate > 30 ? "high-rate" : noShowRate > 0 ? "medium-rate" : "good-rate"
                           }`}
                         >
-                          {cancelRate}%
+                          {noShowRate}%
                         </span>
                       </div>
                     </td>
@@ -225,3 +225,4 @@ export default function Members() {
     </div>
   );
 }
+

@@ -24,6 +24,8 @@ const API_BASE = "http://localhost:3000";
 
 export default function Stylists() {
   const [staffs, setStaffs] = useState([]);
+  const [services, setServices] = useState([]);
+  const [loadingServices, setLoadingServices] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -41,6 +43,7 @@ export default function Stylists() {
     certificate: { name: "", organization: "", certificateId: "", image: "" },
     portfolio: [],
     schedule: [],
+    serviceIds: [],
   };
 
   const [formData, setFormData] = useState(emptyForm);
@@ -74,6 +77,26 @@ export default function Stylists() {
     loadStaffs();
   }, []);
 
+  useEffect(() => {
+    const loadServices = async () => {
+      setLoadingServices(true);
+      try {
+        const response = await fetch(`${API_BASE}/services`);
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.message || "Unable to load services");
+        }
+        setServices(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setServices([]);
+      } finally {
+        setLoadingServices(false);
+      }
+    };
+
+    loadServices();
+  }, []);
+
   const handleCreate = () => {
     setEditingStaff(null);
     setFormData(emptyForm);
@@ -102,6 +125,9 @@ export default function Stylists() {
         },
       portfolio: Array.isArray(staffInfo.portfolio) ? staffInfo.portfolio : [],
       schedule: Array.isArray(staffInfo.schedule) ? staffInfo.schedule : [],
+      serviceIds: Array.isArray(staffInfo.serviceIds)
+        ? staffInfo.serviceIds.map((svc) => String(svc?._id || svc)).filter(Boolean)
+        : [],
     });
     setShowModal(true);
   };
@@ -196,6 +222,15 @@ export default function Stylists() {
     }
   };
 
+  const toggleService = (serviceId) => {
+    setFormData((prev) => ({
+      ...prev,
+      serviceIds: prev.serviceIds.includes(serviceId)
+        ? prev.serviceIds.filter((id) => id !== serviceId)
+        : [...prev.serviceIds, serviceId],
+    }));
+  };
+
   const getDisplaySpeciality = (user, staffInfo) => {
     return (
       (Array.isArray(staffInfo.speciality) &&
@@ -261,6 +296,7 @@ export default function Stylists() {
                     <th className="px-5 py-3 text-left font-semibold">Contact</th>
                     <th className="px-5 py-3 text-left font-semibold">Speciality</th>
                     <th className="px-5 py-3 text-left font-semibold">Experience</th>
+                    <th className="px-5 py-3 text-left font-semibold">Services</th>
                     <th className="px-5 py-3 text-left font-semibold">Rating</th>
                     <th className="px-5 py-3 text-right font-semibold">Actions</th>
                   </tr>
@@ -281,6 +317,11 @@ export default function Stylists() {
                     const staffInfo = staff.staff || staff;
                     const speciality = getDisplaySpeciality(user, staffInfo);
                     const experience = getDisplayExperience(staffInfo);
+                    const serviceNames = Array.isArray(staffInfo.serviceIds)
+                      ? staffInfo.serviceIds
+                          .map((svc) => svc?.name || svc?.categoryId?.name || "")
+                          .filter(Boolean)
+                      : [];
 
                     return (
                       <tr
@@ -362,6 +403,24 @@ export default function Stylists() {
                               <Sparkles className="mr-1 h-3 w-3" />
                               {experience} years
                             </Badge>
+                          )}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          {serviceNames.length ? (
+                            <div className="flex flex-wrap gap-2">
+                              {serviceNames.map((name, idx) => (
+                                <Badge
+                                  key={`${name}-${idx}`}
+                                  variant="secondary"
+                                  className="rounded-full bg-slate-100 text-slate-700 hover:bg-slate-100"
+                                >
+                                  {name}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">-</span>
                           )}
                         </td>
 
@@ -466,6 +525,41 @@ export default function Stylists() {
                 onChange={handleInputChange}
                 placeholder="Fade, Perm, Styling"
               />
+            </div>
+
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-slate-700">
+                Services this staff can do
+              </label>
+              {loadingServices ? (
+                <div className="text-sm text-slate-500">Loading services...</div>
+              ) : services.length === 0 ? (
+                <div className="text-sm text-slate-500">No services found.</div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {services.map((service) => {
+                    const id = String(service._id);
+                    const checked = formData.serviceIds.includes(id);
+                    return (
+                      <label
+                        key={service._id}
+                        className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs ${
+                          checked
+                            ? "border-teal-300 bg-teal-50 text-teal-700"
+                            : "border-slate-200 text-slate-600"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleService(id)}
+                        />
+                        <span>{service.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">

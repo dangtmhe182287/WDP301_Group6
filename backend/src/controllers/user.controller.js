@@ -108,12 +108,12 @@ export const getCustomerStats = async (req, res) => {
           email: 1,
           phone: 1,
           totalBookings: { $size: "$appointments" },
-          cancelledBookings: {
+          noShowBookings: {
             $size: {
               $filter: {
                 input: "$appointments",
                 as: "app",
-                cond: { $eq: ["$$app.status", "Cancelled"] },
+                cond: { $eq: ["$$app.status", "NoShow"] },
               },
             },
           },

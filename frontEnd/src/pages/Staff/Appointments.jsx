@@ -52,6 +52,27 @@ const formatTimeRange = (startTime, endTime) => {
   if (startTime && endTime) return `${startTime} - ${endTime}`;
   return startTime || endTime || "-";
 };
+
+const getServiceName = (appointment, serviceId) => {
+  const service = Array.isArray(appointment?.serviceIds)
+    ? appointment.serviceIds.find((item) => String(item?._id || item) === String(serviceId))
+    : null;
+  return service?.name || "Service";
+};
+
+const getAssignmentSegments = (appointment) => {
+  const assignments = Array.isArray(appointment?.serviceStaffAssignments)
+    ? appointment.serviceStaffAssignments
+    : [];
+  return assignments
+    .slice()
+    .sort((a, b) => (a.startMinute || 0) - (b.startMinute || 0))
+    .map((item) => ({
+      serviceName: getServiceName(appointment, item.serviceId),
+      startTime: item.startTime,
+      endTime: item.endTime,
+    }));
+};
 export default function Appointments() {
   const [appointments, setAppointments] = useState([]);
   const [filter, setFilter] = useState("All");
@@ -112,6 +133,8 @@ export default function Appointments() {
         await updateStatus(selectedAction.id, "Completed");
       } else if (selectedAction.actionType === "cancel") {
         await updateStatus(selectedAction.id, "Cancelled");
+      } else if (selectedAction.actionType === "no-show") {
+        await updateStatus(selectedAction.id, "NoShow");
       } else if (selectedAction.actionType === "paid") {
         await confirmPayment(selectedAction.id);
       }
@@ -121,7 +144,7 @@ export default function Appointments() {
     }
   };
 
-  const filters = ["All", "Pending", "Scheduled", "Completed", "Cancelled"];
+  const filters = ["All", "Pending", "Scheduled", "Completed", "Cancelled", "NoShow"];
 
   const filtered = useMemo(() => {
     let data =
@@ -157,6 +180,8 @@ export default function Appointments() {
         return "destructive";
       case "Pending":
         return "secondary";
+      case "NoShow":
+        return "destructive";
       default:
         return "outline";
     }
@@ -189,6 +214,12 @@ export default function Appointments() {
           title: "Confirm payment?",
           description: `Are you sure you want to mark payment of "${selectedAction.customerName}" as Paid?`,
           actionText: "Mark as Paid",
+        };
+      case "no-show":
+        return {
+          title: "Mark no show?",
+          description: `Are you sure you want to mark "${selectedAction.customerName}" as No Show?`,
+          actionText: "Mark No Show",
         };
       default:
         return {
@@ -250,7 +281,7 @@ export default function Appointments() {
                 className="rounded-full"
                 onClick={() => setFilter(f)}
               >
-                {f}
+                {f === "NoShow" ? "No Show" : f}
               </Button>
             ))}
           </CardContent>
@@ -303,7 +334,9 @@ export default function Appointments() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filtered.map((a) => (
+                    filtered.map((a) => {
+                      const segments = getAssignmentSegments(a);
+                      return (
                       <TableRow key={a._id} className="hover:bg-muted/20">
                         <TableCell>
                           <div
@@ -324,12 +357,21 @@ export default function Appointments() {
                         </TableCell>
 
                         <TableCell className="font-medium">
-  <div className="flex flex-col">
-    <span>{formatDate(a.appointmentDate)}</span>
-    <span className="text-xs text-muted-foreground">
-      {formatTimeRange(a.startTime, a.endTime)}
-    </span>
-  </div>
+                          <div className="flex flex-col">
+                            <span>{formatDate(a.appointmentDate)}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatTimeRange(a.startTime, a.endTime)}
+                            </span>
+                            {segments.length > 0 ? (
+                              <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                                {segments.map((segment, index) => (
+                                  <div key={`${segment.serviceName}-${index}`}>
+                                    {segment.serviceName}: {formatTimeRange(segment.startTime, segment.endTime)}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
 </TableCell>
 
                         <TableCell>
@@ -337,7 +379,7 @@ export default function Appointments() {
                             variant={getBadgeVariant(a.status)}
                             className="rounded-full"
                           >
-                            {a.status}
+                            {a.status === "NoShow" ? "No Show" : a.status}
                           </Badge>
                         </TableCell>
 
@@ -367,6 +409,16 @@ export default function Appointments() {
                               size="sm"
                               variant="outline"
                               className="rounded-lg"
+                              onClick={() => handleOpenAlert(a, "no-show")}
+                              disabled={["Completed", "Cancelled", "NoShow"].includes(a.status)}
+                            >
+                              No Show
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-lg"
                               onClick={() => handleOpenAlert(a, "paid")}
                               disabled={
                                 a.paymentStatus === "Paid" ||
@@ -381,14 +433,15 @@ export default function Appointments() {
                               variant="destructive"
                               className="rounded-lg"
                               onClick={() => handleOpenAlert(a, "cancel")}
-                              disabled={a.status === "Cancelled"}
+                              disabled={["Cancelled", "NoShow"].includes(a.status)}
                             >
                               Cancel
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
