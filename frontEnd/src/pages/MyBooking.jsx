@@ -196,7 +196,7 @@ export default function MyBooking() {
 
   const canCancel = (booking) => {
     if (!booking) return false;
-    if (["Cancelled", "Completed"].includes(booking.status)) return false;
+    if (["Cancelled", "Completed", "NoShow"].includes(booking.status)) return false;
     const start = getAppointmentStart(booking);
     if (Number.isNaN(start.getTime())) return true;
     return new Date() < start;
@@ -390,8 +390,12 @@ export default function MyBooking() {
     return getSortedBookings(filtered, showHistory ? "desc" : "asc");
   }, [bookings, showHistory, historyFilter]);
 
-  const getStaffNameById = (staffId) => {
-    const staff = staffs.find((item) => String(item._id) === String(staffId));
+  const getStaffNameById = (staffRef) => {
+    if (!staffRef) return "Staff";
+    if (typeof staffRef === "object") {
+      return staffRef.fullName || staffRef.email || "Staff";
+    }
+    const staff = staffs.find((item) => String(item._id) === String(staffRef));
     return staff?.fullName || staff?.email || "Staff";
   };
 
@@ -500,6 +504,7 @@ export default function MyBooking() {
                         .slice()
                         .sort((a, b) => (a.startMinute || 0) - (b.startMinute || 0))
                         .map((item, index) => (
+                          console.log("Rendering assignment item:", { item }),
                           <div key={`${item.serviceId}-${index}`} className="booking-schedule-item">
                             <span className="booking-schedule-service">
                               {getServiceNameById(booking, item.serviceId)}
