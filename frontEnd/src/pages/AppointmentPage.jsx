@@ -615,7 +615,7 @@ function AppointmentPage() {
           ? response.data.appointments
           : []
       const blockedCount = list.filter((booking) => {
-        if (booking?.status === "Cancelled") return false
+        if (booking?.status === "Cancelled" || booking?.status === "NoShow") return false
         return booking?.paymentStatus === "Unpaid" || booking?.status === "Scheduled"
       }).length
       if (blockedCount >= 2) {

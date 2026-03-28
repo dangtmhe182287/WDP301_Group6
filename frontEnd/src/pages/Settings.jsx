@@ -22,6 +22,8 @@
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showRequest, setShowRequest] = useState(false);
+  const [staffServices, setStaffServices] = useState([]);
+  const [loadingStaffServices, setLoadingStaffServices] = useState(false);
 
     const [staffForm, setStaffForm] = useState({
       speciality: "",
@@ -50,6 +52,28 @@
       });
       setAvatarPreview(resolveAvatar(user.imgUrl));
     }
+  }, [user]);
+
+  useEffect(() => {
+    const loadStaffServices = async () => {
+      if (!user || user.role !== "staff") return;
+      setLoadingStaffServices(true);
+      try {
+        const response = await axiosInstance.get("/staffs");
+        const list = Array.isArray(response.data) ? response.data : [];
+        const staffRecord = list.find((item) => String(item._id) === String(user._id || user.id));
+        const services = Array.isArray(staffRecord?.staff?.serviceIds)
+          ? staffRecord.staff.serviceIds
+          : [];
+        setStaffServices(services);
+      } catch (error) {
+        setStaffServices([]);
+      } finally {
+        setLoadingStaffServices(false);
+      }
+    };
+
+    loadStaffServices();
   }, [user]);
 
     const handleChange = (field) => (event) => {
@@ -235,6 +259,29 @@
               </div>
             </CardContent>
           </Card>
+
+          {user.role === "staff" && (
+            <Card className="rounded-2xl shadow-md">
+              <CardHeader>
+                <CardTitle>Assigned Services</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {loadingStaffServices ? (
+                  <p className="text-sm text-muted-foreground">Loading services...</p>
+                ) : staffServices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No services assigned yet.</p>
+                ) : (
+                  <ul className="space-y-1 text-sm">
+                    {staffServices.map((service) => (
+                      <li key={service._id} className="rounded-lg border px-3 py-2">
+                        {service.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* STAFF REQUEST */}
           {user.role === "customer" && (

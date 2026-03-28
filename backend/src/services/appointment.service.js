@@ -263,7 +263,7 @@ export const createAppointment = async (payload) => {
   if (customerId) {
     const unfinishedCount = await Appointment.countDocuments({
       customerId,
-      status: { $ne: "Cancelled" },
+      status: { $nin: ["Cancelled", "NoShow"] },
       $or: [{ paymentStatus: "Unpaid" }, { status: "Scheduled" }],
     });
     if (unfinishedCount >= 2) {
@@ -513,8 +513,8 @@ export const cancelAppointment = async ({ appointmentId, customerId, role }) => 
     throw new Error("Appointment not found");
   }
 
-  if (appointment.status === "Cancelled") {
-    throw new Error("Appointment already cancelled");
+  if (appointment.status === "Cancelled" || appointment.status === "NoShow") {
+    throw new Error("Appointment already closed");
   }
 
   if (role !== "admin" && customerId && String(appointment.customerId) !== String(customerId)) {
