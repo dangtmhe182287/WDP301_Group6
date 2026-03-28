@@ -76,18 +76,22 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const register = async (userData) => {
-        const result = await authService.register(userData);
-        
-        if (result.success && result.data.success) {
-            return { success: true };
-        }
-        
-        return {
-            success: false,
-            message: result.message || 'Registration failed'
-        };
+   const register = async (userData) => {
+  const result = await authService.register(userData);
+
+  if (result.success) {
+    return {
+      success: true,
+      data: result.data,
+      message: result.data?.message || "Register Successfully!",
     };
+  }
+
+  return {
+    success: false,
+    message: result.message || "Register Failed!",
+  };
+};
 
     const logout = async () => {
         try {
