@@ -8,6 +8,7 @@ import Members from "./Members";
 import AdminAppointments from "./AdminAppointments";
 import AdminSettings from "./AdminSettings";
 import AdminFeedback from "./AdminFeedback";
+import AdminSchedules from "./AdminSchedules";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -152,17 +153,18 @@ function AdminNavItem({ to, icon: Icon, children }) {
 }
 
 export default function Admin() {
-  const navItems = [
-    { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
-    { to: "/admin/staff", label: "Staff", icon: UserCog },
-    { to: "/admin/services", label: "Services", icon: BriefcaseBusiness },
-    { to: "/admin/staff-requests", label: "Staff Requests", icon: Clock3 },
-    { to: "/admin/appointments", label: "Appointments", icon: CalendarDays },
-    { to: "/admin/members", label: "Members", icon: UserRound },
-    { to: "/admin/feedback", label: "Feedback", icon: MessageSquareText },
-    { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-    { to: "/admin/settings", label: "Website Settings", icon: Settings },
-  ];
+const navItems = [
+  { to: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/admin/staff", label: "Staff", icon: UserCog },
+  { to: "/admin/services", label: "Services", icon: BriefcaseBusiness },
+  { to: "/admin/staff-requests", label: "Staff Requests", icon: Clock3 },
+  { to: "/admin/appointments", label: "Appointments", icon: CalendarDays },
+  { to: "/admin/schedules", label: "Schedules", icon: CalendarDays },
+  { to: "/admin/members", label: "Members", icon: UserRound },
+  { to: "/admin/feedback", label: "Feedback", icon: MessageSquareText },
+  { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/admin/settings", label: "Website Settings", icon: Settings },
+];
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -257,18 +259,19 @@ export default function Admin() {
         </div>
 
         <div className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <Routes>
-            <Route index element={<DashboardView />} />
-            <Route path="staff" element={<Stylists />} />
-            <Route path="services" element={<Services />} />
-            <Route path="staff-requests" element={<StaffRequests />} />
-            <Route path="appointments" element={<AdminAppointments />} />
-            <Route path="members" element={<Members />} />
-            <Route path="feedback" element={<AdminFeedback />} />
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="settings" element={<AdminSettings />} />
-            <Route path="*" element={<Navigate to="." replace />} />
-          </Routes>
+         <Routes>
+  <Route index element={<DashboardView />} />
+  <Route path="staff" element={<Stylists />} />
+  <Route path="services" element={<Services />} />
+  <Route path="staff-requests" element={<StaffRequests />} />
+  <Route path="appointments" element={<AdminAppointments />} />
+  <Route path="schedules" element={<AdminSchedules />} />
+  <Route path="members" element={<Members />} />
+  <Route path="feedback" element={<AdminFeedback />} />
+  <Route path="analytics" element={<Analytics />} />
+  <Route path="settings" element={<AdminSettings />} />
+  <Route path="*" element={<Navigate to="." replace />} />
+</Routes>
         </div>
       </main>
     </div>
