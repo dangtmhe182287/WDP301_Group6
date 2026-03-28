@@ -6,41 +6,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   CalendarDays,
   Clock3,
-  CalendarRange,
   Info,
   Briefcase,
 } from "lucide-react";
 import { toast } from "sonner";
 
 /* ================= HELPERS ================= */
-const getDateKey = (date) => {
-  if (!date) return "";
-  return new Date(date).toISOString().split("T")[0];
-};
-
-const formatDate = (date) => {
-  if (!date) return "--";
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return "--";
-
-  return d.toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
-
 const formatTimeRange = (start, end) => {
   if (!start || !end) return "--";
   return `${start} - ${end}`;
-};
-
-const getDayName = (date) => {
-  if (!date) return "";
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-US", { weekday: "long" });
 };
 
 /* ================= COMPONENT ================= */
@@ -66,32 +40,11 @@ export default function Schedule() {
 
   const sortedSchedule = useMemo(() => {
     return [...schedule].sort((a, b) => {
-      const dateA = new Date(a.workingDate).getTime();
-      const dateB = new Date(b.workingDate).getTime();
-
-      if (dateA !== dateB) return dateA - dateB;
       return (a.startTime || "").localeCompare(b.startTime || "");
     });
   }, [schedule]);
 
   const totalSlots = sortedSchedule.length;
-
-  const totalDays = useMemo(() => {
-    const uniqueDays = new Set(
-      sortedSchedule.map((item) => getDateKey(item.workingDate)).filter(Boolean)
-    );
-    return uniqueDays.size;
-  }, [sortedSchedule]);
-
-  const upcomingSlot = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return sortedSchedule.find((item) => {
-      const d = new Date(item.workingDate);
-      d.setHours(0, 0, 0, 0);
-      return d >= today;
-    });
-  }, [sortedSchedule]);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -117,8 +70,7 @@ export default function Schedule() {
                 </h1>
 
                 <p className="max-w-2xl text-sm text-muted-foreground md:text-base">
-                  This page is view-only. Staff can only see assigned working
-                  dates and time slots.
+                  This page is view-only. Staff can only see assigned working shifts.
                 </p>
               </div>
 
@@ -131,11 +83,11 @@ export default function Schedule() {
         </div>
 
         {/* SUMMARY */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <Card className="rounded-2xl shadow-sm">
             <CardContent className="flex items-center justify-between p-5">
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Total slots</p>
+                <p className="text-sm text-muted-foreground">Total shifts</p>
                 <p className="text-2xl font-bold">{loading ? "--" : totalSlots}</p>
               </div>
               <div className="rounded-2xl bg-primary/10 p-3">
@@ -147,25 +99,9 @@ export default function Schedule() {
           <Card className="rounded-2xl shadow-sm">
             <CardContent className="flex items-center justify-between p-5">
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Working days</p>
-                <p className="text-2xl font-bold">{loading ? "--" : totalDays}</p>
-              </div>
-              <div className="rounded-2xl bg-primary/10 p-3">
-                <CalendarRange className="h-5 w-5" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-2xl shadow-sm">
-            <CardContent className="flex items-center justify-between p-5">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Next shift</p>
+                <p className="text-sm text-muted-foreground">Schedule type</p>
                 <p className="text-sm font-semibold">
-                  {loading
-                    ? "--"
-                    : upcomingSlot
-                    ? formatDate(upcomingSlot.workingDate)
-                    : "No upcoming shift"}
+                  {loading ? "--" : totalSlots > 0 ? "Fixed shifts" : "No shifts assigned"}
                 </p>
               </div>
               <div className="rounded-2xl bg-primary/10 p-3">
@@ -199,8 +135,7 @@ export default function Schedule() {
               </div>
               <h2 className="text-lg font-semibold">No schedule available</h2>
               <p className="mt-2 max-w-md text-sm text-muted-foreground">
-                Your working schedule has not been assigned yet. Please check
-                again later.
+                Your working schedule has not been assigned yet. Please check again later.
               </p>
             </CardContent>
           </Card>
@@ -208,43 +143,27 @@ export default function Schedule() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {sortedSchedule.map((s, i) => (
               <Card
-                key={`${getDateKey(s.workingDate)}-${s.startTime}-${i}`}
+                key={`${s.startTime}-${s.endTime}-${i}`}
                 className="rounded-2xl border shadow-sm transition hover:shadow-md"
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <CardTitle className="text-base font-semibold">
-                        {formatDate(s.workingDate)}
+                        Shift {i + 1}
                       </CardTitle>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {getDayName(s.workingDate)}
+                        Assigned working shift
                       </p>
                     </div>
 
                     <Badge variant="secondary" className="rounded-full">
-                      Slot {i + 1}
+                      Active
                     </Badge>
                   </div>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  <div className="rounded-2xl border bg-muted/30 p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-xl bg-background p-2 shadow-sm">
-                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                          Working date
-                        </p>
-                        <p className="font-medium">
-                          {getDateKey(s.workingDate) || "--"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="rounded-2xl border bg-muted/30 p-4">
                     <div className="flex items-center gap-3">
                       <div className="rounded-xl bg-background p-2 shadow-sm">
