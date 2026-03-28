@@ -36,7 +36,6 @@ export default function Stylists() {
     email: "",
     phone: "",
     staffSpecialty: "",
-    staffExperienceYears: 0,
     rating: 0,
     speciality: [],
     experienceYears: 0,
@@ -112,7 +111,6 @@ export default function Stylists() {
       email: staff.email || "",
       phone: staff.phone || "",
       staffSpecialty: staffInfo.staffSpecialty || "",
-      staffExperienceYears: staffInfo.staffExperienceYears || 0,
       rating: staffInfo.rating || 0,
       speciality: Array.isArray(staffInfo.speciality) ? staffInfo.speciality : [],
       experienceYears: staffInfo.experienceYears || staffInfo.staffExperienceYears || 0,
@@ -562,30 +560,16 @@ export default function Stylists() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Staff exp
-                </label>
-                <Input
-                  type="number"
-                  name="staffExperienceYears"
-                  value={formData.staffExperienceYears}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <label className="text-sm font-medium text-slate-700">
-                  Extra exp
-                </label>
-                <Input
-                  type="number"
-                  name="experienceYears"
-                  value={formData.experienceYears}
-                  onChange={handleInputChange}
-                />
-              </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-slate-700">
+                Experience (years)
+              </label>
+              <Input
+                type="number"
+                name="experienceYears"
+                value={formData.experienceYears}
+                onChange={handleInputChange}
+              />
             </div>
 
             <div className="grid gap-2">
