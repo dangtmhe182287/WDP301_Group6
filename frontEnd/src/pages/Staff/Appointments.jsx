@@ -146,17 +146,16 @@ export default function Appointments() {
 
   const filters = ["All", "Pending", "Scheduled", "Completed", "Cancelled", "NoShow"];
 
-  const filtered = useMemo(() => {
-    let data =
-      filter === "All"
-        ? appointments
-        : appointments.filter((a) => a.status === filter);
+ const filtered = useMemo(() => {
+  let data =
+    filter === "All"
+      ? appointments
+      : appointments.filter((a) => a.status === filter);
 
-    const keyword = search.trim().toLowerCase();
+  const keyword = search.trim().toLowerCase();
 
-    if (!keyword) return data;
-
-    return data.filter((a) => {
+  if (keyword) {
+    data = data.filter((a) => {
       const customerName =
         a.customerId?.fullName || a.customerName || a.walkInCustomerName || "";
       const phone = a.customerId?.phone || "";
@@ -170,7 +169,36 @@ export default function Appointments() {
         status.toLowerCase().includes(keyword)
       );
     });
-  }, [appointments, filter, search]);
+  }
+  const parseDateTime = (dateStr, timeStr) => {
+  if (!dateStr) return null;
+
+  const d = new Date(dateStr);
+
+  if (Number.isNaN(d.getTime())) return null;
+
+  if (timeStr) {
+    const [h = 0, m = 0] = timeStr.split(":").map(Number);
+    d.setHours(h, m, 0, 0);
+  }
+
+  return d;
+};
+
+ const now = new Date();
+
+return data
+  .filter((a) => {
+    const time = parseDateTime(a.appointmentDate, a.startTime);
+    return time && time.getTime() >= now.getTime();
+  })
+  .sort((a, b) => {
+    const timeA = parseDateTime(a.appointmentDate, a.startTime);
+    const timeB = parseDateTime(b.appointmentDate, b.startTime);
+
+    return timeA - timeB; // gần nhất lên đầu
+  });
+}, [appointments, filter, search]);
 
   const getBadgeVariant = (status) => {
     switch (status) {
