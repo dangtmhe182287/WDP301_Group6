@@ -512,7 +512,7 @@ export default function MyBooking() {
                         .slice()
                         .sort((a, b) => (a.startMinute || 0) - (b.startMinute || 0))
                         .map((item, index) => (
-                          console.log("Rendering assignment item:", { item }),
+                          
                           <div key={`${item.serviceId}-${index}`} className="booking-schedule-item">
                             <span className="booking-schedule-service">
                               {getServiceNameById(booking, item.serviceId)}
