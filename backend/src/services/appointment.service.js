@@ -613,6 +613,18 @@ export const rescheduleAppointment = async (payload) => {
 
   const services = await getServicesByIds(resolvedServiceIds);
   const servicesById = new Map(services.map((service) => [toIdString(service._id), service.duration]));
+  const nextServiceSnapshots = resolvedServiceIds.map((serviceId) => {
+    const service = services.find((item) => toIdString(item._id) === toIdString(serviceId));
+    if (!service) {
+      throw new Error("Service snapshot not found");
+    }
+    return {
+      serviceId: service._id,
+      name: service.name,
+      price: service.price || 0,
+      duration: service.duration || 0,
+    };
+  });
   const totalDuration = services.reduce((total, service) => total + service.duration, 0);
   if (totalDuration > MAX_TOTAL_DURATION) {
     throw new Error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes`);
@@ -668,6 +680,18 @@ export const rescheduleAppointment = async (payload) => {
   });
   if (nextStartMinutes < openMinute || nextEndMinutes > closeMinute) {
     throw new Error("Selected time is outside working hours");
+  }
+  const originalDayStart = normalizeDay(appointment.appointmentDate).dayStart;
+  const originalEndMinutes = parseTimeToMinutes(appointment.endTime, "endTime");
+  const isOriginalSlot =
+    isSameDay(dayStart, originalDayStart) &&
+    nextStartMinutes === originalStartMinutes &&
+    nextEndMinutes === originalEndMinutes;
+  const overlapsOriginalSlot =
+    isSameDay(dayStart, originalDayStart) &&
+    isOverlap(nextStartMinutes, nextEndMinutes, originalStartMinutes, originalEndMinutes);
+  if (!isOriginalSlot && overlapsOriginalSlot) {
+    throw new Error("Please choose a time after your current appointment slot");
   }
 
   const staffIds = getStaffIdsFromSegments(segments);

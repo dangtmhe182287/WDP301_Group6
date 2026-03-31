@@ -1322,6 +1322,24 @@ body {
   margin-bottom: 8px;
 }
 
+.booking-edit-assignments {
+  display: grid;
+  gap: 10px;
+}
+
+.booking-edit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  color: #0f172a;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: #ffffff;
+}
+
 .booking-service-list {
   display: grid;
   gap: 8px;
