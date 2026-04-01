@@ -400,6 +400,7 @@ export const getAvailableSlots = async ({
   serviceId,
   serviceIds,
   staffAssignments,
+  excludeAppointmentId,
 }) => {
   if (!appointmentDate) {
     throw new Error("appointmentDate is required");
@@ -451,14 +452,19 @@ export const getAvailableSlots = async ({
   }).segments;
   const staffIds = getStaffIdsFromSegments(baseSegments);
 
-  const staffAppointments = await Appointment.find({
+  const staffQuery = {
     appointmentDate: { $gte: dayStart, $lt: dayEnd },
     status: { $nin: ["Cancelled"] },
     $or: [
       { staffId: { $in: staffIds } },
       { "serviceStaffAssignments.staffId": { $in: staffIds } },
     ],
-  }).select("startTime endTime staffId serviceStaffAssignments");
+  };
+  if (excludeAppointmentId) {
+    staffQuery._id = { $ne: excludeAppointmentId };
+  }
+  const staffAppointments = await Appointment.find(staffQuery)
+    .select("startTime endTime staffId serviceStaffAssignments");
 
   const slots = [];
 
@@ -681,19 +687,6 @@ export const rescheduleAppointment = async (payload) => {
   if (nextStartMinutes < openMinute || nextEndMinutes > closeMinute) {
     throw new Error("Selected time is outside working hours");
   }
-  const originalDayStart = normalizeDay(appointment.appointmentDate).dayStart;
-  const originalEndMinutes = parseTimeToMinutes(appointment.endTime, "endTime");
-  const isOriginalSlot =
-    isSameDay(dayStart, originalDayStart) &&
-    nextStartMinutes === originalStartMinutes &&
-    nextEndMinutes === originalEndMinutes;
-  const overlapsOriginalSlot =
-    isSameDay(dayStart, originalDayStart) &&
-    isOverlap(nextStartMinutes, nextEndMinutes, originalStartMinutes, originalEndMinutes);
-  if (!isOriginalSlot && overlapsOriginalSlot) {
-    throw new Error("Please choose a time after your current appointment slot");
-  }
-
   const staffIds = getStaffIdsFromSegments(segments);
   const staffAppointments = await Appointment.find({
     appointmentDate: { $gte: dayStart, $lt: dayEnd },

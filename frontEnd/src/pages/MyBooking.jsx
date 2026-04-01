@@ -302,7 +302,6 @@ export default function MyBooking() {
       staffId,
       date: dateValue,
       start: parseTimeToMinutes(booking?.startTime),
-      end: parseTimeToMinutes(booking?.endTime),
       staffAssignments: assignments,
       serviceIds,
     });
@@ -381,6 +380,7 @@ export default function MyBooking() {
       try {
         const params = {
           appointmentDate: editDate,
+          excludeAppointmentId: editingBookingId,
         };
         if (editIsMultiStaff) {
           params.serviceIds = editServiceIds.join(",");
@@ -871,13 +871,7 @@ export default function MyBooking() {
                               editSnapshot.start === slot.startMinute &&
                               (editIsMultiStaff || editSnapshot.staffId === editStaffId) &&
                               editSnapshot.date === editDate;
-                            const overlapsCurrentSlot =
-                              editSnapshot &&
-                              editSnapshot.date === editDate &&
-                              slot.startMinute < editSnapshot.end &&
-                              slot.endMinute > editSnapshot.start;
-                            const isDisabled =
-                              (!slot.available || overlapsCurrentSlot) && !isOriginalSlot;
+                            const isDisabled = !slot.available && !isOriginalSlot;
                             return (
                               <button
                                 key={slot.startMinute}
