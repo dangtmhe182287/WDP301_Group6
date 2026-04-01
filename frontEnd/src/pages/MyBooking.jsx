@@ -643,7 +643,8 @@ export default function MyBooking() {
                 : 0;
             const rated = rateByAppointment[booking._id];
             return (
-              <div key={booking._id} className="booking-item">
+              <div key={booking._id} className={`booking-row ${editingBookingId === booking._id ? "editing" : ""}`}>
+                <div className="booking-item">
                 <div className="booking-main">
                   <div className="booking-title">{staffName}</div>
                   <div className="booking-meta">
@@ -744,6 +745,7 @@ export default function MyBooking() {
                       Cancel
                     </button>
                   ) : null}
+                </div>
                 </div>
                 {editingBookingId === booking._id ? (
                   <div className="booking-edit">

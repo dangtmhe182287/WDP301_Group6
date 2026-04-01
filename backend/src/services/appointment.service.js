@@ -11,6 +11,7 @@ const MAX_SERVICE_PER_APPOINTMENT = 5;
 const MAX_TOTAL_DURATION = 270;
 const DEFAULT_MAX_DAYS_AHEAD = 15;
 const DEFAULT_MIN_BOOKING_LEAD_MINUTES = 60;
+const DEFAULT_MAX_UNPAID_APPOINTMENTS = 2;
 const TZ_OFFSET_MINUTES = 7 * 60;
 const TZ_OFFSET_MS = TZ_OFFSET_MINUTES * 60 * 1000;
 
@@ -22,6 +23,7 @@ const getBusinessHours = async () => {
       closeMinute: DEFAULT_CLOSE_MINUTE,
       minLeadMinutes: DEFAULT_MIN_BOOKING_LEAD_MINUTES,
       maxDaysAhead: DEFAULT_MAX_DAYS_AHEAD,
+      maxUnpaidAppointments: DEFAULT_MAX_UNPAID_APPOINTMENTS,
     });
   }
   return doc;
@@ -261,13 +263,16 @@ export const createAppointment = async (payload) => {
     throw new Error("Missing required booking fields");
   }
   if (customerId) {
+    const { maxUnpaidAppointments = DEFAULT_MAX_UNPAID_APPOINTMENTS } = await getBusinessHours();
     const unfinishedCount = await Appointment.countDocuments({
       customerId,
       status: { $nin: ["Cancelled", "NoShow"] },
       $or: [{ paymentStatus: "Unpaid" }, { status: "Scheduled" }],
     });
-    if (unfinishedCount >= 2) {
-      throw new Error("Bạn đang có 2 lịch chưa thanh toán hoặc đã lên lịch.");
+    if (unfinishedCount >= maxUnpaidAppointments) {
+      throw new Error(
+        `You already have ${maxUnpaidAppointments} unpaid or scheduled appointments. You cannot book more.`,
+      );
     }
   }
   const startMinutes = parseTimeToMinutes(startTime, "startTime");
@@ -745,3 +750,4 @@ export const rescheduleAppointment = async (payload) => {
   await appointment.save();
   return appointment;
 };
+

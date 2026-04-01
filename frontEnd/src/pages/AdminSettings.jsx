@@ -17,6 +17,7 @@ export default function AdminSettings() {
   const [closeTime, setCloseTime] = useState("19:00");
   const [minLeadMinutes, setMinLeadMinutes] = useState(60);
   const [maxDaysAhead, setMaxDaysAhead] = useState(15);
+  const [maxUnpaidAppointments, setMaxUnpaidAppointments] = useState(2);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -32,6 +33,9 @@ export default function AdminSettings() {
           }
           if (response.data.maxDaysAhead !== undefined) {
             setMaxDaysAhead(response.data.maxDaysAhead);
+          }
+          if (response.data.maxUnpaidAppointments !== undefined) {
+            setMaxUnpaidAppointments(response.data.maxUnpaidAppointments);
           }
         }
       } catch (error) {
@@ -51,6 +55,7 @@ export default function AdminSettings() {
         closeMinute: toMinuteValue(closeTime),
         minLeadMinutes: Number(minLeadMinutes),
         maxDaysAhead: Number(maxDaysAhead),
+        maxUnpaidAppointments: Number(maxUnpaidAppointments),
       });
       setMessage("Business hours updated.");
     } catch (error) {
@@ -95,6 +100,19 @@ export default function AdminSettings() {
               value={maxDaysAhead}
               onChange={(e) => setMaxDaysAhead(e.target.value)}
             />
+          </label>
+          <label className="admin-settings-field">
+            Max unpaid/scheduled appointments
+            <input
+              type="number"
+              min="0"
+              max="20"
+              value={maxUnpaidAppointments}
+              onChange={(e) => setMaxUnpaidAppointments(e.target.value)}
+            />
+            <span className="admin-settings-help">
+              Number of unpaid or scheduled appointments a customer can have before booking more.
+            </span>
           </label>
         </div>
         <div className="admin-settings-actions">
