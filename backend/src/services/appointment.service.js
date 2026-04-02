@@ -11,6 +11,7 @@ const MAX_SERVICE_PER_APPOINTMENT = 5;
 const MAX_TOTAL_DURATION = 270;
 const DEFAULT_MAX_DAYS_AHEAD = 15;
 const DEFAULT_MIN_BOOKING_LEAD_MINUTES = 60;
+const DEFAULT_MAX_UNPAID_APPOINTMENTS = 2;
 const TZ_OFFSET_MINUTES = 7 * 60;
 const TZ_OFFSET_MS = TZ_OFFSET_MINUTES * 60 * 1000;
 
@@ -22,6 +23,7 @@ const getBusinessHours = async () => {
       closeMinute: DEFAULT_CLOSE_MINUTE,
       minLeadMinutes: DEFAULT_MIN_BOOKING_LEAD_MINUTES,
       maxDaysAhead: DEFAULT_MAX_DAYS_AHEAD,
+      maxUnpaidAppointments: DEFAULT_MAX_UNPAID_APPOINTMENTS,
     });
   }
   return doc;
@@ -261,13 +263,16 @@ export const createAppointment = async (payload) => {
     throw new Error("Missing required booking fields");
   }
   if (customerId) {
+    const { maxUnpaidAppointments = DEFAULT_MAX_UNPAID_APPOINTMENTS } = await getBusinessHours();
     const unfinishedCount = await Appointment.countDocuments({
       customerId,
       status: { $nin: ["Cancelled", "NoShow"] },
       $or: [{ paymentStatus: "Unpaid" }, { status: "Scheduled" }],
     });
-    if (unfinishedCount >= 2) {
-      throw new Error("Bạn đang có 2 lịch chưa thanh toán hoặc đã lên lịch.");
+    if (unfinishedCount >= maxUnpaidAppointments) {
+      throw new Error(
+        `You already have ${maxUnpaidAppointments} unpaid or scheduled appointments. You cannot book more.`,
+      );
     }
   }
   const startMinutes = parseTimeToMinutes(startTime, "startTime");
@@ -400,6 +405,7 @@ export const getAvailableSlots = async ({
   serviceId,
   serviceIds,
   staffAssignments,
+  excludeAppointmentId,
 }) => {
   if (!appointmentDate) {
     throw new Error("appointmentDate is required");
@@ -451,14 +457,19 @@ export const getAvailableSlots = async ({
   }).segments;
   const staffIds = getStaffIdsFromSegments(baseSegments);
 
-  const staffAppointments = await Appointment.find({
+  const staffQuery = {
     appointmentDate: { $gte: dayStart, $lt: dayEnd },
     status: { $nin: ["Cancelled"] },
     $or: [
       { staffId: { $in: staffIds } },
       { "serviceStaffAssignments.staffId": { $in: staffIds } },
     ],
-  }).select("startTime endTime staffId serviceStaffAssignments");
+  };
+  if (excludeAppointmentId) {
+    staffQuery._id = { $ne: excludeAppointmentId };
+  }
+  const staffAppointments = await Appointment.find(staffQuery)
+    .select("startTime endTime staffId serviceStaffAssignments");
 
   const slots = [];
 
@@ -613,6 +624,18 @@ export const rescheduleAppointment = async (payload) => {
 
   const services = await getServicesByIds(resolvedServiceIds);
   const servicesById = new Map(services.map((service) => [toIdString(service._id), service.duration]));
+  const nextServiceSnapshots = resolvedServiceIds.map((serviceId) => {
+    const service = services.find((item) => toIdString(item._id) === toIdString(serviceId));
+    if (!service) {
+      throw new Error("Service snapshot not found");
+    }
+    return {
+      serviceId: service._id,
+      name: service.name,
+      price: service.price || 0,
+      duration: service.duration || 0,
+    };
+  });
   const totalDuration = services.reduce((total, service) => total + service.duration, 0);
   if (totalDuration > MAX_TOTAL_DURATION) {
     throw new Error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes`);
@@ -669,7 +692,6 @@ export const rescheduleAppointment = async (payload) => {
   if (nextStartMinutes < openMinute || nextEndMinutes > closeMinute) {
     throw new Error("Selected time is outside working hours");
   }
-
   const staffIds = getStaffIdsFromSegments(segments);
   const staffAppointments = await Appointment.find({
     appointmentDate: { $gte: dayStart, $lt: dayEnd },
@@ -728,3 +750,4 @@ export const rescheduleAppointment = async (payload) => {
   await appointment.save();
   return appointment;
 };
+

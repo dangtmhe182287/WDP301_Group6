@@ -21,6 +21,7 @@ export default function MyBooking() {
   const [editingBookingId, setEditingBookingId] = useState(null);
   const [editServiceIds, setEditServiceIds] = useState([]);
   const [editStaffId, setEditStaffId] = useState("");
+  const [editServiceStaffSelections, setEditServiceStaffSelections] = useState({});
   const [editDate, setEditDate] = useState("");
   const [editSlots, setEditSlots] = useState([]);
   const [editStart, setEditStart] = useState(null);
@@ -83,6 +84,13 @@ export default function MyBooking() {
     }),
     [],
   );
+
+  const getStaffServiceIds = (staff) => {
+    const staffInfo = staff?.staff || staff || {};
+    return Array.isArray(staffInfo.serviceIds)
+      ? staffInfo.serviceIds.map((svc) => String(svc?._id || svc)).filter(Boolean)
+      : [];
+  };
 
   const paymentStatusLabel = useMemo(
     () => ({
@@ -226,15 +234,67 @@ export default function MyBooking() {
     );
   };
 
+  const editServiceStaffOptions = useMemo(() => {
+    const map = new Map();
+    if (editServiceIds.length === 0) return map;
+    editServiceIds.forEach((serviceId) => {
+      const options = staffs.filter((staff) =>
+        getStaffServiceIds(staff).includes(String(serviceId))
+      );
+      map.set(String(serviceId), options);
+    });
+    return map;
+  }, [editServiceIds, staffs]);
+
+  const editCommonStaffIds = useMemo(() => {
+    if (editServiceIds.length === 0) return [];
+    const sets = editServiceIds.map((serviceId) => {
+      const options = editServiceStaffOptions.get(String(serviceId)) || [];
+      return new Set(options.map((staff) => String(staff._id)));
+    });
+    if (sets.some((set) => set.size === 0)) return [];
+    const [first, ...rest] = sets;
+    return Array.from(first).filter((id) => rest.every((set) => set.has(id)));
+  }, [editServiceIds, editServiceStaffOptions]);
+
+  const editIsMultiStaff = editServiceIds.length > 0 && editCommonStaffIds.length === 0;
+
+  const editAllStaffSelected = useMemo(() => {
+    if (!editIsMultiStaff) return true;
+    return editServiceIds.every((id) => editServiceStaffSelections[String(id)]);
+  }, [editIsMultiStaff, editServiceIds, editServiceStaffSelections]);
+
   const handleOpenEdit = (booking) => {
-    const staffId = booking?.staffId?._id || booking?.staffId || "";
-    const serviceIds = Array.isArray(booking?.serviceIds)
+    const assignments = Array.isArray(booking?.serviceStaffAssignments)
+      ? booking.serviceStaffAssignments
+      : [];
+    const orderedServiceIds = assignments
+      .slice()
+      .sort((a, b) => (a.startMinute || 0) - (b.startMinute || 0))
+      .map((item) => String(item?.serviceId))
+      .filter(Boolean);
+    const fallbackServiceIds = Array.isArray(booking?.serviceIds)
       ? booking.serviceIds.map((service) => String(service?._id || service)).filter(Boolean)
       : [];
+    const serviceIds = orderedServiceIds.length
+      ? [
+          ...orderedServiceIds,
+          ...fallbackServiceIds.filter((id) => !orderedServiceIds.includes(id)),
+        ]
+      : fallbackServiceIds;
+    const staffId =
+      assignments.length > 0 ? "" : booking?.staffId?._id || booking?.staffId || "";
+    const nextSelections = {};
+    assignments.forEach((item) => {
+      if (item?.serviceId && item?.staffId) {
+        nextSelections[String(item.serviceId)] = String(item.staffId?._id || item.staffId);
+      }
+    });
     const dateValue = formatDateInput(booking?.appointmentDate);
     setEditingBookingId(booking._id);
     setEditStaffId(staffId);
     setEditServiceIds(serviceIds);
+    setEditServiceStaffSelections(nextSelections);
     setEditDate(dateValue);
     setEditStart(parseTimeToMinutes(booking?.startTime));
     setEditNote(booking?.note || "");
@@ -242,6 +302,7 @@ export default function MyBooking() {
       staffId,
       date: dateValue,
       start: parseTimeToMinutes(booking?.startTime),
+      staffAssignments: assignments,
       serviceIds,
     });
   };
@@ -250,6 +311,7 @@ export default function MyBooking() {
     setEditingBookingId(null);
     setEditServiceIds([]);
     setEditStaffId("");
+    setEditServiceStaffSelections({});
     setEditDate("");
     setEditSlots([]);
     setEditStart(null);
@@ -260,21 +322,81 @@ export default function MyBooking() {
   };
 
   useEffect(() => {
+    setEditServiceStaffSelections((prev) => {
+      const next = {};
+      editServiceIds.forEach((id) => {
+        if (prev[String(id)]) {
+          next[String(id)] = prev[String(id)];
+        }
+      });
+      return next;
+    });
+  }, [editServiceIds]);
+
+  useEffect(() => {
+    if (!editIsMultiStaff) return;
+    setEditServiceStaffSelections((prev) => {
+      const next = { ...prev };
+      editServiceIds.forEach((serviceId) => {
+        const key = String(serviceId);
+        if (next[key]) return;
+        const options = editServiceStaffOptions.get(key) || [];
+        if (options.length > 0) {
+          next[key] = String(options[0]._id);
+        }
+      });
+      return next;
+    });
+  }, [editIsMultiStaff, editServiceIds, editServiceStaffOptions]);
+
+  useEffect(() => {
+    if (!editingBookingId) return;
+    if (editIsMultiStaff) {
+      if (editStaffId) {
+        setEditStaffId("");
+      }
+      return;
+    }
+    if (!editStaffId && editCommonStaffIds.length === 1) {
+      setEditStaffId(editCommonStaffIds[0]);
+    }
+  }, [editingBookingId, editIsMultiStaff, editStaffId, editCommonStaffIds]);
+
+  useEffect(() => {
     const loadEditSlots = async () => {
-      if (!editingBookingId || !editStaffId || editServiceIds.length === 0 || !editDate) {
+      if (!editingBookingId || editServiceIds.length === 0 || !editDate) {
+        setEditSlots([]);
+        return;
+      }
+      if (editIsMultiStaff && !editAllStaffSelected) {
+        setEditSlots([]);
+        return;
+      }
+      if (!editIsMultiStaff && !editStaffId) {
         setEditSlots([]);
         return;
       }
       setLoadingEditSlots(true);
       try {
         const params = {
-          staffId: editStaffId,
           appointmentDate: editDate,
+          excludeAppointmentId: editingBookingId,
         };
-        if (editServiceIds.length === 1) {
-          params.serviceId = editServiceIds[0];
-        } else {
+        if (editIsMultiStaff) {
           params.serviceIds = editServiceIds.join(",");
+          params.staffAssignments = JSON.stringify(
+            editServiceIds.map((serviceId) => ({
+              serviceId,
+              staffId: editServiceStaffSelections[String(serviceId)],
+            })),
+          );
+        } else {
+          params.staffId = editStaffId;
+          if (editServiceIds.length === 1) {
+            params.serviceId = editServiceIds[0];
+          } else {
+            params.serviceIds = editServiceIds.join(",");
+          }
         }
         const response = await axiosInstance.get("/appointments/availability", { params });
         const data = response.data || {};
@@ -287,24 +409,48 @@ export default function MyBooking() {
     };
 
     loadEditSlots();
-  }, [editingBookingId, editStaffId, editServiceIds, editDate]);
+  }, [
+    editingBookingId,
+    editStaffId,
+    editServiceIds,
+    editDate,
+    editIsMultiStaff,
+    editAllStaffSelected,
+    editServiceStaffSelections,
+  ]);
 
   const handleSaveEdit = async () => {
     if (!editingBookingId) return;
-    if (!editStaffId || editServiceIds.length === 0 || !editDate || editStart === null) {
-      toast.error("Please select services, staff, date, and a start time.");
+    if (editServiceIds.length === 0 || !editDate || editStart === null) {
+      toast.error("Please select services, date, and a start time.");
+      return;
+    }
+    if (editIsMultiStaff && !editAllStaffSelected) {
+      toast.error("Please select staff for every service.");
+      return;
+    }
+    if (!editIsMultiStaff && !editStaffId) {
+      toast.error("Please select staff.");
       return;
     }
     if (savingEdit) return;
     setSavingEdit(true);
     try {
-      await axiosInstance.patch(`/appointments/${editingBookingId}/reschedule`, {
-        staffId: editStaffId,
+      const payload = {
         serviceIds: editServiceIds,
         appointmentDate: editDate,
         startTime: formatTime(editStart),
         note: editNote,
-      });
+      };
+      if (editIsMultiStaff) {
+        payload.staffAssignments = editServiceIds.map((serviceId) => ({
+          serviceId,
+          staffId: editServiceStaffSelections[String(serviceId)],
+        }));
+      } else {
+        payload.staffId = editStaffId;
+      }
+      await axiosInstance.patch(`/appointments/${editingBookingId}/reschedule`, payload);
       toast.success("Appointment updated.");
       await refreshBookings();
       handleCloseEdit();
@@ -497,7 +643,8 @@ export default function MyBooking() {
                 : 0;
             const rated = rateByAppointment[booking._id];
             return (
-              <div key={booking._id} className="booking-item">
+              <div key={booking._id} className={`booking-row ${editingBookingId === booking._id ? "editing" : ""}`}>
+                <div className="booking-item">
                 <div className="booking-main">
                   <div className="booking-title">{staffName}</div>
                   <div className="booking-meta">
@@ -599,31 +746,34 @@ export default function MyBooking() {
                     </button>
                   ) : null}
                 </div>
+                </div>
                 {editingBookingId === booking._id ? (
                   <div className="booking-edit">
                     <div className="booking-edit-grid">
-                      <label>
-                        Staff
-                        <select
-                          value={editStaffId}
-                          onChange={(event) => setEditStaffId(event.target.value)}
-                        >
-                          <option value="">Select staff</option>
-                          {loadingStaffs ? (
-                            <option value="" disabled>
-                              Loading staff...
-                            </option>
-                          ) : null}
-                          {staffs.map((staff) => {
-                            const name = staff?.fullName || staff?.email || "Staff";
-                            return (
-                              <option key={staff._id} value={staff._id}>
-                                {name}
+                      {!editIsMultiStaff ? (
+                        <label>
+                          Staff
+                          <select
+                            value={editStaffId}
+                            onChange={(event) => setEditStaffId(event.target.value)}
+                          >
+                            <option value="">Select staff</option>
+                            {loadingStaffs ? (
+                              <option value="" disabled>
+                                Loading staff...
                               </option>
-                            );
-                          })}
-                        </select>
-                      </label>
+                            ) : null}
+                            {staffs.map((staff) => {
+                              const name = staff?.fullName || staff?.email || "Staff";
+                              return (
+                                <option key={staff._id} value={staff._id}>
+                                  {name}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </label>
+                      ) : null}
                       <label>
                         Date
                         <input
@@ -669,9 +819,49 @@ export default function MyBooking() {
                       </div>
                     </div>
 
+                    {editIsMultiStaff ? (
+                      <div className="booking-edit-assignments">
+                        <div className="booking-edit-title">Assign staff for each service</div>
+                        {editServiceIds.map((serviceId) => {
+                          const service = services.find(
+                            (item) => String(item._id) === String(serviceId)
+                          );
+                          const options =
+                            editServiceStaffOptions.get(String(serviceId)) || [];
+                          return (
+                            <label key={serviceId} className="booking-edit-row">
+                              <span>
+                                {service?.name || "Service"}{" "}
+                                {service?.duration ? `(${service.duration} min)` : ""}
+                              </span>
+                              <select
+                                value={editServiceStaffSelections[String(serviceId)] || ""}
+                                onChange={(event) =>
+                                  setEditServiceStaffSelections((prev) => ({
+                                    ...prev,
+                                    [String(serviceId)]: event.target.value,
+                                  }))
+                                }
+                              >
+                                <option value="">Select staff</option>
+                                {options.map((staff) => (
+                                  <option key={staff._id} value={staff._id}>
+                                    {staff?.fullName || staff?.email || "Staff"}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+
                     <div>
                       <div className="booking-edit-title">Time</div>
                       {loadingEditSlots ? <p className="muted">Loading slots...</p> : null}
+                      {editIsMultiStaff && !editAllStaffSelected ? (
+                        <p className="muted">Select staff for each service to see available times.</p>
+                      ) : null}
                       {!loadingEditSlots && editSlots.length === 0 ? (
                         <p className="muted">No slots available for this selection.</p>
                       ) : null}
@@ -681,7 +871,7 @@ export default function MyBooking() {
                             const isOriginalSlot =
                               editSnapshot &&
                               editSnapshot.start === slot.startMinute &&
-                              editSnapshot.staffId === editStaffId &&
+                              (editIsMultiStaff || editSnapshot.staffId === editStaffId) &&
                               editSnapshot.date === editDate;
                             const isDisabled = !slot.available && !isOriginalSlot;
                             return (

@@ -6,6 +6,7 @@ const businessHoursSchema = new mongoose.Schema(
     closeMinute: { type: Number, required: true, min: 1, max: 1440 },
     minLeadMinutes: { type: Number, default: 60, min: 0, max: 1440 },
     maxDaysAhead: { type: Number, default: 15, min: 1, max: 365 },
+    maxUnpaidAppointments: { type: Number, default: 2, min: 0, max: 20 },
   },
   { timestamps: true }
 );

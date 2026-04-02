@@ -10,6 +10,7 @@ const MAX_TOTAL_DURATION = 270
 const DEFAULT_MAX_DAYS_AHEAD = 15
 const DEFAULT_CLOSE_MINUTE = 19 * 60
 const DEFAULT_MIN_LEAD_MINUTES = 60
+const DEFAULT_MAX_UNPAID_APPOINTMENTS = 2
 
 const formatDate = (date) => {
   const year = date.getFullYear()
@@ -88,6 +89,7 @@ function AppointmentPage() {
   const [checkingLimit, setCheckingLimit] = useState(false)
   const [maxDaysAhead, setMaxDaysAhead] = useState(DEFAULT_MAX_DAYS_AHEAD)
   const [minLeadMinutes, setMinLeadMinutes] = useState(DEFAULT_MIN_LEAD_MINUTES)
+  const [maxUnpaidAppointments, setMaxUnpaidAppointments] = useState(DEFAULT_MAX_UNPAID_APPOINTMENTS)
   const [closeMinute, setCloseMinute] = useState(DEFAULT_CLOSE_MINUTE)
   const [myAppointments, setMyAppointments] = useState([])
   const [slotOrderMap, setSlotOrderMap] = useState({})
@@ -357,6 +359,9 @@ function AppointmentPage() {
         }
         if (data?.closeMinute !== undefined) {
           setCloseMinute(data.closeMinute)
+        }
+        if (data?.maxUnpaidAppointments !== undefined) {
+          setMaxUnpaidAppointments(data.maxUnpaidAppointments)
         }
       } catch (error) {
         // keep defaults if settings cannot be loaded
@@ -688,8 +693,10 @@ function AppointmentPage() {
         if (booking?.status === "Cancelled" || booking?.status === "NoShow") return false
         return booking?.paymentStatus === "Unpaid" || booking?.status === "Scheduled"
       }).length
-      if (blockedCount >= 2) {
-        toast.error("You already have 2 unpaid or scheduled appointments. You cannot book more.")
+      if (blockedCount >= maxUnpaidAppointments) {
+        toast.error(
+          `You already have ${maxUnpaidAppointments} unpaid or scheduled appointments. You cannot book more.`,
+        )
         return false
       }
       return true

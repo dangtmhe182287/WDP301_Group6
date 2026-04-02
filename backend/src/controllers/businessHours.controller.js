@@ -4,6 +4,7 @@ const DEFAULT_OPEN_MINUTE = 8 * 60;
 const DEFAULT_CLOSE_MINUTE = 19 * 60;
 const DEFAULT_MIN_LEAD_MINUTES = 60;
 const DEFAULT_MAX_DAYS_AHEAD = 15;
+const DEFAULT_MAX_UNPAID_APPOINTMENTS = 2;
 
 export const GetBusinessHours = async (req, res) => {
   try {
@@ -14,6 +15,7 @@ export const GetBusinessHours = async (req, res) => {
         closeMinute: DEFAULT_CLOSE_MINUTE,
         minLeadMinutes: DEFAULT_MIN_LEAD_MINUTES,
         maxDaysAhead: DEFAULT_MAX_DAYS_AHEAD,
+        maxUnpaidAppointments: DEFAULT_MAX_UNPAID_APPOINTMENTS,
       });
     }
     res.status(200).json(doc);
@@ -28,7 +30,7 @@ export const UpdateBusinessHours = async (req, res) => {
     if (role !== "admin") {
       return res.status(403).json({ message: "Forbidden" });
     }
-    const { openMinute, closeMinute, minLeadMinutes, maxDaysAhead } = req.body;
+    const { openMinute, closeMinute, minLeadMinutes, maxDaysAhead, maxUnpaidAppointments } = req.body;
     if (openMinute === undefined || closeMinute === undefined) {
       return res.status(400).json({ message: "openMinute and closeMinute are required" });
     }
@@ -45,6 +47,11 @@ export const UpdateBusinessHours = async (req, res) => {
         return res.status(400).json({ message: "Invalid maximum days ahead" });
       }
     }
+    if (maxUnpaidAppointments !== undefined) {
+      if (maxUnpaidAppointments < 0 || maxUnpaidAppointments > 20) {
+        return res.status(400).json({ message: "Invalid unpaid appointment limit" });
+      }
+    }
     let doc = await BusinessHours.findOne();
     if (!doc) {
       doc = await BusinessHours.create({
@@ -52,12 +59,14 @@ export const UpdateBusinessHours = async (req, res) => {
         closeMinute,
         minLeadMinutes: minLeadMinutes ?? DEFAULT_MIN_LEAD_MINUTES,
         maxDaysAhead: maxDaysAhead ?? DEFAULT_MAX_DAYS_AHEAD,
+        maxUnpaidAppointments: maxUnpaidAppointments ?? DEFAULT_MAX_UNPAID_APPOINTMENTS,
       });
     } else {
       doc.openMinute = openMinute;
       doc.closeMinute = closeMinute;
       if (minLeadMinutes !== undefined) doc.minLeadMinutes = minLeadMinutes;
       if (maxDaysAhead !== undefined) doc.maxDaysAhead = maxDaysAhead;
+      if (maxUnpaidAppointments !== undefined) doc.maxUnpaidAppointments = maxUnpaidAppointments;
       await doc.save();
     }
     res.status(200).json(doc);
