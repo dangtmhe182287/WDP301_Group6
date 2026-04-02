@@ -77,6 +77,25 @@ const getAssignmentSegments = (appointment) => {
       endTime: item.endTime,
     }));
 };
+
+const parseDateTime = (dateStr, timeStr) => {
+  if (!dateStr) return null;
+
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+
+  if (timeStr) {
+    const [h = 0, m = 0] = timeStr.split(":").map(Number);
+    d.setHours(h, m, 0, 0);
+  }
+
+  return d;
+};
+
+const isFuture = (a) => {
+  const time = parseDateTime(a.appointmentDate, a.startTime);
+  return time && time > new Date();
+};
 export default function Appointments() {
   const [appointments, setAppointments] = useState([]);
   const [filter, setFilter] = useState("All");
@@ -150,7 +169,7 @@ export default function Appointments() {
 
   const filters = ["All", "Pending", "Scheduled", "Completed", "Cancelled", "NoShow"];
 
- const filtered = useMemo(() => {
+const filtered = useMemo(() => {
   let data =
     filter === "All"
       ? appointments
@@ -174,33 +193,32 @@ export default function Appointments() {
       );
     });
   }
-  const parseDateTime = (dateStr, timeStr) => {
-  if (!dateStr) return null;
 
-  const d = new Date(dateStr);
+  const now = new Date();
 
-  if (Number.isNaN(d.getTime())) return null;
-
-  if (timeStr) {
-    const [h = 0, m = 0] = timeStr.split(":").map(Number);
-    d.setHours(h, m, 0, 0);
-  }
-
-  return d;
-};
-
- const now = new Date();
-
-return data
-  .filter((a) => {
-    const time = parseDateTime(a.appointmentDate, a.startTime);
-    return time && time.getTime() >= now.getTime();
-  })
-  .sort((a, b) => {
+  return [...data].sort((a, b) => {
     const timeA = parseDateTime(a.appointmentDate, a.startTime);
     const timeB = parseDateTime(b.appointmentDate, b.startTime);
 
-    return timeA - timeB; // gần nhất lên đầu
+    if (!timeA || !timeB) return 0;
+
+    const diffA = timeA - now;
+    const diffB = timeB - now;
+
+    const isFutureA = diffA >= 0;
+    const isFutureB = diffB >= 0;
+
+    // ✅ Ưu tiên lịch tương lai
+    if (isFutureA && !isFutureB) return -1;
+    if (!isFutureA && isFutureB) return 1;
+
+    // ✅ Nếu đều là tương lai → gần hiện tại hơn lên đầu
+    if (isFutureA && isFutureB) {
+      return diffA - diffB;
+    }
+
+    // ✅ Nếu đều quá khứ → cái mới xảy ra gần đây lên đầu
+    return Math.abs(diffA) - Math.abs(diffB);
   });
 }, [appointments, filter, search]);
 
@@ -428,24 +446,26 @@ return data
 
                         <TableCell>
                           <div className="flex flex-wrap items-center gap-2">
-                            <Button
-                              size="sm"
-                              className="rounded-lg"
-                              onClick={() => handleOpenAlert(a, "complete")}
-                              disabled={a.status === "Completed"}
-                            >
-                              Complete
-                            </Button>
+<Button
+  size="sm"
+  className="rounded-lg"
+  onClick={() => handleOpenAlert(a, "complete")}
+  disabled={a.status === "Completed" || isFuture(a)}
+>
+  {isFuture(a) ? "Not yet" : "Complete"}
+</Button>
 
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="rounded-lg"
-                              onClick={() => handleOpenAlert(a, "no-show")}
-                              disabled={["Completed", "Cancelled", "NoShow"].includes(a.status)}
-                            >
-                              No Show
-                            </Button>
+<Button
+  size="sm"
+  variant="outline"
+  className="rounded-lg"
+  onClick={() => handleOpenAlert(a, "no-show")}
+  disabled={
+    ["Completed", "Cancelled", "NoShow"].includes(a.status) || isFuture(a)
+  }
+>
+  {isFuture(a) ? "Not yet" : "No Show"}
+</Button>
 
                             <Button
                               size="sm"
