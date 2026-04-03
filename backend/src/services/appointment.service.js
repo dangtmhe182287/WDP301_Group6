@@ -2,6 +2,7 @@ import Appointment from "../models/Appointment.model.js";
 import Service from "../models/Service.model.js";
 import BusinessHours from "../models/BusinessHours.model.js";
 import User from "../models/User.model.js";
+import Staff from "../models/Staff.model.js";
 
 // Booking uses 15-minute blocks, working hours 09:00 - 18:00.
 const SLOT_STEP = 15;
@@ -246,6 +247,28 @@ const getAppointmentSegmentsForStaff = (appointment, staffId) => {
   ];
 };
 
+const getStaffSchedules = async (staffIds) => {
+  const staffs = await Staff.find({ userId: { $in: staffIds } });
+  const map = new Map();
+  staffs.forEach(staff => map.set(toIdString(staff.userId), staff.schedule || []));
+  return map;
+};
+
+const isWithinStaffSchedule = (startMinute, endMinute, staffSchedule, openMinute, closeMinute) => {
+  if (!staffSchedule || staffSchedule.length === 0) {
+    return startMinute >= openMinute && endMinute <= closeMinute;
+  }
+  return staffSchedule.some(shift => {
+    try {
+      const shiftStart = parseTimeToMinutes(shift.startTime, "startTime");
+      const shiftEnd = parseTimeToMinutes(shift.endTime, "endTime");
+      return startMinute >= shiftStart && endMinute <= shiftEnd;
+    } catch (error) {
+      return false;
+    }
+  });
+};
+
 export const createAppointment = async (payload) => {
   const {// Required fields: staffId, appointmentDate, startTime. Optional: customerId, customerName, note.
     customerId,
@@ -327,6 +350,16 @@ export const createAppointment = async (payload) => {
   if (startMinutes < openMinute || endMinutes > closeMinute) {
     throw new Error("Selected time is outside working hours");
   }
+
+  const staffIds = getStaffIdsFromSegments(segments);
+  const staffSchedulesMap = await getStaffSchedules(staffIds);
+  const withinWorkingHours = segments.every(segment => {
+      const schedule = staffSchedulesMap.get(toIdString(segment.staffId));
+      return isWithinStaffSchedule(segment.startMinute, segment.endMinute, schedule, openMinute, closeMinute);
+  });
+  if (!withinWorkingHours) {
+      throw new Error("Selected time is outside staff's working hours");
+  }
   //get appointment day(more than day start and less than day end)
   const { dayStart, dayEnd } = normalizeDay(appointmentDate);
   const todayStart = getTodayStart();
@@ -342,7 +375,6 @@ export const createAppointment = async (payload) => {
     }
   }
   // Check for overlapping appointments for the staff on the same day.
-  const staffIds = getStaffIdsFromSegments(segments);
   const staffAppointments = await Appointment.find({
     appointmentDate: { $gte: dayStart, $lt: dayEnd },
     status: { $nin: ["Cancelled"] },
@@ -456,6 +488,7 @@ export const getAvailableSlots = async ({
     fallbackStaffId,
   }).segments;
   const staffIds = getStaffIdsFromSegments(baseSegments);
+  const staffSchedulesMap = await getStaffSchedules(staffIds);
 
   const staffQuery = {
     appointmentDate: { $gte: dayStart, $lt: dayEnd },
@@ -487,6 +520,16 @@ export const getAvailableSlots = async ({
     let available =
       endMinute <= closeMinute && //not exceed working hours
       withinLead;
+
+    if (available) {
+      const withinWorkingHours = segments.every(segment => {
+          const schedule = staffSchedulesMap.get(toIdString(segment.staffId));
+          return isWithinStaffSchedule(segment.startMinute, segment.endMinute, schedule, openMinute, closeMinute);
+      });
+      if (!withinWorkingHours) {
+          available = false;
+      }
+    }
 
     if (available) {
       available = !segments.some((segment) =>
@@ -692,7 +735,17 @@ export const rescheduleAppointment = async (payload) => {
   if (nextStartMinutes < openMinute || nextEndMinutes > closeMinute) {
     throw new Error("Selected time is outside working hours");
   }
+
   const staffIds = getStaffIdsFromSegments(segments);
+  const staffSchedulesMap = await getStaffSchedules(staffIds);
+  const withinWorkingHours = segments.every(segment => {
+      const schedule = staffSchedulesMap.get(toIdString(segment.staffId));
+      return isWithinStaffSchedule(segment.startMinute, segment.endMinute, schedule, openMinute, closeMinute);
+  });
+  if (!withinWorkingHours) {
+      throw new Error("Selected time is outside staff's working hours");
+  }
+
   const staffAppointments = await Appointment.find({
     appointmentDate: { $gte: dayStart, $lt: dayEnd },
     status: { $nin: ["Cancelled"] },
