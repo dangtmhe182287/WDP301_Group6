@@ -296,6 +296,7 @@ export default function Stylists() {
                     <th className="px-5 py-3 text-left font-semibold">Experience</th>
                     <th className="px-5 py-3 text-left font-semibold">Services</th>
                     <th className="px-5 py-3 text-left font-semibold">Rating</th>
+                    <th className="px-5 py-3 text-left font-semibold">Revenue</th>
                     <th className="px-5 py-3 text-right font-semibold">Actions</th>
                   </tr>
                 </thead>
@@ -427,6 +428,12 @@ export default function Stylists() {
                             <Award className="mr-1 h-3.5 w-3.5" />
                             {staffInfo.rating ?? "-"}
                           </Badge>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <span className="font-medium text-slate-700">
+                            {(staff.revenue || 0).toLocaleString("en-US")} VND
+                          </span>
                         </td>
 
                         <td className="px-5 py-4">

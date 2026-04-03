@@ -2,12 +2,6 @@ import { useEffect, useState } from "react";
 
 const API_BASE = "http://localhost:3000";
 
-const AVAILABLE_SHIFTS = [
-    { id: 'morning', label: 'Ca Sáng (08:00 - 12:00)', startTime: '08:00', endTime: '12:00' },
-    { id: 'afternoon', label: 'Ca Chiều (13:00 - 17:00)', startTime: '13:00', endTime: '17:00' },
-    { id: 'evening', label: 'Ca Tối (18:00 - 22:00)', startTime: '18:00', endTime: '22:00' }
-];
-
 export default function AdminSchedules() {
     const [staffs, setStaffs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -32,13 +26,7 @@ export default function AdminSchedules() {
             list.forEach(s => {
                 const sId = s.staff?._id || s._id;
                 const schedule = s.staff?.schedule || s.schedule || [];
-                const selectedShiftIds = [];
-
-                schedule.forEach(shift => {
-                    const match = AVAILABLE_SHIFTS.find(as => as.startTime === shift.startTime && as.endTime === shift.endTime);
-                    if (match) selectedShiftIds.push(match.id);
-                });
-                newDrafts[sId] = selectedShiftIds;
+                newDrafts[sId] = schedule.map(shift => ({ startTime: shift.startTime || '08:00', endTime: shift.endTime || '17:00' }));
             });
             setDrafts(newDrafts);
 
@@ -53,23 +41,31 @@ export default function AdminSchedules() {
         loadStaffs();
     }, []);
 
-    const handleShiftToggle = (staffId, shiftId, isChecked) => {
+    const handleAddTimeSlot = (staffId) => {
+        setDrafts(prev => ({
+            ...prev,
+            [staffId]: [...(prev[staffId] || []), { startTime: '08:00', endTime: '12:00' }]
+        }));
+    };
+
+    const handleRemoveTimeSlot = (staffId, index) => {
         setDrafts(prev => {
-            const currentShifts = prev[staffId] || [];
-            if (isChecked) {
-                return { ...prev, [staffId]: [...currentShifts, shiftId] };
-            } else {
-                return { ...prev, [staffId]: currentShifts.filter(id => id !== shiftId) };
-            }
+            const arr = [...(prev[staffId] || [])];
+            arr.splice(index, 1);
+            return { ...prev, [staffId]: arr };
+        });
+    };
+
+    const handleChangeTime = (staffId, index, field, value) => {
+        setDrafts(prev => {
+            const arr = [...(prev[staffId] || [])];
+            arr[index] = { ...arr[index], [field]: value };
+            return { ...prev, [staffId]: arr };
         });
     };
 
     const handleSave = async (staffId) => {
-        const selectedIds = drafts[staffId] || [];
-        const payload = selectedIds.map(id => {
-            const shift = AVAILABLE_SHIFTS.find(s => s.id === id);
-            return { startTime: shift.startTime, endTime: shift.endTime };
-        });
+        const payload = drafts[staffId] || [];
 
         try {
             const url = `${API_BASE}/staffs/${staffId}`;
@@ -133,17 +129,26 @@ export default function AdminSchedules() {
                                                         </div>
                                                     </td>
                                                     <td className="shifts-cell">
-                                                        <div className="shifts-grid">
-                                                            {AVAILABLE_SHIFTS.map(shift => (
-                                                                <label key={shift.id} className={`shift-checkbox ${draft.includes(shift.id) ? 'selected' : ''}`}>
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={draft.includes(shift.id)}
-                                                                        onChange={(e) => handleShiftToggle(sId, shift.id, e.target.checked)}
+                                                        <div className="time-slots-container">
+                                                            {draft.map((slot, index) => (
+                                                                <div key={index} className="time-slot-item">
+                                                                    <input 
+                                                                        type="time" 
+                                                                        value={slot.startTime} 
+                                                                        className="time-input"
+                                                                        onChange={(e) => handleChangeTime(sId, index, 'startTime', e.target.value)} 
                                                                     />
-                                                                    <span>{shift.label}</span>
-                                                                </label>
+                                                                    <span className="time-separator">-</span>
+                                                                    <input 
+                                                                        type="time" 
+                                                                        value={slot.endTime} 
+                                                                        className="time-input"
+                                                                        onChange={(e) => handleChangeTime(sId, index, 'endTime', e.target.value)} 
+                                                                    />
+                                                                    <button className="btn-remove-slot" onClick={() => handleRemoveTimeSlot(sId, index)} title="Xóa ca">✕</button>
+                                                                </div>
                                                             ))}
+                                                            <button className="btn-add-slot" onClick={() => handleAddTimeSlot(sId)}>+ Thêm ca</button>
                                                         </div>
                                                     </td>
                                                     <td>
@@ -242,39 +247,66 @@ export default function AdminSchedules() {
             color: #166534;
         }
         
-        /* Shift Checkboxes */
-        .shifts-grid {
+        /* Time Slots */
+        .time-slots-container {
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
+            flex-direction: column;
+            gap: 8px;
         }
-        .shift-checkbox {
+        .time-slot-item {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 14px;
+            background: #fff;
+        }
+        .time-input {
+            padding: 8px 12px;
             border: 1px solid #cbd5e1;
             border-radius: 8px;
+            font-size: 14px;
+            color: #334155;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .time-input:focus {
+            border-color: #22d3c5;
+        }
+        .time-separator {
+            color: #64748b;
+            font-weight: bold;
+        }
+        .btn-remove-slot {
+            background: #fee2e2;
+            color: #be123c;
+            border: none;
+            border-radius: 6px;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
             transition: all 0.2s;
-            background: #fff;
-            user-select: none;
         }
-        .shift-checkbox:hover {
-            border-color: #94a3b8;
-            background: #f8fafc;
+        .btn-remove-slot:hover {
+            background: #fecdd3;
         }
-        .shift-checkbox.selected {
-            background: rgba(34, 211, 197, 0.1);
-            border-color: #22d3c5;
-            color: #0d9488;
+        .btn-add-slot {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 13px;
             font-weight: 600;
-        }
-        .shift-checkbox input {
             cursor: pointer;
-            width: 16px;
-            height: 16px;
-            accent-color: #22d3c5;
+            transition: all 0.2s;
+            width: fit-content;
+            margin-top: 4px;
+        }
+        .btn-add-slot:hover {
+            background: #e2e8f0;
+            color: #0f172a;
         }
         
         .btn-save {

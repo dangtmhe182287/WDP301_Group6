@@ -1,5 +1,6 @@
 import User from "../models/User.model.js";
 import Staff from "../models/Staff.model.js";
+import Appointment from "../models/Appointment.model.js";
 import bcrypt from "bcryptjs";
 import * as staffService from "../services/staff.service.js";
 import { verifyToken } from "../utils/jwt.js";
@@ -28,9 +29,19 @@ export const getStaffs = async (req, res) => {
           populate: { path: "categoryId", select: "name" },
         })
         .lean();
+        
+      const completedAppointments = await Appointment.find({ staffId: user._id, status: "Completed" });
+      let revenue = 0;
+      completedAppointments.forEach(app => {
+        app.serviceSnapshots?.forEach(snap => {
+          revenue += snap.price;
+        });
+      });
+
       return {
         ...user,
-        staff: staffInfo || null
+        staff: staffInfo || null,
+        revenue
       };
     }));
 
@@ -227,6 +238,15 @@ export const deleteStaff = async (req, res) => {
     const { id } = req.params;
     const staff = await Staff.findById(id);
     if (!staff) return res.status(404).json({ message: "Không tìm thấy thợ cắt" });
+
+    const activeAppointments = await Appointment.countDocuments({
+      staffId: staff.userId,
+      status: { $in: ["Pending", "Scheduled"] }
+    });
+
+    if (activeAppointments > 0) {
+      return res.status(400).json({ message: "Không thể xóa thợ cắt đang có lịch hẹn" });
+    }
 
     await User.findByIdAndDelete(staff.userId);
     await Staff.findByIdAndDelete(id);
