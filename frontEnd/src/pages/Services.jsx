@@ -31,6 +31,18 @@ import {
 const API_BASE = "http://localhost:3000";
 
 export default function Services() {
+  const getDefaultCategoryId = (categoryList = []) =>
+    categoryList?.[0]?._id || "";
+
+  const buildInitialFormData = (categoryId = "") => ({
+    name: "",
+    price: 0,
+    duration: 0,
+    description: "",
+    categoryId,
+    isFeatured: false,
+  });
+
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
@@ -42,22 +54,10 @@ export default function Services() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
-  const [formData, setFormData] = useState({
-    name: "",
-    price: 0,
-    duration: 0,
-    description: "",
-    categoryId: "",
-  });
+  const [formData, setFormData] = useState(buildInitialFormData());
 
   const resetForm = () => {
-    setFormData({
-      name: "",
-      price: 0,
-      duration: 0,
-      description: "",
-      categoryId: "",
-    });
+    setFormData(buildInitialFormData(getDefaultCategoryId(categories)));
   };
 
   const loadServices = async () => {
@@ -93,7 +93,13 @@ export default function Services() {
     setLoadingCategories(true);
     try {
       const response = await axiosInstance.get("/categories");
-      setCategories(Array.isArray(response.data) ? response.data : []);
+      const list = Array.isArray(response.data) ? response.data : [];
+      setCategories(list);
+      setFormData((prev) => {
+        if (editingService) return prev;
+        if (prev.categoryId) return prev;
+        return { ...prev, categoryId: getDefaultCategoryId(list) };
+      });
     } catch (err) {
       setCategories([]);
     } finally {
@@ -119,6 +125,7 @@ export default function Services() {
       duration: service.duration || 0,
       description: service.description || "",
       categoryId: service.categoryId?._id || service.categoryId || "",
+      isFeatured: Boolean(service.isFeatured),
     });
     setShowModal(true);
   };
@@ -174,6 +181,14 @@ export default function Services() {
     }
     if (!formData.description.trim()) {
       toast.error("Please enter a description");
+      return;
+    }
+    if (!formData.categoryId) {
+      toast.error("Please select a category");
+      return;
+    }
+    if (!categories.some((category) => category._id === formData.categoryId)) {
+      toast.error("Selected category is invalid");
       return;
     }
 
@@ -518,8 +533,11 @@ export default function Services() {
                   value={formData.categoryId || ""}
                   onChange={handleInputChange}
                   className="h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                  required
                 >
-                 
+                  <option value="" disabled>
+                    Select category
+                  </option>
                   {categories.map((category) => (
                     <option key={category._id} value={category._id}>
                       {category.name}
@@ -528,6 +546,10 @@ export default function Services() {
                 </select>
                 {loadingCategories ? (
                   <p className="text-xs text-slate-500">Loading categories...</p>
+                ) : categories.length === 0 ? (
+                  <p className="text-xs text-red-500">
+                    No category available. Please create one before adding service.
+                  </p>
                 ) : null}
               </div>
 

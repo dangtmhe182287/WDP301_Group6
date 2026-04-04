@@ -206,6 +206,23 @@ function AppointmentPage() {
     return map
   }, [selectedServiceIds, staffs])
 
+  const servicesWithoutStaff = useMemo(
+    () =>
+      selectedServiceIds.filter((serviceId) => {
+        const options = serviceStaffOptions.get(String(serviceId)) || []
+        return options.length === 0
+      }),
+    [selectedServiceIds, serviceStaffOptions],
+  )
+
+  const servicesWithoutStaffNames = useMemo(
+    () =>
+      servicesWithoutStaff
+        .map((id) => services.find((service) => String(service._id) === String(id))?.name)
+        .filter(Boolean),
+    [servicesWithoutStaff, services],
+  )
+
   const commonStaffIds = useMemo(() => {
     if (selectedServiceIds.length === 0) return []
     const sets = selectedServiceIds.map((serviceId) => {
@@ -762,6 +779,12 @@ function AppointmentPage() {
       toast.error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes.`)
       return
     }
+    if (servicesWithoutStaff.length > 0) {
+      toast.error(
+        `No active staff for: ${servicesWithoutStaffNames.join(", ")}. Please remove these services.`,
+      )
+      return
+    }
     const limitOk = await checkBookingLimit()
     if (!limitOk) return
     setStep(2)
@@ -858,6 +881,11 @@ function AppointmentPage() {
                   </div>
                 </div>
               ))}
+              {servicesWithoutStaffNames.length > 0 ? (
+                <p className="muted">
+                  No active staff for selected service(s): {servicesWithoutStaffNames.join(", ")}.
+                </p>
+              ) : null}
             </div>
           ) : null}
 
@@ -938,6 +966,11 @@ function AppointmentPage() {
                     <>
                       {!loadingStaffs && eligibleStaffs.length === 0 ? (
                         <p className="muted">No matching barbers yet.</p>
+                      ) : null}
+                      {!loadingStaffs && servicesWithoutStaffNames.length > 0 ? (
+                        <p className="muted">
+                          No active staff for: {servicesWithoutStaffNames.join(", ")}.
+                        </p>
                       ) : null}
 
                       <div className="staff-grid horizontal" role="list">

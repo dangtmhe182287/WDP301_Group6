@@ -1,4 +1,5 @@
 import Service from "../models/Service.model.js";
+import Category from "../models/Category.model.js";
 import coupon from "../models/Coupon.js";
 
 const calculateDiscountPrice = async (serviceId, userMembership) => {
@@ -46,18 +47,37 @@ export const createService = async ({name, price, duration, description, categor
     if(!name || price == undefined || duration == undefined || !description){
         throw new Error("Missising required fields");
     }
+    if(!categoryId){
+        throw new Error("Category is required");
+    }
+
+    const category = await Category.findById(categoryId);
+    if(!category){
+        throw new Error("Category not found");
+    }
+
     return Service.create({
         name,
         price,
         duration,
         description,
-        categoryId: categoryId || null,
+        categoryId,
         isFeatured: Boolean(isFeatured),
         phases,
     });
 };
 
 export const updateService = async (serviceId, payload) => {
+    if(Object.prototype.hasOwnProperty.call(payload, "categoryId")){
+        if(!payload.categoryId){
+            throw new Error("Category is required");
+        }
+        const category = await Category.findById(payload.categoryId);
+        if(!category){
+            throw new Error("Category not found");
+        }
+    }
+
     const updateService = await Service.findByIdAndUpdate(serviceId, payload, {
         new: true,
         runValidators: true,
