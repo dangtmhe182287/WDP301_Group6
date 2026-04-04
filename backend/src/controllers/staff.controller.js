@@ -19,33 +19,44 @@ const getUserFromReq = (req) => {
 
 export const getStaffs = async (req, res) => {
   try {
-    const users = await User.find({ role: "staff" }).lean();
-    
-    const staffs = await Promise.all(users.map(async (user) => {
-      const staffInfo = await Staff.findOne({ userId: user._id })
-        .populate({
-          path: "serviceIds",
-          select: "name categoryId",
-          populate: { path: "categoryId", select: "name" },
-        })
-        .lean();
-        
-      const completedAppointments = await Appointment.find({ staffId: user._id, status: "Completed" });
-      let revenue = 0;
-      completedAppointments.forEach(app => {
-        app.serviceSnapshots?.forEach(snap => {
-          revenue += snap.price;
+    const includeInactive = String(req.query.includeInactive || "false").toLowerCase() === "true";
+    const staffDocs = await Staff.find(includeInactive ? {} : { isActive: true })
+      .populate({
+        path: "serviceIds",
+        select: "name categoryId",
+        populate: { path: "categoryId", select: "name" },
+      })
+      .lean();
+
+    const userIds = staffDocs.map((item) => item.userId).filter(Boolean);
+    const users = await User.find({ _id: { $in: userIds } }).lean();
+    const usersById = new Map(users.map((user) => [String(user._id), user]));
+
+    const staffs = await Promise.all(
+      staffDocs.map(async (staffInfo) => {
+        const user = usersById.get(String(staffInfo.userId));
+        if (!user) return null;
+
+        const completedAppointments = await Appointment.find({
+          staffId: user._id,
+          status: "Completed",
+        }).lean();
+        let revenue = 0;
+        completedAppointments.forEach((app) => {
+          app.serviceSnapshots?.forEach((snap) => {
+            revenue += snap.price;
+          });
         });
-      });
 
-      return {
-        ...user,
-        staff: staffInfo || null,
-        revenue
-      };
-    }));
+        return {
+          ...user,
+          staff: staffInfo,
+          revenue,
+        };
+      }),
+    );
 
-    res.status(200).json(staffs);
+    res.status(200).json(staffs.filter(Boolean));
   } catch (error) {
     console.error("GET STAFFS ERROR:", error);
     res.status(400).json({ message: "Get staffs error", error: error.message });
@@ -237,21 +248,40 @@ export const deleteStaff = async (req, res) => {
   try {
     const { id } = req.params;
     const staff = await Staff.findById(id);
-    if (!staff) return res.status(404).json({ message: "Không tìm thấy thợ cắt" });
+    if (!staff) return res.status(404).json({ message: "Staff not found" });
 
     const activeAppointments = await Appointment.countDocuments({
       staffId: staff.userId,
-      status: { $in: ["Pending", "Scheduled"] }
+      status: { $in: ["Pending", "Scheduled"] },
     });
 
     if (activeAppointments > 0) {
-      return res.status(400).json({ message: "Không thể xóa thợ cắt đang có lịch hẹn" });
+      return res
+        .status(400)
+        .json({ message: "Cannot deactivate staff who has active appointments" });
     }
 
-    await User.findByIdAndDelete(staff.userId);
-    await Staff.findByIdAndDelete(id);
+    staff.isActive = false;
+    await staff.save();
+    await User.findByIdAndUpdate(staff.userId, { role: "customer" });
 
-    res.status(200).json({ message: "Xoá thợ cắt thành công" });
+    res.status(200).json({ message: "Staff has been set to inactive" });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const activateStaff = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const staff = await Staff.findById(id);
+    if (!staff) return res.status(404).json({ message: "Staff not found" });
+
+    staff.isActive = true;
+    await staff.save();
+    await User.findByIdAndUpdate(staff.userId, { role: "staff" });
+
+    res.status(200).json({ message: "Staff has been set to active" });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

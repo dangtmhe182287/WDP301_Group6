@@ -16,6 +16,7 @@ const StaffSchema = new mongoose.Schema({
      }, 
      portfolio : [{type: String}],
      rating: {type: Number, default: 0},
+     isActive: { type: Boolean, default: true },
      serviceIds: [
         { type: mongoose.Schema.Types.ObjectId, ref: "Service" }
      ],
