@@ -4,7 +4,8 @@ import {
     GetServiceById,
     CreateService,
     UpdateService,
-    DeleteService,
+    InactivateService,
+    ActivateService,
     GetServiceBookingStats,
     GetServiceFeedbacks
 } from "../controllers/service.controller.js";
@@ -17,6 +18,7 @@ router.get("/stats/bookings", GetServiceBookingStats);
 router.get("/:id", GetServiceById);
 router.post("/create", CreateService);
 router.put("/update/:id", UpdateService);
-router.delete("/delete/:id", DeleteService);
+router.patch("/:id/inactive", InactivateService);
+router.patch("/:id/active", ActivateService);
 
 export default router;

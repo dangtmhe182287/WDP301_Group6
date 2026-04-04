@@ -29,8 +29,9 @@ const calculateDiscountPrice = async (serviceId, userMembership) => {
   };
 };
 
-export const getAllServices = async() =>{
-    return Service.find()
+export const getAllServices = async ({ includeInactive = false } = {}) =>{
+    const query = includeInactive ? {} : { isActive: { $ne: false } };
+    return Service.find(query)
       .populate("categoryId", "name")
       .sort({createdAt: -1});
 };
@@ -63,6 +64,7 @@ export const createService = async ({name, price, duration, description, categor
         description,
         categoryId,
         isFeatured: Boolean(isFeatured),
+        isActive: true,
         phases,
     });
 };
@@ -90,14 +92,18 @@ export const updateService = async (serviceId, payload) => {
     return updateService;
 };
 
-export const deleteService = async (serviceId) => {
-    const deletedService = await Service.findByIdAndDelete(serviceId);
+export const setServiceActive = async (serviceId, isActive) => {
+    const updatedService = await Service.findByIdAndUpdate(
+        serviceId,
+        { isActive: Boolean(isActive) },
+        { new: true, runValidators: true },
+    );
 
-    if(!deletedService){
+    if(!updatedService){
         throw new Error("Service not found");
     }
 
-    return deletedService;
+    return updatedService;
 };
 
 

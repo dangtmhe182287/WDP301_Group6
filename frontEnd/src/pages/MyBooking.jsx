@@ -100,6 +100,10 @@ export default function MyBooking() {
     }),
     [],
   );
+  const activeServiceIdSet = useMemo(
+    () => new Set((services || []).map((service) => String(service?._id)).filter(Boolean)),
+    [services],
+  );
 
   useEffect(() => {
     const loadBookings = async () => {
@@ -306,6 +310,13 @@ export default function MyBooking() {
           ...fallbackServiceIds.filter((id) => !orderedServiceIds.includes(id)),
         ]
       : fallbackServiceIds;
+    const normalizedServiceIds =
+      !loadingServices && activeServiceIdSet.size > 0
+        ? serviceIds.filter((id) => activeServiceIdSet.has(String(id)))
+        : serviceIds;
+    if (normalizedServiceIds.length !== serviceIds.length) {
+      toast.info("Inactive services were removed. Please pick active services to continue.");
+    }
     const staffId =
       assignments.length > 0 ? "" : booking?.staffId?._id || booking?.staffId || "";
     const nextSelections = {};
@@ -317,7 +328,7 @@ export default function MyBooking() {
     const dateValue = formatDateInput(booking?.appointmentDate);
     setEditingBookingId(booking._id);
     setEditStaffId(staffId);
-    setEditServiceIds(serviceIds);
+    setEditServiceIds(normalizedServiceIds);
     setEditServiceStaffSelections(nextSelections);
     setEditDate(dateValue);
     setEditStart(parseTimeToMinutes(booking?.startTime));
@@ -327,7 +338,7 @@ export default function MyBooking() {
       date: dateValue,
       start: parseTimeToMinutes(booking?.startTime),
       staffAssignments: assignments,
-      serviceIds,
+      serviceIds: normalizedServiceIds,
     });
   };
 
@@ -606,6 +617,13 @@ export default function MyBooking() {
     }
     return isStaffInactiveByRef(booking?.staffId);
   };
+  const hasInactiveServiceInBooking = (booking) => {
+    if (activeServiceIdSet.size === 0) return false;
+    const ids = Array.isArray(booking?.serviceIds)
+      ? booking.serviceIds.map((service) => String(service?._id || service)).filter(Boolean)
+      : [];
+    return ids.some((id) => !activeServiceIdSet.has(id));
+  };
 
   if (!user) {
     return (
@@ -693,6 +711,7 @@ export default function MyBooking() {
                 ? booking.serviceIds.reduce((total, service) => total + (service?.price || 0), 0)
                 : 0;
             const hasInactiveStaff = hasInactiveStaffInBooking(booking);
+            const hasInactiveService = hasInactiveServiceInBooking(booking);
             const rated = rateByAppointment[booking._id];
             return (
               <div key={booking._id} className={`booking-row ${editingBookingId === booking._id ? "editing" : ""}`}>
@@ -735,6 +754,11 @@ export default function MyBooking() {
                   {hasInactiveStaff ? (
                     <div className="booking-note" style={{ color: "#b45309" }}>
                       Notice: One assigned staff is inactive. Please reschedule to another staff or cancel this appointment.
+                    </div>
+                  ) : null}
+                  {hasInactiveService ? (
+                    <div className="booking-note" style={{ color: "#b45309" }}>
+                      Notice: This booking contains an inactive service. Please reschedule and choose active services.
                     </div>
                   ) : null}
                   {booking.note ? <div className="booking-note">Note: {booking.note}</div> : null}
