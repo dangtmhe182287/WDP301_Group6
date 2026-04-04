@@ -11,6 +11,7 @@ export default function MyBooking() {
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [services, setServices] = useState([]);
   const [staffs, setStaffs] = useState([]);
+  const [staffActiveMap, setStaffActiveMap] = useState({});
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingStaffs, setLoadingStaffs] = useState(false);
   const [rateByAppointment, setRateByAppointment] = useState({});
@@ -146,10 +147,24 @@ export default function MyBooking() {
     const loadStaffs = async () => {
       setLoadingStaffs(true);
       try {
-        const response = await axiosInstance.get("/staffs");
-        setStaffs(Array.isArray(response.data) ? response.data : []);
+        const [activeResponse, allResponse] = await Promise.all([
+          axiosInstance.get("/staffs"),
+          axiosInstance.get("/staffs", { params: { includeInactive: true } }),
+        ]);
+        const activeList = Array.isArray(activeResponse.data) ? activeResponse.data : [];
+        setStaffs(activeList);
+
+        const allList = Array.isArray(allResponse.data) ? allResponse.data : [];
+        const nextMap = {};
+        allList.forEach((staff) => {
+          const userId = String(staff?._id || "");
+          if (!userId) return;
+          nextMap[userId] = staff?.staff?.isActive !== false;
+        });
+        setStaffActiveMap(nextMap);
       } catch (error) {
         setStaffs([]);
+        setStaffActiveMap({});
       } finally {
         setLoadingStaffs(false);
       }
@@ -257,6 +272,15 @@ export default function MyBooking() {
     return Array.from(first).filter((id) => rest.every((set) => set.has(id)));
   }, [editServiceIds, editServiceStaffOptions]);
 
+  const eligibleEditStaffs = useMemo(() => {
+    if (editServiceIds.length === 0) return staffs;
+    return staffs.filter((staff) =>
+      editServiceIds.every((serviceId) =>
+        getStaffServiceIds(staff).includes(String(serviceId))
+      )
+    );
+  }, [staffs, editServiceIds]);
+
   const editIsMultiStaff = editServiceIds.length > 0 && editCommonStaffIds.length === 0;
 
   const editAllStaffSelected = useMemo(() => {
@@ -357,10 +381,18 @@ export default function MyBooking() {
       }
       return;
     }
+    if (editStaffId) {
+      const stillEligible = eligibleEditStaffs.some(
+        (staff) => String(staff._id) === String(editStaffId),
+      );
+      if (!stillEligible) {
+        setEditStaffId("");
+      }
+    }
     if (!editStaffId && editCommonStaffIds.length === 1) {
       setEditStaffId(editCommonStaffIds[0]);
     }
-  }, [editingBookingId, editIsMultiStaff, editStaffId, editCommonStaffIds]);
+  }, [editingBookingId, editIsMultiStaff, editStaffId, editCommonStaffIds, eligibleEditStaffs]);
 
   useEffect(() => {
     const loadEditSlots = async () => {
@@ -556,6 +588,25 @@ export default function MyBooking() {
     return service?.name || "Service";
   };
 
+  const isStaffInactiveByRef = (staffRef) => {
+    const id =
+      typeof staffRef === "object"
+        ? String(staffRef?._id || "")
+        : String(staffRef || "");
+    if (!id) return false;
+    return staffActiveMap[id] === false;
+  };
+
+  const hasInactiveStaffInBooking = (booking) => {
+    const assignments = Array.isArray(booking?.serviceStaffAssignments)
+      ? booking.serviceStaffAssignments
+      : [];
+    if (assignments.length > 0) {
+      return assignments.some((item) => isStaffInactiveByRef(item?.staffId));
+    }
+    return isStaffInactiveByRef(booking?.staffId);
+  };
+
   if (!user) {
     return (
       <main className="settings-page">
@@ -641,6 +692,7 @@ export default function MyBooking() {
               : Array.isArray(booking.serviceIds)
                 ? booking.serviceIds.reduce((total, service) => total + (service?.price || 0), 0)
                 : 0;
+            const hasInactiveStaff = hasInactiveStaffInBooking(booking);
             const rated = rateByAppointment[booking._id];
             return (
               <div key={booking._id} className={`booking-row ${editingBookingId === booking._id ? "editing" : ""}`}>
@@ -679,6 +731,11 @@ export default function MyBooking() {
                   ) : null}
                   {totalPrice > 0 ? (
                     <div className="booking-price">{totalPrice.toLocaleString("en-US")} VND</div>
+                  ) : null}
+                  {hasInactiveStaff ? (
+                    <div className="booking-note" style={{ color: "#b45309" }}>
+                      Notice: One assigned staff is inactive. Please reschedule to another staff or cancel this appointment.
+                    </div>
                   ) : null}
                   {booking.note ? <div className="booking-note">Note: {booking.note}</div> : null}
                   {canRate(booking) ? (
@@ -763,7 +820,7 @@ export default function MyBooking() {
                                 Loading staff...
                               </option>
                             ) : null}
-                            {staffs.map((staff) => {
+                            {eligibleEditStaffs.map((staff) => {
                               const name = staff?.fullName || staff?.email || "Staff";
                               return (
                                 <option key={staff._id} value={staff._id}>

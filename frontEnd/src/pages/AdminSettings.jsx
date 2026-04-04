@@ -57,7 +57,7 @@ export default function AdminSettings() {
         maxDaysAhead: Number(maxDaysAhead),
         maxUnpaidAppointments: Number(maxUnpaidAppointments),
       });
-      setMessage("Business hours updated.");
+      setMessage("Website setting updated.");
     } catch (error) {
       setMessage(error.response?.data?.message || "Update failed.");
     } finally {

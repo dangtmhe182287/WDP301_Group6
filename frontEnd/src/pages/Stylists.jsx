@@ -35,7 +35,6 @@ export default function Stylists() {
     fullName: "",
     email: "",
     phone: "",
-    staffSpecialty: "",
     rating: 0,
     speciality: [],
     experienceYears: 0,
@@ -110,7 +109,6 @@ export default function Stylists() {
       fullName: staff.fullName || "",
       email: staff.email || "",
       phone: staff.phone || "",
-      staffSpecialty: staffInfo.staffSpecialty || "",
       rating: staffInfo.rating || 0,
       speciality: Array.isArray(staffInfo.speciality) ? staffInfo.speciality : [],
       experienceYears: staffInfo.experienceYears || staffInfo.staffExperienceYears || 0,
@@ -251,7 +249,6 @@ export default function Stylists() {
       (Array.isArray(staffInfo.speciality) &&
         staffInfo.speciality.length > 0 &&
         staffInfo.speciality.join(", ")) ||
-      staffInfo.staffSpecialty ||
       user.speciality ||
       "-"
     );
@@ -555,18 +552,7 @@ export default function Stylists() {
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-slate-700">Specialty</label>
-              <Input
-                type="text"
-                name="staffSpecialty"
-                value={formData.staffSpecialty}
-                onChange={handleInputChange}
-                placeholder="Haircut, Coloring..."
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-slate-700">Speciality list</label>
+              <label className="text-sm font-medium text-slate-700">Speciality</label>
               <Input
                 type="text"
                 name="speciality"

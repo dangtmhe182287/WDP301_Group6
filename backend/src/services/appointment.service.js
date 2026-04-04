@@ -254,6 +254,54 @@ const getStaffSchedules = async (staffIds) => {
   return map;
 };
 
+const validateStaffServiceCapability = async ({ serviceIds, assignmentMap, fallbackStaffId }) => {
+  if (!Array.isArray(serviceIds) || serviceIds.length === 0) return;
+
+  const staffIds = assignmentMap
+    ? Array.from(new Set(serviceIds.map((id) => assignmentMap.get(toIdString(id))).filter(Boolean)))
+    : [fallbackStaffId].filter(Boolean);
+
+  if (staffIds.length === 0) {
+    throw new Error("staffId is required");
+  }
+
+  const staffs = await Staff.find({
+    userId: { $in: staffIds },
+    isActive: true,
+  })
+    .select("userId serviceIds")
+    .lean();
+
+  const staffServicesMap = new Map(
+    staffs.map((staff) => [
+      toIdString(staff.userId),
+      new Set((staff.serviceIds || []).map((serviceId) => toIdString(serviceId))),
+    ]),
+  );
+
+  if (!assignmentMap) {
+    const selectedServices = staffServicesMap.get(toIdString(fallbackStaffId));
+    if (!selectedServices) {
+      throw new Error("Selected staff is inactive or not found");
+    }
+    const missing = serviceIds.some((serviceId) => !selectedServices.has(toIdString(serviceId)));
+    if (missing) {
+      throw new Error("Selected staff cannot perform one or more selected services");
+    }
+    return;
+  }
+
+  const invalid = serviceIds.some((serviceId) => {
+    const sid = assignmentMap.get(toIdString(serviceId));
+    const selectedServices = staffServicesMap.get(toIdString(sid));
+    return !selectedServices || !selectedServices.has(toIdString(serviceId));
+  });
+
+  if (invalid) {
+    throw new Error("One or more selected staff cannot perform assigned services");
+  }
+};
+
 const isWithinStaffSchedule = (startMinute, endMinute, staffSchedule, openMinute, closeMinute) => {
   if (!staffSchedule || staffSchedule.length === 0) {
     return startMinute >= openMinute && endMinute <= closeMinute;
@@ -350,6 +398,11 @@ export const createAppointment = async (payload) => {
   if (startMinutes < openMinute || endMinutes > closeMinute) {
     throw new Error("Selected time is outside working hours");
   }
+  await validateStaffServiceCapability({
+    serviceIds,
+    assignmentMap: assignmentsMap,
+    fallbackStaffId: resolvedStaffId,
+  });
 
   const staffIds = getStaffIdsFromSegments(segments);
   const staffSchedulesMap = await getStaffSchedules(staffIds);
@@ -488,6 +541,11 @@ export const getAvailableSlots = async ({
     fallbackStaffId,
   }).segments;
   const staffIds = getStaffIdsFromSegments(baseSegments);
+  await validateStaffServiceCapability({
+    serviceIds: resolvedServiceIds,
+    assignmentMap,
+    fallbackStaffId,
+  });
   const staffSchedulesMap = await getStaffSchedules(staffIds);
 
   const staffQuery = {
@@ -735,6 +793,11 @@ export const rescheduleAppointment = async (payload) => {
   if (nextStartMinutes < openMinute || nextEndMinutes > closeMinute) {
     throw new Error("Selected time is outside working hours");
   }
+  await validateStaffServiceCapability({
+    serviceIds: resolvedServiceIds,
+    assignmentMap: assignmentsMap,
+    fallbackStaffId: nextStaffId,
+  });
 
   const staffIds = getStaffIdsFromSegments(segments);
   const staffSchedulesMap = await getStaffSchedules(staffIds);
