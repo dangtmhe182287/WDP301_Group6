@@ -19,6 +19,7 @@ export const Register = async({fullName,email,password, phone})=>{
 export const Login = async({email, password}) =>{
     const user = await User.findOne({email});
     if(!user) throw new Error("Invalid user!");
+    if(user.isBanned) throw new Error("Tài khoản của bạn đã bị khóa.");
     const isMatch = await bcrypt.compare(password, user.password);
     if(!isMatch) throw new Error("Password is wrong!");
     const accessToken = generateAccessToken(user);

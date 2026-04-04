@@ -1048,6 +1048,8 @@ body {
 
 .booking-card {
   margin-top: 20px;
+  max-width: 1200px;
+  width: 100%;
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
 
@@ -1084,6 +1086,17 @@ body {
 .booking-list {
   display: grid;
   gap: 14px;
+}
+
+.booking-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.booking-row.editing {
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
 }
 
 .booking-item {
@@ -1282,7 +1295,7 @@ body {
 }
 
 .booking-edit {
-  margin-top: 14px;
+  margin-top: 0;
   padding: 14px;
   border: 1px solid rgba(34, 211, 197, 0.35);
   border-radius: 14px;
@@ -1322,6 +1335,24 @@ body {
   margin-bottom: 8px;
 }
 
+.booking-edit-assignments {
+  display: grid;
+  gap: 10px;
+}
+
+.booking-edit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  color: #0f172a;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: #ffffff;
+}
+
 .booking-service-list {
   display: grid;
   gap: 8px;
@@ -1357,5 +1388,15 @@ body {
 
 .booking-edit .slot-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .booking-row.editing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .booking-edit {
+    margin-top: 12px;
+  }
 }
 

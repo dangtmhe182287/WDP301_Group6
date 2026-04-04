@@ -35,7 +35,6 @@ export default function Stylists() {
     fullName: "",
     email: "",
     phone: "",
-    staffSpecialty: "",
     rating: 0,
     speciality: [],
     experienceYears: 0,
@@ -51,7 +50,7 @@ export default function Stylists() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_BASE}/staffs`);
+      const response = await fetch(`${API_BASE}/staffs?includeInactive=true`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -110,7 +109,6 @@ export default function Stylists() {
       fullName: staff.fullName || "",
       email: staff.email || "",
       phone: staff.phone || "",
-      staffSpecialty: staffInfo.staffSpecialty || "",
       rating: staffInfo.rating || 0,
       speciality: Array.isArray(staffInfo.speciality) ? staffInfo.speciality : [],
       experienceYears: staffInfo.experienceYears || staffInfo.staffExperienceYears || 0,
@@ -143,18 +141,18 @@ export default function Stylists() {
           throw new Error(data?.message || "Failed to delete staff");
         }
 
-        toast.success("Deleted staff successfully");
+        toast.success("Staff set to inactive successfully");
         await loadStaffs();
       } catch (err) {
-        toast.error(err.message || "Delete failed");
-        setError(err.message || "Delete failed");
+        toast.error(err.message || "Deactivate failed");
+        setError(err.message || "Deactivate failed");
       }
     };
 
-    toast("Delete this staff?", {
-      description: "This action cannot be undone.",
+    toast("Set this staff to inactive?", {
+      description: "Staff will be hidden from booking and reschedule.",
       action: {
-        label: "Delete",
+        label: "Confirm",
         onClick: doDelete,
       },
       cancel: {
@@ -162,6 +160,23 @@ export default function Stylists() {
         onClick: () => {},
       },
     });
+  };
+
+  const handleActivate = async (staffId) => {
+    try {
+      const response = await fetch(`${API_BASE}/staffs/${staffId}/activate`, {
+        method: "PATCH",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.message || "Failed to activate staff");
+      }
+      toast.success("Staff set to active successfully");
+      await loadStaffs();
+    } catch (err) {
+      toast.error(err.message || "Activate failed");
+      setError(err.message || "Activate failed");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -234,7 +249,6 @@ export default function Stylists() {
       (Array.isArray(staffInfo.speciality) &&
         staffInfo.speciality.length > 0 &&
         staffInfo.speciality.join(", ")) ||
-      staffInfo.staffSpecialty ||
       user.speciality ||
       "-"
     );
@@ -295,7 +309,9 @@ export default function Stylists() {
                     <th className="px-5 py-3 text-left font-semibold">Speciality</th>
                     <th className="px-5 py-3 text-left font-semibold">Experience</th>
                     <th className="px-5 py-3 text-left font-semibold">Services</th>
+                    <th className="px-5 py-3 text-left font-semibold">Status</th>
                     <th className="px-5 py-3 text-left font-semibold">Rating</th>
+                    <th className="px-5 py-3 text-left font-semibold">Revenue</th>
                     <th className="px-5 py-3 text-right font-semibold">Actions</th>
                   </tr>
                 </thead>
@@ -313,6 +329,7 @@ export default function Stylists() {
                         };
 
                     const staffInfo = staff.staff || staff;
+                    const isActive = staffInfo?.isActive !== false;
                     const speciality = getDisplaySpeciality(user, staffInfo);
                     const experience = getDisplayExperience(staffInfo);
                     const serviceNames = Array.isArray(staffInfo.serviceIds)
@@ -423,10 +440,29 @@ export default function Stylists() {
                         </td>
 
                         <td className="px-5 py-4">
+                          <Badge
+                            variant={isActive ? "secondary" : "outline"}
+                            className={
+                              isActive
+                                ? "rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-100"
+                                : "rounded-full border-slate-300 text-slate-600"
+                            }
+                          >
+                            {isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </td>
+
+                        <td className="px-5 py-4">
                           <Badge className="rounded-full bg-amber-100 text-amber-700 hover:bg-amber-100">
                             <Award className="mr-1 h-3.5 w-3.5" />
                             {staffInfo.rating ?? "-"}
                           </Badge>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <span className="font-medium text-slate-700">
+                            {(staff.revenue || 0).toLocaleString("en-US")} VND
+                          </span>
                         </td>
 
                         <td className="px-5 py-4">
@@ -440,17 +476,29 @@ export default function Stylists() {
                               <Pencil className="mr-1 h-3.5 w-3.5" />
                               Edit
                             </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              className="rounded-lg"
-                              onClick={() =>
-                                handleDelete(staff.staff?._id || staff._id)
-                              }
-                            >
-                              <Trash2 className="mr-1 h-3.5 w-3.5" />
-                              Delete
-                            </Button>
+                            {isActive ? (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="rounded-lg"
+                                onClick={() =>
+                                  handleDelete(staff.staff?._id || staff._id)
+                                }
+                              >
+                                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                                Set Inactive
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                className="rounded-lg bg-emerald-500 text-white hover:bg-emerald-600"
+                                onClick={() =>
+                                  handleActivate(staff.staff?._id || staff._id)
+                                }
+                              >
+                                Set Active
+                              </Button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -504,18 +552,7 @@ export default function Stylists() {
             </div>
 
             <div className="grid gap-2">
-              <label className="text-sm font-medium text-slate-700">Specialty</label>
-              <Input
-                type="text"
-                name="staffSpecialty"
-                value={formData.staffSpecialty}
-                onChange={handleInputChange}
-                placeholder="Haircut, Coloring..."
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-slate-700">Speciality list</label>
+              <label className="text-sm font-medium text-slate-700">Speciality</label>
               <Input
                 type="text"
                 name="speciality"

@@ -4,7 +4,8 @@ import Rate from "../models/Rate.model.js";
 
 export const GetAllServices = async (req, res) => {
     try{
-        const services = await serviceService.getAllServices();
+        const includeInactive = String(req.query.includeInactive || "false").toLowerCase() === "true";
+        const services = await serviceService.getAllServices({ includeInactive });
         res.status(200).json(services);
     }catch (error) {
         res.status(400).json({message: "Get all service errror!", error: error.message });
@@ -13,7 +14,7 @@ export const GetAllServices = async (req, res) => {
 
 export const GetServiceById = async (req, res) => {
     try{
-        const service = await serviceService.getServiceById();
+        const service = await serviceService.getServiceById(req.params.id);
         res.status(200).json(service);
     }catch (error){
         res.status(400).json({message: "Get service by id error!", error: error.message });
@@ -38,12 +39,21 @@ export const UpdateService = async (req, res) => {
     }
 };
 
-export const DeleteService = async (req, res) =>{
+export const InactivateService = async (req, res) =>{
     try{
-        await serviceService.deleteService(req.params.id);
-        res.status(200).json({message: "Deleted service successful"});
+        const service = await serviceService.setServiceActive(req.params.id, false);
+        res.status(200).json({message: "Service inactivated successfully", service});
     }catch(error){
-        res.status(400).json({message: "Delete service errror", error: error.message });
+        res.status(400).json({message: "Inactivate service error", error: error.message });
+    }
+};
+
+export const ActivateService = async (req, res) =>{
+    try{
+        const service = await serviceService.setServiceActive(req.params.id, true);
+        res.status(200).json({message: "Service activated successfully", service});
+    }catch(error){
+        res.status(400).json({message: "Activate service error", error: error.message });
     }
 };
 

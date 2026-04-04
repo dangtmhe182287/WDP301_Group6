@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const API_BASE = "http://localhost:3000";
 
@@ -25,6 +26,41 @@ export default function Members() {
       setLoading(false);
     }
   };
+
+ const handleToggleBan = (id, currentStatus) => {
+  toast(`Do you want to ${currentStatus ? "unban" : "ban"} this user?`, {
+    action: {
+      label: "Accept",
+      onClick: async () => {
+        try {
+          const response = await fetch(
+            `${API_BASE}/users/admin/customers/${id}/ban`,
+            {
+              method: "PUT",
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to update status");
+          }
+
+          toast.success(
+            `${currentStatus ? "Unban" : "Ban"} user successfully!`
+          );
+
+          loadMembers();
+        } catch (err) {
+          toast.error(err.message);
+        }
+      },
+    },
+    cancel: {
+      label: "Reject",
+    },
+  });
+};
 
   useEffect(() => {
     loadMembers();
@@ -53,6 +89,8 @@ export default function Members() {
                 <th>Total bookings</th>
                 <th>No Show</th>
                 <th>No Show rate</th>
+                <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -94,6 +132,19 @@ export default function Members() {
                           {noShowRate}%
                         </span>
                       </div>
+                    </td>
+                    <td>
+                      <span className={customer.isBanned ? "stat-pill cancel-pill" : "stat-pill booking-pill"}>
+                        {customer.isBanned ? "Banned" : "Active"}
+                      </span>
+                    </td>
+                    <td>
+                      <button 
+                        onClick={() => handleToggleBan(customer._id, customer.isBanned)}
+                        className={`action-btn ${customer.isBanned ? "unban-btn" : "ban-btn"}`}
+                      >
+                        {customer.isBanned ? "Unban" : "Ban"}
+                      </button>
                     </td>
                   </tr>
                 );
@@ -220,6 +271,34 @@ export default function Members() {
 
         .good-rate {
           color: #059669;
+        }
+
+        .action-btn {
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          border: none;
+          transition: all 0.2s;
+        }
+
+        .ban-btn {
+          background: #fee2e2;
+          color: #be123c;
+        }
+
+        .ban-btn:hover {
+          background: #fecdd3;
+        }
+
+        .unban-btn {
+          background: #e0f2fe;
+          color: #0369a1;
+        }
+
+        .unban-btn:hover {
+          background: #bae6fd;
         }
       `}</style>
     </div>

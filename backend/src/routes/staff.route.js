@@ -6,6 +6,7 @@ const router = express.Router();
 router.get("/", staffController.getStaffs);
 router.post("/", staffController.createStaff);
 router.delete("/:id", staffController.deleteStaff);
+router.patch("/:id/activate", staffController.activateStaff);
 
 // appointments
 router.get("/appointments", staffController.getAppointments);

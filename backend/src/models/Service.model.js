@@ -29,6 +29,10 @@ const serviceSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        isActive: {
+            type: Boolean,
+            default: true,
+        },
         categoryId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Category",

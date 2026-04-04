@@ -24,13 +24,25 @@ import {
   Clock3,
   Wallet,
   Pencil,
-  Trash2,
+  Power,
   Sparkles,
 } from "lucide-react";
 
 const API_BASE = "http://localhost:3000";
 
 export default function Services() {
+  const getDefaultCategoryId = (categoryList = []) =>
+    categoryList?.[0]?._id || "";
+
+  const buildInitialFormData = (categoryId = "") => ({
+    name: "",
+    price: 0,
+    duration: 0,
+    description: "",
+    categoryId,
+    isFeatured: false,
+  });
+
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
@@ -42,29 +54,17 @@ export default function Services() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [editingCategoryName, setEditingCategoryName] = useState("");
-  const [formData, setFormData] = useState({
-    name: "",
-    price: 0,
-    duration: 0,
-    description: "",
-    categoryId: "",
-  });
+  const [formData, setFormData] = useState(buildInitialFormData());
 
   const resetForm = () => {
-    setFormData({
-      name: "",
-      price: 0,
-      duration: 0,
-      description: "",
-      categoryId: "",
-    });
+    setFormData(buildInitialFormData(getDefaultCategoryId(categories)));
   };
 
   const loadServices = async () => {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_BASE}/services`);
+      const response = await fetch(`${API_BASE}/services?includeInactive=true`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -93,7 +93,13 @@ export default function Services() {
     setLoadingCategories(true);
     try {
       const response = await axiosInstance.get("/categories");
-      setCategories(Array.isArray(response.data) ? response.data : []);
+      const list = Array.isArray(response.data) ? response.data : [];
+      setCategories(list);
+      setFormData((prev) => {
+        if (editingService) return prev;
+        if (prev.categoryId) return prev;
+        return { ...prev, categoryId: getDefaultCategoryId(list) };
+      });
     } catch (err) {
       setCategories([]);
     } finally {
@@ -119,36 +125,43 @@ export default function Services() {
       duration: service.duration || 0,
       description: service.description || "",
       categoryId: service.categoryId?._id || service.categoryId || "",
+      isFeatured: Boolean(service.isFeatured),
     });
     setShowModal(true);
   };
 
-  const handleDelete = async (serviceId) => {
-    const doDelete = async () => {
+  const handleToggleActive = async (service) => {
+    const nextActive = service?.isActive === false;
+    const doToggle = async () => {
       try {
-        const response = await fetch(`${API_BASE}/services/delete/${serviceId}`, {
-          method: "DELETE",
-        });
+        const response = await fetch(
+          `${API_BASE}/services/${service._id}/${nextActive ? "active" : "inactive"}`,
+          {
+            method: "PATCH",
+          },
+        );
 
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-          throw new Error(data?.message || "Failed to delete service");
+          throw new Error(data?.message || "Failed to update service status");
         }
 
-        toast.success("Deleted service successfully");
+        toast.success(nextActive ? "Service activated" : "Service inactivated");
         await loadServices();
       } catch (err) {
-        setError(err.message || "Delete failed");
-        toast.error(err.message || "Delete failed");
+        setError(err.message || "Update failed");
+        toast.error(err.message || "Update failed");
       }
     };
 
-    toast("Delete this service?", {
-      description: "This action cannot be undone.",
+    toast(nextActive ? "Activate this service?" : "Inactivate this service?", {
+      description: nextActive
+        ? "This service will be available for booking again."
+        : "This service will be hidden from booking screens.",
       action: {
-        label: "Delete",
-        onClick: doDelete,
+        label: nextActive ? "Activate" : "Inactivate",
+        onClick: doToggle,
       },
       cancel: {
         label: "Cancel",
@@ -174,6 +187,14 @@ export default function Services() {
     }
     if (!formData.description.trim()) {
       toast.error("Please enter a description");
+      return;
+    }
+    if (!formData.categoryId) {
+      toast.error("Please select a category");
+      return;
+    }
+    if (!categories.some((category) => category._id === formData.categoryId)) {
+      toast.error("Selected category is invalid");
       return;
     }
 
@@ -301,6 +322,7 @@ export default function Services() {
                 <th className="px-5 py-3 text-left font-semibold">Duration</th>
                 <th className="px-5 py-3 text-left font-semibold">Category</th>
                 <th className="px-5 py-3 text-left font-semibold">Featured</th>
+                <th className="px-5 py-3 text-left font-semibold">Status</th>
                 <th className="px-5 py-3 text-left font-semibold">Description</th>
                 <th className="px-5 py-3 text-right font-semibold">Actions</th>
               </tr>
@@ -310,7 +332,9 @@ export default function Services() {
               {list.map((service) => (
                 <tr
                   key={service._id}
-                  className="border-b last:border-0 transition hover:bg-slate-50/70"
+                  className={`border-b last:border-0 transition hover:bg-slate-50/70 ${
+                    service?.isActive === false ? "opacity-60" : ""
+                  }`}
                 >
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
@@ -361,6 +385,18 @@ export default function Services() {
                   </td>
 
                   <td className="px-5 py-4">
+                    {service?.isActive === false ? (
+                      <Badge variant="outline" className="rounded-full border-red-200 text-red-600">
+                        Inactive
+                      </Badge>
+                    ) : (
+                      <Badge className="rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+                        Active
+                      </Badge>
+                    )}
+                  </td>
+
+                  <td className="px-5 py-4">
                     <p className="max-w-[320px] text-slate-600 line-clamp-2">
                       {service.description}
                     </p>
@@ -379,13 +415,13 @@ export default function Services() {
                       </Button>
 
                       <Button
-                        variant="destructive"
+                        variant={service?.isActive === false ? "outline" : "destructive"}
                         size="sm"
                         className="rounded-lg"
-                        onClick={() => handleDelete(service._id)}
+                        onClick={() => handleToggleActive(service)}
                       >
-                        <Trash2 className="mr-1 h-3.5 w-3.5" />
-                        Delete
+                        <Power className="mr-1 h-3.5 w-3.5" />
+                        {service?.isActive === false ? "Activate" : "Inactivate"}
                       </Button>
                     </div>
                   </td>
@@ -518,8 +554,11 @@ export default function Services() {
                   value={formData.categoryId || ""}
                   onChange={handleInputChange}
                   className="h-10 w-full rounded-md border border-slate-200 px-3 text-sm"
+                  required
                 >
-                 
+                  <option value="" disabled>
+                    Select category
+                  </option>
                   {categories.map((category) => (
                     <option key={category._id} value={category._id}>
                       {category.name}
@@ -528,6 +567,10 @@ export default function Services() {
                 </select>
                 {loadingCategories ? (
                   <p className="text-xs text-slate-500">Loading categories...</p>
+                ) : categories.length === 0 ? (
+                  <p className="text-xs text-red-500">
+                    No category available. Please create one before adding service.
+                  </p>
                 ) : null}
               </div>
 

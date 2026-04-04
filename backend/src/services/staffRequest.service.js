@@ -31,13 +31,10 @@ export const getAllRequest = async () =>{
 
 export const approveRequest = async(requestId, adminNote) =>{
   const request = await StaffRequest.findById(requestId);
-  const existedStaff = await Staff.findOne({userId: request.userId});
   if(!request) throw new Error("Request not found");
+  const existedStaff = await Staff.findOne({userId: request.userId});
   if(request.status !== "pending") {
     throw new Error("Request already processed");
-  }
-   if(existedStaff){
-    throw new Error("User already a staff");
   }
   request.status = "approved";
   request.adminNote = adminNote;
@@ -45,25 +42,30 @@ export const approveRequest = async(requestId, adminNote) =>{
   await User.findByIdAndUpdate(request.userId, {
     role: "staff"
   });
- 
+
+  if (existedStaff) {
+    existedStaff.isActive = true;
+    existedStaff.speciality = request.speciality || existedStaff.speciality;
+    existedStaff.portfolio = request.portfolio || existedStaff.portfolio;
+    existedStaff.certificate = request.certificate || existedStaff.certificate;
+    await existedStaff.save();
+    return { request, staff: existedStaff };
+  }
+
   const newStaff = await Staff.create({
     userId: request.userId,
     speciality: request.speciality,
-    portfolio: request.portfolio
+    portfolio: request.portfolio,
+    certificate: request.certificate || {},
+    isActive: true,
   })
-  return {request, 
-    staff: newStaff
-  };
+  return {request, staff: newStaff };
 }
 export const rejectRequest = async(requestId, adminNote) =>{
   const request = await StaffRequest.findById(requestId);
   if(!request) throw new Error("Request not found");
-  const existedStaff = await Staff.findOne({userId: request.userId});
    if(request.status !== "pending") {
     throw new Error("Request already processed");
-  }
-   if(existedStaff){
-    throw new Error("User already a staff");
   }
   request.status = "rejected";
   request.adminNote = adminNote;

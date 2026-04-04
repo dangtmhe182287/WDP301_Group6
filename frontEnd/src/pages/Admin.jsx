@@ -134,7 +134,9 @@ function DashboardView() {
 function AdminNavItem({ to, icon: Icon, children }) {
   const location = useLocation();
   const isActive =
-    to === "/admin" ? location.pathname === "/admin" : location.pathname.startsWith(to);
+    to === "/admin"
+      ? location.pathname === "/admin"
+      : location.pathname === to || location.pathname.startsWith(`${to}/`);
 
   return (
     <Link

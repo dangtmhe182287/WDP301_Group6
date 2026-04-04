@@ -13,6 +13,27 @@ const deleteOldAvatar = (imgUrl) => {
   }
 };
 
+export const toggleBanCustomer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    if (user.role !== "customer") {
+      return res.status(400).json({ message: "Can only ban customers" });
+    }
+
+    user.isBanned = !user.isBanned;
+    await user.save();
+    
+    res.status(200).json({ message: user.isBanned ? "User banned successfully" : "User unbanned successfully", user });
+  } catch (error) {
+    res.status(400).json({ message: "Toggle ban user error", error: error.message });
+  }
+};
+
 export const updateMe = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -107,6 +128,7 @@ export const getCustomerStats = async (req, res) => {
           fullName: 1,
           email: 1,
           phone: 1,
+          isBanned: 1,
           totalBookings: { $size: "$appointments" },
           noShowBookings: {
             $size: {

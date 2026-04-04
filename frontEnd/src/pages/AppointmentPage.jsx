@@ -10,6 +10,7 @@ const MAX_TOTAL_DURATION = 270
 const DEFAULT_MAX_DAYS_AHEAD = 15
 const DEFAULT_CLOSE_MINUTE = 19 * 60
 const DEFAULT_MIN_LEAD_MINUTES = 60
+const DEFAULT_MAX_UNPAID_APPOINTMENTS = 2
 
 const formatDate = (date) => {
   const year = date.getFullYear()
@@ -88,18 +89,26 @@ function AppointmentPage() {
   const [checkingLimit, setCheckingLimit] = useState(false)
   const [maxDaysAhead, setMaxDaysAhead] = useState(DEFAULT_MAX_DAYS_AHEAD)
   const [minLeadMinutes, setMinLeadMinutes] = useState(DEFAULT_MIN_LEAD_MINUTES)
+  const [maxUnpaidAppointments, setMaxUnpaidAppointments] = useState(DEFAULT_MAX_UNPAID_APPOINTMENTS)
   const [closeMinute, setCloseMinute] = useState(DEFAULT_CLOSE_MINUTE)
+  const [myAppointments, setMyAppointments] = useState([])
+  const [slotOrderMap, setSlotOrderMap] = useState({})
+  const [selectedServiceOrder, setSelectedServiceOrder] = useState([])
 
   const selectedServices = useMemo(
     () => services.filter((service) => selectedServiceIds.includes(String(service._id))),
     [services, selectedServiceIds],
   )
+  const displayServiceOrder = useMemo(
+    () => (selectedServiceOrder.length > 0 ? selectedServiceOrder : selectedServiceIds),
+    [selectedServiceOrder, selectedServiceIds],
+  )
   const orderedSelectedServices = useMemo(
     () =>
-      selectedServiceIds
+      displayServiceOrder
         .map((id) => services.find((service) => String(service._id) === String(id)))
         .filter(Boolean),
-    [services, selectedServiceIds],
+    [services, displayServiceOrder],
   )
 
   const getServiceCategoryName = (service) =>
@@ -197,6 +206,23 @@ function AppointmentPage() {
     return map
   }, [selectedServiceIds, staffs])
 
+  const servicesWithoutStaff = useMemo(
+    () =>
+      selectedServiceIds.filter((serviceId) => {
+        const options = serviceStaffOptions.get(String(serviceId)) || []
+        return options.length === 0
+      }),
+    [selectedServiceIds, serviceStaffOptions],
+  )
+
+  const servicesWithoutStaffNames = useMemo(
+    () =>
+      servicesWithoutStaff
+        .map((id) => services.find((service) => String(service._id) === String(id))?.name)
+        .filter(Boolean),
+    [servicesWithoutStaff, services],
+  )
+
   const commonStaffIds = useMemo(() => {
     if (selectedServiceIds.length === 0) return []
     const sets = selectedServiceIds.map((serviceId) => {
@@ -275,16 +301,15 @@ function AppointmentPage() {
   }
 
   const moveService = (serviceId, direction) => {
-    setSelectedServiceIds((prev) => {
-      const index = prev.indexOf(serviceId)
-      if (index === -1) return prev
-      const nextIndex = direction === "up" ? index - 1 : index + 1
-      if (nextIndex < 0 || nextIndex >= prev.length) return prev
-      const next = [...prev]
-      const [item] = next.splice(index, 1)
-      next.splice(nextIndex, 0, item)
-      return next
-    })
+    const baseOrder = selectedServiceOrder.length > 0 ? selectedServiceOrder : selectedServiceIds
+    const index = baseOrder.indexOf(serviceId)
+    if (index === -1) return
+    const nextIndex = direction === "up" ? index - 1 : index + 1
+    if (nextIndex < 0 || nextIndex >= baseOrder.length) return
+    const next = [...baseOrder]
+    const [item] = next.splice(index, 1)
+    next.splice(nextIndex, 0, item)
+    setSelectedServiceOrder(next)
   }
 
   useEffect(() => {
@@ -297,6 +322,7 @@ function AppointmentPage() {
       })
       return next
     })
+    setSelectedServiceOrder([])
   }, [selectedServiceIds])
 
   useEffect(() => {
@@ -351,6 +377,9 @@ function AppointmentPage() {
         if (data?.closeMinute !== undefined) {
           setCloseMinute(data.closeMinute)
         }
+        if (data?.maxUnpaidAppointments !== undefined) {
+          setMaxUnpaidAppointments(data.maxUnpaidAppointments)
+        }
       } catch (error) {
         // keep defaults if settings cannot be loaded
       }
@@ -379,6 +408,28 @@ function AppointmentPage() {
     loadStaffs()
   }, [])
 
+  const fetchMyAppointments = async () => {
+    if (!user) return []
+    try {
+      const response = await axiosInstance.get("/appointments/my")
+      const list = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.appointments)
+          ? response.data.appointments
+          : []
+      setMyAppointments(list)
+      return list
+    } catch (error) {
+      setMyAppointments([])
+      return []
+    }
+  }
+
+  useEffect(() => {
+    if (step !== 2) return
+    fetchMyAppointments()
+  }, [user, step])
+
   useEffect(() => {
     const loadAvailability = async () => {
       if (step !== 2 || selectedServiceIds.length === 0 || !selectedDate) {
@@ -390,31 +441,68 @@ function AppointmentPage() {
       setSelectedStart(null)
       setAnyStaffId("")
       try {
+        const freshAppointments = user ? await fetchMyAppointments() : myAppointments
         if (isMultiStaff) {
           if (!allServiceStaffSelected) {
             setSlots([])
             setSlotStaffMap({})
+            setSlotOrderMap({})
             return
           }
-          const staffAssignments = selectedServiceIds.map((serviceId) => ({
-            serviceId,
-            staffId: serviceStaffSelections[String(serviceId)],
-          }))
-          const params = new URLSearchParams({
-            appointmentDate: selectedDate,
-            serviceIds: selectedServiceIds.join(","),
-            staffAssignments: JSON.stringify(staffAssignments),
-          })
-          const response = await fetch(`${API_BASE}/appointments/availability?${params.toString()}`)
-          const data = await response.json()
-          if (!response.ok) {
-            throw new Error(data?.error || data?.message || "Unable to load available slots")
+          const buildAssignments = (order) =>
+            order.map((serviceId) => ({
+              serviceId,
+              staffId: serviceStaffSelections[String(serviceId)],
+            }))
+
+          const fetchSlotsForOrder = async (order) => {
+            const params = new URLSearchParams({
+              appointmentDate: selectedDate,
+              serviceIds: order.join(","),
+              staffAssignments: JSON.stringify(buildAssignments(order)),
+            })
+            const response = await fetch(`${API_BASE}/appointments/availability?${params.toString()}`)
+            const data = await response.json()
+            if (!response.ok) {
+              throw new Error(data?.error || data?.message || "Unable to load available slots")
+            }
+            return data.slots || []
           }
-          setSlots(data.slots || [])
+
+          const baseOrder = [...selectedServiceIds]
+          const altOrder = [...selectedServiceIds].reverse()
+          const orders = [baseOrder]
+          if (altOrder.join(",") !== baseOrder.join(",")) {
+            orders.push(altOrder)
+          }
+
+          const results = await Promise.all(orders.map(fetchSlotsForOrder))
+          const merged = new Map()
+          const orderMap = {}
+          results.forEach((slotsForOrder, index) => {
+            const order = orders[index]
+            slotsForOrder.forEach((slot) => {
+              const existing = merged.get(slot.startMinute)
+              if (!existing) {
+                merged.set(slot.startMinute, slot)
+                if (slot.available) orderMap[slot.startMinute] = order
+                return
+              }
+              if (!existing.available && slot.available) {
+                merged.set(slot.startMinute, slot)
+                orderMap[slot.startMinute] = order
+              }
+            })
+          })
+
+          const combined = Array.from(merged.values()).sort((a, b) => a.startMinute - b.startMinute)
+          setSlots(blockSlotsByCustomer(combined, freshAppointments))
           setSlotStaffMap({})
+          setSlotOrderMap(orderMap)
         } else if (!selectedStaffId) {
           setSlots([])
           setSlotStaffMap({})
+          setSlotOrderMap({})
           return
         } else if (selectedStaffId === "ANY") {
           const staffIds = eligibleStaffs.map((s) => s._id).filter(Boolean)
@@ -459,10 +547,11 @@ function AppointmentPage() {
             return { ...slot, available, staffId }
           })
 
-          setSlots(combined)
+          setSlots(blockSlotsByCustomer(combined, freshAppointments))
           setSlotStaffMap(
             Object.fromEntries(combined.map((s) => [s.startMinute, s.staffId])),
           )
+          setSlotOrderMap({})
         } else {
           const params = new URLSearchParams({
             staffId: selectedStaffId,
@@ -481,13 +570,15 @@ function AppointmentPage() {
             throw new Error(data?.error || data?.message || "Unable to load available slots")
           }
 
-          setSlots(data.slots || [])
+          setSlots(blockSlotsByCustomer(data.slots || [], freshAppointments))
           setSlotStaffMap({})
+          setSlotOrderMap({})
         }
       } catch (error) {
         toast.error(error.message)
         setSlots([])
         setSlotStaffMap({})
+        setSlotOrderMap({})
       } finally {
         setLoadingSlots(false)
       }
@@ -531,9 +622,6 @@ function AppointmentPage() {
       toast.error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes.`)
       return
     }
-    if (checkingLimit) return
-    const limitOk = await checkBookingLimit()
-    if (!limitOk) return
     const latestAllowed = addDays(startOfDay(new Date()), maxDaysAhead)
     if (toLocalDate(selectedDate) > latestAllowed) {
       toast.error(`You can only book within ${maxDaysAhead} days from today.`)
@@ -541,8 +629,12 @@ function AppointmentPage() {
     }
 
     try {
+      const orderForBooking =
+        isMultiStaff && selectedServiceOrder.length > 0
+          ? selectedServiceOrder
+          : selectedServiceIds
       const staffAssignments = isMultiStaff
-        ? selectedServiceIds.map((serviceId) => ({
+        ? orderForBooking.map((serviceId) => ({
             serviceId,
             staffId: serviceStaffSelections[String(serviceId)],
           }))
@@ -559,7 +651,7 @@ function AppointmentPage() {
               ? anyStaffId
               : selectedStaffId,
           staffAssignments: staffAssignments || undefined,
-          serviceIds: selectedServiceIds,
+          serviceIds: orderForBooking,
           note,
           bookingChannel: "online",
           createdByRole: "customer",
@@ -618,8 +710,10 @@ function AppointmentPage() {
         if (booking?.status === "Cancelled" || booking?.status === "NoShow") return false
         return booking?.paymentStatus === "Unpaid" || booking?.status === "Scheduled"
       }).length
-      if (blockedCount >= 2) {
-        toast.error("You already have 2 unpaid or scheduled appointments. You cannot book more.")
+      if (blockedCount >= maxUnpaidAppointments) {
+        toast.error(
+          `You already have ${maxUnpaidAppointments} unpaid or scheduled appointments. You cannot book more.`,
+        )
         return false
       }
       return true
@@ -660,9 +754,35 @@ function AppointmentPage() {
     }
   }
 
+  const hasCustomerOverlap = (dateValue, startMinute, endMinute, appointmentsList = myAppointments) => {
+    if (!Array.isArray(appointmentsList) || appointmentsList.length === 0) return false
+    const dateKey = formatDate(toLocalDate(dateValue))
+    return appointmentsList.some((booking) => {
+      if (!booking) return false
+      if (booking.status === "Cancelled" || booking.status === "NoShow") return false
+      const bookingDateKey = formatDate(new Date(booking.appointmentDate))
+      if (bookingDateKey !== dateKey) return false
+      const bookingStart = parseTimeToMinutes(booking.startTime)
+      const bookingEnd = parseTimeToMinutes(booking.endTime)
+      return Math.max(startMinute, bookingStart) < Math.min(endMinute, bookingEnd)
+    })
+  }
+
+  const blockSlotsByCustomer = (slotList, appointmentsList = myAppointments) =>
+    (slotList || []).map((slot) => {
+      const blocked = hasCustomerOverlap(selectedDate, slot.startMinute, slot.endMinute, appointmentsList)
+      return blocked ? { ...slot, available: false, blockedByCustomer: true } : slot
+    })
+
   const handleGoStep2 = async () => {
     if (totalDuration > MAX_TOTAL_DURATION) {
       toast.error(`Total duration must be <= ${MAX_TOTAL_DURATION} minutes.`)
+      return
+    }
+    if (servicesWithoutStaff.length > 0) {
+      toast.error(
+        `No active staff for: ${servicesWithoutStaffNames.join(", ")}. Please remove these services.`,
+      )
       return
     }
     const limitOk = await checkBookingLimit()
@@ -761,6 +881,11 @@ function AppointmentPage() {
                   </div>
                 </div>
               ))}
+              {servicesWithoutStaffNames.length > 0 ? (
+                <p className="muted">
+                  No active staff for selected service(s): {servicesWithoutStaffNames.join(", ")}.
+                </p>
+              ) : null}
             </div>
           ) : null}
 
@@ -787,9 +912,9 @@ function AppointmentPage() {
                       {orderedSelectedServices.map((service) => {
                         const id = String(service._id)
                         const options = serviceStaffOptions.get(id) || []
-                        const index = selectedServiceIds.indexOf(id)
+                        const index = displayServiceOrder.indexOf(id)
                         const isFirst = index === 0
-                        const isLast = index === selectedServiceIds.length - 1
+                        const isLast = index === displayServiceOrder.length - 1
                         return (
                           <div key={id} className="service-staff-row">
                             <div className="service-staff-info">
@@ -841,6 +966,11 @@ function AppointmentPage() {
                     <>
                       {!loadingStaffs && eligibleStaffs.length === 0 ? (
                         <p className="muted">No matching barbers yet.</p>
+                      ) : null}
+                      {!loadingStaffs && servicesWithoutStaffNames.length > 0 ? (
+                        <p className="muted">
+                          No active staff for: {servicesWithoutStaffNames.join(", ")}.
+                        </p>
                       ) : null}
 
                       <div className="staff-grid horizontal" role="list">
@@ -1014,6 +1144,11 @@ function AppointmentPage() {
                               className={`slot-btn ${selectedStart === slot.startMinute ? "selected" : ""}`}
                               onClick={() => {
                                 setSelectedStart(slot.startMinute)
+                                if (isMultiStaff) {
+                                  const order = slotOrderMap[slot.startMinute]
+                                  const nextOrder = order || selectedServiceIds
+                                  setSelectedServiceOrder(nextOrder)
+                                }
                                 if (selectedStaffId === "ANY") {
                                   setAnyStaffId(slot.staffId || "")
                                 }
