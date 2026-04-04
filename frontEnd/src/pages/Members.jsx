@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const API_BASE = "http://localhost:3000";
 
@@ -26,19 +27,40 @@ export default function Members() {
     }
   };
 
-  const handleToggleBan = async (id, currentStatus) => {
-    try {
-      const response = await fetch(`${API_BASE}/users/admin/customers/${id}/ban`, {
-        method: "PUT",
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Failed to update status");
-      
-      loadMembers();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
+ const handleToggleBan = (id, currentStatus) => {
+  toast(`Do you want to ${currentStatus ? "unban" : "ban"} this user?`, {
+    action: {
+      label: "Accept",
+      onClick: async () => {
+        try {
+          const response = await fetch(
+            `${API_BASE}/users/admin/customers/${id}/ban`,
+            {
+              method: "PUT",
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to update status");
+          }
+
+          toast.success(
+            `${currentStatus ? "Unban" : "Ban"} user successfully!`
+          );
+
+          loadMembers();
+        } catch (err) {
+          toast.error(err.message);
+        }
+      },
+    },
+    cancel: {
+      label: "Reject",
+    },
+  });
+};
 
   useEffect(() => {
     loadMembers();
