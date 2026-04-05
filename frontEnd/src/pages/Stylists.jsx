@@ -141,11 +141,10 @@ export default function Stylists() {
           throw new Error(data?.message || "Failed to delete staff");
         }
 
-        toast.success("Staff set to inactive successfully");
+        window.alert("Staff set to inactive successfully");
         await loadStaffs();
       } catch (err) {
-        toast.error(err.message || "Deactivate failed");
-        setError(err.message || "Deactivate failed");
+        window.alert(err.message || "Deactivate failed");
       }
     };
 
@@ -175,7 +174,6 @@ export default function Stylists() {
       await loadStaffs();
     } catch (err) {
       toast.error(err.message || "Activate failed");
-      setError(err.message || "Activate failed");
     }
   };
 
@@ -206,7 +204,6 @@ export default function Stylists() {
       setShowModal(false);
       await loadStaffs();
     } catch (err) {
-      setError(err.message);
       toast.error(err.message || "Save failed");
     }
   };
