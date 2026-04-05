@@ -29,11 +29,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Search,
-  CalendarDays,
-  Users,
-} from "lucide-react";
+import { Search, CalendarDays, Users } from "lucide-react";
+
 const formatDate = (value) => {
   if (!value) return "-";
 
@@ -55,12 +52,19 @@ const formatTimeRange = (startTime, endTime) => {
 
 const getServiceName = (appointment, serviceId) => {
   const snapshot = Array.isArray(appointment?.serviceSnapshots)
-    ? appointment.serviceSnapshots.find((item) => String(item?.serviceId || item?._id) === String(serviceId))
+    ? appointment.serviceSnapshots.find(
+        (item) => String(item?.serviceId || item?._id) === String(serviceId)
+      )
     : null;
+
   if (snapshot?.name) return snapshot.name;
+
   const service = Array.isArray(appointment?.serviceIds)
-    ? appointment.serviceIds.find((item) => String(item?._id || item) === String(serviceId))
+    ? appointment.serviceIds.find(
+        (item) => String(item?._id || item) === String(serviceId)
+      )
     : null;
+
   return service?.name || "Service";
 };
 
@@ -68,6 +72,7 @@ const getAssignmentSegments = (appointment) => {
   const assignments = Array.isArray(appointment?.serviceStaffAssignments)
     ? appointment.serviceStaffAssignments
     : [];
+
   return assignments
     .slice()
     .sort((a, b) => (a.startMinute || 0) - (b.startMinute || 0))
@@ -92,16 +97,24 @@ const parseDateTime = (dateStr, timeStr) => {
   return d;
 };
 
-const isFuture = (a) => {
-  const time = parseDateTime(a.appointmentDate, a.startTime);
+const isFuture = (appointment) => {
+  const time = parseDateTime(appointment.appointmentDate, appointment.startTime);
   return time && time > new Date();
 };
+
 export default function Appointments() {
   const [appointments, setAppointments] = useState([]);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [alertOpen, setAlertOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState(null);
+
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [selectedNote, setSelectedNote] = useState({
+    customerName: "",
+    note: "",
+  });
+
   const navigate = useNavigate();
 
   const fetchData = async () => {
@@ -120,7 +133,7 @@ export default function Appointments() {
   const updateStatus = async (id, status) => {
     try {
       await staffService.updateStatus(id, status);
-      fetchData();
+      await fetchData();
     } catch (error) {
       console.error("Update status error:", error);
     }
@@ -129,7 +142,7 @@ export default function Appointments() {
   const confirmPayment = async (id) => {
     try {
       await staffService.confirmPayment(id);
-      fetchData();
+      await fetchData();
     } catch (error) {
       console.error("Confirm payment error:", error);
     }
@@ -146,6 +159,18 @@ export default function Appointments() {
       actionType,
     });
     setAlertOpen(true);
+  };
+
+  const handleOpenNote = (appointment) => {
+    setSelectedNote({
+      customerName:
+        appointment.customerId?.fullName ||
+        appointment.customerName ||
+        appointment.walkInCustomerName ||
+        "Walk-in customer",
+      note: appointment.note || "",
+    });
+    setNoteOpen(true);
   };
 
   const handleConfirmAction = async () => {
@@ -167,60 +192,66 @@ export default function Appointments() {
     }
   };
 
-  const filters = ["All", "Pending", "Scheduled", "Completed", "Cancelled", "NoShow"];
+  const filters = [
+    "All",
+    "Pending",
+    "Scheduled",
+    "Completed",
+    "Cancelled",
+    "NoShow",
+  ];
 
-const filtered = useMemo(() => {
-  let data =
-    filter === "All"
-      ? appointments
-      : appointments.filter((a) => a.status === filter);
+  const filtered = useMemo(() => {
+    let data =
+      filter === "All"
+        ? appointments
+        : appointments.filter((a) => a.status === filter);
 
-  const keyword = search.trim().toLowerCase();
+    const keyword = search.trim().toLowerCase();
 
-  if (keyword) {
-    data = data.filter((a) => {
-      const customerName =
-        a.customerId?.fullName || a.customerName || a.walkInCustomerName || "";
-      const phone = a.customerId?.phone || "";
-      const paymentStatus = a.paymentStatus || "Unpaid";
-      const status = a.status || "";
+    if (keyword) {
+      data = data.filter((a) => {
+        const customerName =
+          a.customerId?.fullName || a.customerName || a.walkInCustomerName || "";
+        const phone = a.customerId?.phone || "";
+        const paymentStatus = a.paymentStatus || "Unpaid";
+        const status = a.status || "";
+        const note = a.note || "";
 
-      return (
-        customerName.toLowerCase().includes(keyword) ||
-        phone.toLowerCase().includes(keyword) ||
-        paymentStatus.toLowerCase().includes(keyword) ||
-        status.toLowerCase().includes(keyword)
-      );
-    });
-  }
-
-  const now = new Date();
-
-  return [...data].sort((a, b) => {
-    const timeA = parseDateTime(a.appointmentDate, a.startTime);
-    const timeB = parseDateTime(b.appointmentDate, b.startTime);
-
-    if (!timeA || !timeB) return 0;
-
-    const diffA = timeA - now;
-    const diffB = timeB - now;
-
-    const isFutureA = diffA >= 0;
-    const isFutureB = diffB >= 0;
-
-    // ✅ Ưu tiên lịch tương lai
-    if (isFutureA && !isFutureB) return -1;
-    if (!isFutureA && isFutureB) return 1;
-
-    // ✅ Nếu đều là tương lai → gần hiện tại hơn lên đầu
-    if (isFutureA && isFutureB) {
-      return diffA - diffB;
+        return (
+          customerName.toLowerCase().includes(keyword) ||
+          phone.toLowerCase().includes(keyword) ||
+          paymentStatus.toLowerCase().includes(keyword) ||
+          status.toLowerCase().includes(keyword) ||
+          note.toLowerCase().includes(keyword)
+        );
+      });
     }
 
-    // ✅ Nếu đều quá khứ → cái mới xảy ra gần đây lên đầu
-    return Math.abs(diffA) - Math.abs(diffB);
-  });
-}, [appointments, filter, search]);
+    const now = new Date();
+
+    return [...data].sort((a, b) => {
+      const timeA = parseDateTime(a.appointmentDate, a.startTime);
+      const timeB = parseDateTime(b.appointmentDate, b.startTime);
+
+      if (!timeA || !timeB) return 0;
+
+      const diffA = timeA - now;
+      const diffB = timeB - now;
+
+      const isFutureA = diffA >= 0;
+      const isFutureB = diffB >= 0;
+
+      if (isFutureA && !isFutureB) return -1;
+      if (!isFutureA && isFutureB) return 1;
+
+      if (isFutureA && isFutureB) {
+        return diffA - diffB;
+      }
+
+      return Math.abs(diffA) - Math.abs(diffB);
+    });
+  }, [appointments, filter, search]);
 
   const getBadgeVariant = (status) => {
     switch (status) {
@@ -285,7 +316,6 @@ const filtered = useMemo(() => {
   return (
     <div className="min-h-screen bg-muted/30">
       <div className="mx-auto max-w-7xl space-y-6 p-4 md:p-6">
-        {/* Header */}
         <div className="rounded-3xl border bg-background shadow-sm">
           <div className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between md:p-8">
             <div className="space-y-2">
@@ -304,7 +334,7 @@ const filtered = useMemo(() => {
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search customer, phone, payment, status..."
+                  placeholder="Search customer, phone, payment, status, note..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="h-11 rounded-xl pl-10"
@@ -314,7 +344,6 @@ const filtered = useMemo(() => {
           </div>
         </div>
 
-        {/* Filter */}
         <Card className="rounded-2xl shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Filter by status</CardTitle>
@@ -337,7 +366,6 @@ const filtered = useMemo(() => {
           </CardContent>
         </Card>
 
-        {/* Table */}
         <Card className="overflow-hidden rounded-2xl shadow-sm">
           <CardHeader className="border-b bg-muted/20">
             <div className="flex items-center gap-3">
@@ -362,6 +390,7 @@ const filtered = useMemo(() => {
                     <TableHead className="min-w-[140px]">Date & Time</TableHead>
                     <TableHead className="min-w-[120px]">Status</TableHead>
                     <TableHead className="min-w-[120px]">Payment</TableHead>
+                    <TableHead className="min-w-[120px]">Note</TableHead>
                     <TableHead className="min-w-[280px]">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -369,7 +398,7 @@ const filtered = useMemo(() => {
                 <TableBody>
                   {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-12 text-center">
+                      <TableCell colSpan={6} className="py-12 text-center">
                         <div className="flex flex-col items-center gap-3">
                           <div className="rounded-full bg-muted p-4">
                             <CalendarDays className="h-6 w-6 text-muted-foreground" />
@@ -386,112 +415,137 @@ const filtered = useMemo(() => {
                   ) : (
                     filtered.map((a) => {
                       const segments = getAssignmentSegments(a);
+
                       return (
-                      <TableRow key={a._id} className="hover:bg-muted/20">
-                        <TableCell>
-                          <div
-                            className="cursor-pointer font-semibold text-primary transition hover:underline"
-                            onClick={() =>
-                              a.customerId?._id &&
-                              navigate(`/staff/customer/${a.customerId._id}`)
-                            }
-                          >
-                            {a.customerId?.fullName ||
-                              a.customerName ||
-                              a.walkInCustomerName ||
-                              "Walk-in customer"}
-                          </div>
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            {a.customerId?.phone || "-"}
-                          </div>
-                        </TableCell>
+                        <TableRow key={a._id} className="hover:bg-muted/20">
+                          <TableCell>
+                            <div
+                              className="cursor-pointer font-semibold text-primary transition hover:underline"
+                              onClick={() =>
+                                a.customerId?._id &&
+                                navigate(`/staff/customer/${a.customerId._id}`)
+                              }
+                            >
+                              {a.customerId?.fullName ||
+                                a.customerName ||
+                                a.walkInCustomerName ||
+                                "Walk-in customer"}
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {a.customerId?.phone || "-"}
+                            </div>
+                          </TableCell>
 
-                        <TableCell className="font-medium">
-                          <div className="flex flex-col">
-                            <span>{formatDate(a.appointmentDate)}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatTimeRange(a.startTime, a.endTime)}
-                            </span>
-                            {segments.length > 0 ? (
-                              <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                                {segments.map((segment, index) => (
-                                  <div key={`${segment.serviceName}-${index}`}>
-                                    {segment.serviceName}: {formatTimeRange(segment.startTime, segment.endTime)}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : null}
-                          </div>
-</TableCell>
+                          <TableCell className="font-medium">
+                            <div className="flex flex-col">
+                              <span>{formatDate(a.appointmentDate)}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatTimeRange(a.startTime, a.endTime)}
+                              </span>
 
-                        <TableCell>
-                          <Badge
-                            variant={getBadgeVariant(a.status)}
-                            className="rounded-full"
-                          >
-                            {a.status === "NoShow" ? "No Show" : a.status}
-                          </Badge>
-                        </TableCell>
+                              {segments.length > 0 ? (
+                                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                                  {segments.map((segment, index) => (
+                                    <div key={`${segment.serviceName}-${index}`}>
+                                      {segment.serviceName}:{" "}
+                                      {formatTimeRange(
+                                        segment.startTime,
+                                        segment.endTime
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                          </TableCell>
 
-                        <TableCell>
-                          <Badge
-                            variant={
-                              a.paymentStatus === "Paid" ? "default" : "secondary"
-                            }
-                            className="rounded-full"
-                          >
-                            {a.paymentStatus || "Unpaid"}
-                          </Badge>
-                        </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={getBadgeVariant(a.status)}
+                              className="rounded-full"
+                            >
+                              {a.status === "NoShow" ? "No Show" : a.status}
+                            </Badge>
+                          </TableCell>
 
-                        <TableCell>
-                          <div className="flex flex-wrap items-center gap-2">
-<Button
-  size="sm"
-  className="rounded-lg"
-  onClick={() => handleOpenAlert(a, "complete")}
-  disabled={a.status === "Completed" || isFuture(a)}
->
-  {isFuture(a) ? "Not yet" : "Complete"}
-</Button>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                a.paymentStatus === "Paid"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                              className="rounded-full"
+                            >
+                              {a.paymentStatus || "Unpaid"}
+                            </Badge>
+                          </TableCell>
 
-<Button
-  size="sm"
-  variant="outline"
-  className="rounded-lg"
-  onClick={() => handleOpenAlert(a, "no-show")}
-  disabled={
-    ["Completed", "Cancelled", "NoShow"].includes(a.status) || isFuture(a)
-  }
->
-  {isFuture(a) ? "Not yet" : "No Show"}
-</Button>
-
+                          <TableCell>
                             <Button
                               size="sm"
                               variant="outline"
                               className="rounded-lg"
-                              onClick={() => handleOpenAlert(a, "paid")}
-                              disabled={
-                                a.paymentStatus === "Paid" ||
-                                a.status !== "Completed"
-                              }
+                              onClick={() => handleOpenNote(a)}
                             >
-                              Mark as Paid
+                              {a.note ? "View Note" : "No Note"}
                             </Button>
+                          </TableCell>
 
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              className="rounded-lg"
-                              onClick={() => handleOpenAlert(a, "cancel")}
-                              disabled={["Cancelled", "NoShow"].includes(a.status)}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                          <TableCell>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                size="sm"
+                                className="rounded-lg"
+                                onClick={() => handleOpenAlert(a, "complete")}
+                                disabled={
+                                  a.status === "Completed" || isFuture(a)
+                                }
+                              >
+                                {isFuture(a) ? "Not yet" : "Complete"}
+                              </Button>
+
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-lg"
+                                onClick={() => handleOpenAlert(a, "no-show")}
+                                disabled={
+                                  ["Completed", "Cancelled", "NoShow"].includes(
+                                    a.status
+                                  ) || isFuture(a)
+                                }
+                              >
+                                {isFuture(a) ? "Not yet" : "No Show"}
+                              </Button>
+
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-lg"
+                                onClick={() => handleOpenAlert(a, "paid")}
+                                disabled={
+                                  a.paymentStatus === "Paid" ||
+                                  a.status !== "Completed"
+                                }
+                              >
+                                Mark as Paid
+                              </Button>
+
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="rounded-lg"
+                                onClick={() => handleOpenAlert(a, "cancel")}
+                                disabled={["Cancelled", "NoShow"].includes(
+                                  a.status
+                                )}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       );
                     })
                   )}
@@ -514,6 +568,26 @@ const filtered = useMemo(() => {
             <AlertDialogCancel>No</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmAction}>
               {alertContent.actionText}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={noteOpen} onOpenChange={setNoteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Appointment Note - {selectedNote.customerName}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+             <div className="max-h-[300px] overflow-y-auto whitespace-pre-wrap break-words break-all rounded-md border p-3 text-sm text-foreground">
+  {selectedNote.note || "No note for this appointment."}
+</div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setNoteOpen(false)}>
+              Close
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
